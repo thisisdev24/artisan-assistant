@@ -1,21 +1,102 @@
 import { useState } from 'react';
+import { Link,useNavigate } from "react-router-dom";
+import Navbar from "../components/Navbar/Navbar";
+
 import axios from 'axios';
-export default function Login(){
-  const [email,setEmail]=useState('');
-  const [password,setPassword]=useState('');
-  async function submit(e){
+
+const Login = () => {
+   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("buyer"); // default role
+  const navigate = useNavigate();
+
+  // 🔹 Define handleSubmit BEFORE using it in <form onSubmit={handleSubmit}>
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const res = await axios.post(import.meta.env.VITE_API_URL + '/api/auth/login', { email, password });
-    console.log(res.data);
-    // save token -> localStorage
-    localStorage.setItem('token', res.data.token);
-    window.location.href = '/';
-  }
+    try {
+      const res = await axios.post("http://localhost:5000/api/auth/login", {
+        email,
+        password,
+        role,
+      });
+
+      // Save token + role in localStorage
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("role", res.data.user.role);
+
+      navigate("/"); // redirect after login
+    } catch (err) {
+      alert(err.response?.data?.msg || "Login failed");
+    }
+  };
   return (
-    <form onSubmit={submit}>
-      <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="email"/>
-      <input value={password} onChange={e=>setPassword(e.target.value)} placeholder="password" type="password"/>
-      <button type="submit">Login</button>
-    </form>
+    <>
+      {/* <Navbar /> */}
+      <div className="min-h-screen bg-gray-100 flex flex-col justify-center items-center">
+        <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-lg">
+          <h2 className="text-3xl font-bold text-center text-black mb-6">Login</h2>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            {/* Role dropdown */}
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="buyer">Buyer</option>
+              <option value="seller">Seller</option>
+              <option value="admin">Admin</option>
+            </select>
+
+            <button
+              type="submit"
+              className="bg-gradient-to-r from-primary to-secondary text-white py-3 rounded-md hover:scale-105 duration-200 font-semibold"
+            >
+              Login
+            </button>
+          </form>
+          <p className="text-sm text-gray-600 text-center mt-4">
+            Don't have an account?{" "}
+            <Link to="/register" className="text-primary font-semibold hover:underline">
+              Register
+            </Link>
+          </p>
+        </div>
+      </div>
+    </>
   );
-}
+};
+
+export default Login;
+// export default function Login(){
+//   const [email,setEmail]=useState('');
+//   const [password,setPassword]=useState('');
+//   async function submit(e){
+//     e.preventDefault();
+//     const res = await axios.post(import.meta.env.VITE_API_URL + '/api/auth/login', { email, password });
+//     console.log(res.data);
+//     // save token -> localStorage
+//     localStorage.setItem('token', res.data.token);
+//     window.location.href = '/';
+//   }
+//   return (
+//     <form onSubmit={submit}>
+//       <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="email"/>
+//       <input value={password} onChange={e=>setPassword(e.target.value)} placeholder="password" type="password"/>
+//       <button type="submit">Login</button>
+//     </form>
+//   );
+// }

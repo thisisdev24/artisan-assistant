@@ -5,7 +5,9 @@ import { PiShoppingCartThin } from "react-icons/pi";
 import { FaDumbbell } from "react-icons/fa";
 import { SiSnapcraft } from "react-icons/si";
 import { MdMenu } from "react-icons/md";
+import { Link } from "react-router-dom"; // Import Link
 import ResponsiveMenu from './ResponsiveMenu';
+
 const Navbar = () => {
     const [open,setOpen]=React.useState(false);
 
@@ -45,12 +47,17 @@ const Navbar = () => {
                  duration-200 '>
                             <PiShoppingCartThin />
                         </button>
-                        <button className='text-primary hover:bg-primary font-semibold  hover:text-white p-2 rounded-md
-                 border-2 border-primary px-6 py-2  duration-200 hidden md:block'>Login
-                        </button>
+                        {/* Login & Register buttons */}
+                        <div className='hidden md:flex gap-2'>
+                            <Link to="/login" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
+                                Login
+                            </Link>
+                            <Link to="/register" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
+                                Register
+                            </Link>
+                        </div>
                     </div>
-                    {/* cart section */}
-                    {/* mobile humber menu saction*/}
+                    {/* mobile hamburger menu section */}
                     <div className='md:hidden ' onClick={()=>setOpen(!open)}>
                         <MdMenu className='text-4xl ' />
                     </div>
@@ -58,7 +65,7 @@ const Navbar = () => {
             </nav>
             {/* mobile sidebar section */}
             <ResponsiveMenu/>
-            </>
+        </>
     )
 }
 
