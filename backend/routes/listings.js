@@ -1,8 +1,21 @@
 // backend/src/routes/listings.js
 const express = require('express');
+const multer = require('multer');
+const path = require('path');
 const Listing = require('../models/Listing'); // adjust path if your model is elsewhere
 
 const router = express.Router();
+
+// Set up multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, '../uploads'));
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage });
 
 // GET /api/listings/  -> list (paginated simple)
 router.get('/', async (req, res) => {

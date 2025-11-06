@@ -2,11 +2,9 @@ const mongoose = require("mongoose");
 
 // MongoDB Atlas URL (replace with your credentials if using Atlas)
 
-// Localhost URL
-const LOCAL_URL = "mongodb://127.0.0.1:27017/";
 
 // Use either Atlas or Local based on environment
-const MONGO_URL = process.env.MONGO_URL || LOCAL_URL;
+const MONGO_URL = process.env.MONGO_URL ;
 
 const connectDB = async () => {
     try {
