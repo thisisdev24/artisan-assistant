@@ -11,10 +11,12 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Hero from './components/hero/Hero';
+import Seller from './components/Artist/Seller'
 // import Products from "./pages/Products";
 // import Artists from "./pages/Artists";
 // import Shorts from "./pages/Shorts";
 // import Contact from "./pages/Contact";
+
 
 function App() {
   return (
@@ -25,6 +27,9 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/Seller" element={<Seller/>}/>
+
+
         {/* <Route path="/products" element={<Products />} />
         <Route path="/artists" element={<Artists />} />
         <Route path="/shorts" element={<Shorts />} />

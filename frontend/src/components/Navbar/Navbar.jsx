@@ -14,7 +14,7 @@ const Navbar = () => {
     return (
         <>
             <nav>
-                <div className='container flex justify-between items-center py-8 '>
+                <div className='pl-12 container flex justify-between items-center py-8 '>
                     {/* logo section */}
                     <div className='text-2xl flex items-center gap-2 font-bold uppercase'>
                         <SiSnapcraft />
@@ -48,7 +48,7 @@ const Navbar = () => {
                             <PiShoppingCartThin />
                         </button>
                         {/* Login & Register buttons */}
-                        <div className='hidden md:flex gap-2'>
+                        <div className='pl-32 hidden md:flex gap-2'>
                             <Link to="/login" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
                                 Login
                             </Link>
