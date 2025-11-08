@@ -1,23 +1,38 @@
 {
   "name": "backend",
   "version": "1.0.0",
+  "jest": {
+    "testEnvironment": "node",
+    "setupFilesAfterEnv": [
+      "<rootDir>/test/setup.js"
+    ],
+    "testTimeout": 30000
+  },
   "scripts": {
-    "dev": "nodemon app.js",
-    "start": "node app.js"
+    "dev": "nodemon server.js",
+    "start": "node server.js",
+    "test": "jest --runInBand"
   },
   "dependencies": {
     "@faker-js/faker": "^10.0.0",
+    "@google-cloud/storage": "^7.17.3",
+    "axios": "^1.13.2",
     "bcryptjs": "^2.4.3",
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.2",
+    "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.19.0",
-    "mongoose": "^7.8.7"
+    "mongoose": "^7.8.7",
+    "multer": "^2.0.2",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
-    "nodemon": "^2.0.22"
+    "jest": "^30.2.0",
+    "mongodb-memory-server": "^10.3.0",
+    "nodemon": "^3.1.10",
+    "supertest": "^7.1.4"
   },
   "description": "",
   "main": "index.js",

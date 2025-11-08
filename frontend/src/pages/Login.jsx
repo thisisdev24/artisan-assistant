@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { Link,useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar/Navbar";
+import Seller from '../components/Artist/Seller';
+// import Buyer from '../components/Buyer/Buyer';
+// import Admin from '../components/Admin/Admin';
 
 import axios from 'axios';
 
 const Login = () => {
-   const [email, setEmail] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("buyer"); // default role
   const navigate = useNavigate();
@@ -24,7 +27,24 @@ const Login = () => {
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("role", res.data.user.role);
 
-      navigate("/"); // redirect after login
+      // Role-based redirect
+      if (role === res.data.user.role) {
+        if (res.data.user.role === "seller") {
+          navigate("/Seller");
+        } else if (res.data.user.role === "buyer") {
+          navigate("/");
+        }
+        else if (res.data.user.role === "admin") {
+          navigate("/Admin");
+        }
+        else {
+          navigate("/");
+        }
+      } else {
+        alert("Role mismatch");
+        throw err;
+      }
+
     } catch (err) {
       alert(err.response?.data?.msg || "Login failed");
     }
