@@ -11,7 +11,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Hero from './components/hero/Hero';
-// import Products from "./pages/Products";
+import Products from "./pages/CreateListing";
 // import Artists from "./pages/Artists";
 // import Shorts from "./pages/Shorts";
 // import Contact from "./pages/Contact";
@@ -25,8 +25,8 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        {/* <Route path="/products" element={<Products />} />
-        <Route path="/artists" element={<Artists />} />
+        <Route path="/products" element={<Products />} />
+        {/*<Route path="/artists" element={<Artists />} />
         <Route path="/shorts" element={<Shorts />} />
         <Route path="/contact" element={<Contact />} /> */}
       </Routes>
