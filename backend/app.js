@@ -10,4 +10,7 @@ app.use(express.urlencoded({ extended: true }));
 const listings = require('./routes/listings');
 app.use('/api/listings', listings);
 
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
+
 module.exports = app;

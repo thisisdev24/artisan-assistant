@@ -1,9 +1,8 @@
-import { motion,AnimatePresence } from 'framer-motion'
+import { AnimatePresence } from 'framer-motion'
 import React from 'react'
 
 const ResponsiveMenu = ({open}) => {
-  return 
-    <AnimatePresence mode='wait'>
+  return <AnimatePresence mode='wait'>
         {
             open && (
                 <motion.div

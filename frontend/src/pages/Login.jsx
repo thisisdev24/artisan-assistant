@@ -42,7 +42,7 @@ const Login = () => {
         }
       } else {
         alert("Role mismatch");
-        throw err;
+        throw new Error();
       }
 
     } catch (err) {
