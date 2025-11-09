@@ -1,2 +1,11 @@
-sentence-transformers==2.2.2
-torch>=2.0.0
+fastapi
+uvicorn[standard]
+sentence-transformers>=2.2.2
+transformers
+torch            # or torch-cpu if you want cpu-only wheel
+pillow
+faiss-cpu
+requests
+python-multipart
+pydantic
+motor           # async Mongo driver (optional)

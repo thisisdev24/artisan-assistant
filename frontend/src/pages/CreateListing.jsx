@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import axios from 'axios';
 
-export default function CreateListing() {
+const CreateListing = () => {
   const [title,setTitle]=useState(''); const [price,setPrice]=useState('');
   const [files,setFiles]=useState([]);
   const [description,setDescription]=useState('');
@@ -38,3 +38,5 @@ export default function CreateListing() {
     </form>
   );
 }
+
+export default CreateListing;

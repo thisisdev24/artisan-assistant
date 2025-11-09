@@ -22,7 +22,7 @@ const Seller = () => {
                         List a new product for buyers to discover and purchase.
                     </p>
                     <button
-                        onClick={() => handleNavigation("/seller/add-product")}
+                        onClick={() => handleNavigation("/CreateListing")}
                         className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-transform hover:scale-105"
                     >
                         Add Product
