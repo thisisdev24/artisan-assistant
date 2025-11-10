@@ -2,9 +2,18 @@ import { useState } from 'react'
 import axios from 'axios';
 
 const CreateListing = () => {
-  const [title, setTitle] = useState(''); const [price, setPrice] = useState('');
+  const [main_category] = useState('Handmade');
+  const [title, setTitle] = useState('');
+  const [average_rating] = useState('');
+  const [rating_number] = useState('');
+  const [features] = useState([]);
+  const [description, setDescription] = useState([]);
+  const [price, setPrice] = useState('');
   const [files, setFiles] = useState([]);
-  const [description, setDescription] = useState('');
+  const [store] = useState('');
+  const [categories] = useState([]);
+  const [details] = useState('');
+  const [parent_asin] = useState('');
   const token = localStorage.getItem('token');
 
   async function handleAutoDesc() {
@@ -18,14 +27,23 @@ const CreateListing = () => {
   async function submit(e) {
     e.preventDefault();
     const formData = new FormData();
+    formData.append('main_category', main_category);
     formData.append('title', title);
-    formData.append('price', price);
+    formData.append('average_rating', average_rating);
+    formData.append('rating_number', rating_number);
+    formData.append('features', features);
     formData.append('description', description);
+    formData.append('price', price);
     files.forEach(f => formData.append('images', f));
+    files.forEach(f => formData.append('videos', f));
+    formData.append('store', store);
+    formData.append('categories', categories);
+    formData.append('details', details);
+    formData.append('parent_asin', parent_asin);
+
     const res = await axios.post('http://localhost:5000/api/listings/upload', formData, { headers: { 'Content-Type': 'multipart/form-data', 'Authorization': 'Bearer ' + token } });
     alert('created');
     alert(JSON.stringify(res.data, ["title", "price", "description"], 2));
-
 
     window.location.href = `/listings/${res.data._id}`;
   }
