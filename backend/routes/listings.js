@@ -14,49 +14,70 @@ function makeKey(filename) {
 }
 
 // Create listing (multipart/form-data)
-router.post('/upload', upload.array('images', 6), async (req, res) => {
-  try {
-    const { title, description, price } = req.body;
-    if (!title || !price) return res.status(400).json({ error: 'validation', message: 'title and price required' });
-    const numericPrice = parseFloat(price);
-    if (Number.isNaN(numericPrice)) return res.status(400).json({ error: 'validation', message: 'price must be a number' });
+// allow both images and videos
+router.post('/upload',
+  upload.fields([{ name: 'images', maxCount: 6 }, { name: 'videos', maxCount: 6 }]),
+  async (req, res) => {
+    try {
+      const {
+        main_category, title, average_rating, rating_number, features,
+        description, price, store, categories, details, parent_asin
+      } = req.body;
 
-    const imagesMeta = [];
-    for (const file of req.files || []) {
-      const key = makeKey(file.originalname);
-      await uploadBuffer(file.buffer, key, file.mimetype);
+      if (!title || !price) return res.status(400).json({ error: 'validation', message: 'title and price required' });
+      const numericPrice = parseFloat(price);
+      if (Number.isNaN(numericPrice)) return res.status(400).json({ error: 'validation', message: 'price must be a number' });
 
-      let thumbBuf;
-      try {
-        thumbBuf = await createThumbnailBuffer(file.buffer, 320);
-      } catch (thumbErr) {
-        console.warn('Thumbnail generation failed for', file.originalname, thumbErr);
-        // fallback: use original image buffer (or create a tiny placeholder)
-        thumbBuf = file.buffer;
+      // req.files is an object when using fields()
+      const imageFiles = (req.files && req.files['images']) || [];
+      const videoFiles = (req.files && req.files['videos']) || [];
+
+      const imagesMeta = [];
+      for (const file of imageFiles) {
+        const key = makeKey(file.originalname);
+        await uploadBuffer(file.buffer, key, file.mimetype);
+
+        let thumbBuf;
+        try {
+          thumbBuf = await createThumbnailBuffer(file.buffer, 320);
+        } catch (thumbErr) {
+          console.warn('Thumbnail generation failed for', file.originalname, thumbErr);
+          thumbBuf = file.buffer;
+        }
+        const thumbKey = key.replace(/(\.[^.]+)$/, '_thumb$1');
+        await uploadBuffer(thumbBuf, thumbKey, 'image/jpeg');
+
+        const url = await getSignedReadUrl(key, 24 * 60 * 60 * 1000);
+        const thumbnailUrl = await getSignedReadUrl(thumbKey, 24 * 60 * 60 * 1000);
+
+        imagesMeta.push({ key, url, thumbnailUrl });
       }
-      const thumbKey = key.replace(/(\.[^.]+)$/, '_thumb$1');
-      await uploadBuffer(thumbBuf, thumbKey, 'image/jpeg');
 
-      const url = await getSignedReadUrl(key, 24 * 60 * 60 * 1000);
-      const thumbnailUrl = await getSignedReadUrl(thumbKey, 24 * 60 * 60 * 1000);
+      const videosMeta = [];
+      for (const file of videoFiles) {
+        const key = makeKey(file.originalname);
+        await uploadBuffer(file.buffer, key, file.mimetype);
+        const url = await getSignedReadUrl(key, 24 * 60 * 60 * 1000);
+        videosMeta.push({ key, url });
+      }
 
-      imagesMeta.push({ key, url, thumbnailUrl });
+      const listing = await Listing.create({
+        main_category, title, average_rating, rating_number, features,
+        description, store, categories, details, parent_asin,
+        price: numericPrice,
+        images: imagesMeta,   // array of {key,url,thumbnailUrl}
+        videos: videosMeta    // array of {key,url}
+      });
+
+      res.status(201).json(listing);
+    } catch (err) {
+      console.error('List create err', err);
+      if (err.name === 'ValidationError') return res.status(400).json({ error: 'validation', message: err.message });
+      res.status(500).json({ error: 'internal', message: err.message });
     }
-
-    const listing = await Listing.create({
-      title, description, price: numericPrice,
-      images: imagesMeta
-    });
-
-    // Optionally trigger ML embedding job here (async)
-
-    res.status(201).json(listing);
-  } catch (err) {
-    console.error('List create err', err);
-    if (err.name === 'ValidationError') return res.status(400).json({ error: 'validation', message: err.message });
-    res.status(500).json({ error: 'internal', message: err.message });
   }
-});
+);
+
 
 // GET list
 // inside backend/src/routes/listings.js (add if missing)
