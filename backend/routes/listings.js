@@ -3,7 +3,7 @@ const router = express.Router();
 const Listing = require('../models/Listing');
 const upload = require('../middleware/upload');
 const { createThumbnailBuffer } = require('../utils/image');
-const { uploadBuffer, getSignedReadUrl} = require('../utils/gcs');
+const { uploadBuffer, getSignedReadUrl } = require('../utils/gcs');
 const path = require('path');
 const crypto = require('crypto');
 
@@ -14,13 +14,13 @@ function makeKey(filename) {
 }
 
 // Create listing (multipart/form-data)
-router.post('/', upload.array('images', 6), async (req, res) => {
+router.post('/upload', upload.array('images', 6), async (req, res) => {
   try {
-    const { title, description, price} = req.body;
+    const { title, description, price } = req.body;
     if (!title || !price) return res.status(400).json({ error: 'validation', message: 'title and price required' });
     const numericPrice = parseFloat(price);
     if (Number.isNaN(numericPrice)) return res.status(400).json({ error: 'validation', message: 'price must be a number' });
-  
+
     const imagesMeta = [];
     for (const file of req.files || []) {
       const key = makeKey(file.originalname);
@@ -37,14 +37,14 @@ router.post('/', upload.array('images', 6), async (req, res) => {
       const thumbKey = key.replace(/(\.[^.]+)$/, '_thumb$1');
       await uploadBuffer(thumbBuf, thumbKey, 'image/jpeg');
 
-      const url = await getSignedReadUrl(key, 24*60*60*1000);
-      const thumbnailUrl = await getSignedReadUrl(thumbKey, 24*60*60*1000);
+      const url = await getSignedReadUrl(key, 24 * 60 * 60 * 1000);
+      const thumbnailUrl = await getSignedReadUrl(thumbKey, 24 * 60 * 60 * 1000);
 
       imagesMeta.push({ key, url, thumbnailUrl });
     }
 
     const listing = await Listing.create({
-      title, description, price: numericPrice, 
+      title, description, price: numericPrice,
       images: imagesMeta
     });
 

@@ -10,7 +10,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Hero from './components/hero/Hero';
 import Seller from './components/Artist/Seller'
-import CreateListing from './pages/CreateListing';
+import CreateListing from './components/Artist/CreateListing';
 // import Products from "./pages/Products";
 // import Artists from "./pages/Artists";
 // import Shorts from "./pages/Shorts";
