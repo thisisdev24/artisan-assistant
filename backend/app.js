@@ -13,4 +13,8 @@ app.use('/api/listings', listings);
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 
+// after other routes
+const genDesc = require('./routes/generateDescription');
+app.use('/api/generate_description', genDesc);
+
 module.exports = app;

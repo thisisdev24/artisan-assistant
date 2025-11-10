@@ -75,9 +75,7 @@ router.post('/upload',
       if (err.name === 'ValidationError') return res.status(400).json({ error: 'validation', message: err.message });
       res.status(500).json({ error: 'internal', message: err.message });
     }
-  }
-);
-
+  });
 
 // GET list
 // inside backend/src/routes/listings.js (add if missing)

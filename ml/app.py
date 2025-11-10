@@ -8,6 +8,7 @@ from PIL import Image
 import requests
 from models import get_text_model, get_image_model
 from faiss_index import FaissIndex
+from generate_description import generate_description
 
 APP_PORT = int(os.environ.get("PORT", 8000))
 DATA_DIR = os.environ.get("DATA_DIR", "data")
@@ -23,6 +24,17 @@ DIM = text_model.get_sentence_embedding_dimension()  # note: clip model may have
 index = FaissIndex(dim=DIM, index_path=os.path.join(DATA_DIR, 'index.faiss'), meta_path=os.path.join(DATA_DIR, 'meta.json'))
 
 app = FastAPI(title="Embedding & FAISS Service")
+
+class GenReq(BaseModel):
+    title: str
+    features: list = None
+    category: str = None
+    tone: str = "friendly and concise"
+
+@app.post("/generate_description")
+async def gen_description(req: GenReq):
+    desc = generate_description(title=req.title, features=req.features or [], category=req.category, tone=req.tone)
+    return {"description": desc}
 
 class IndexRequest(BaseModel):
     listing_id: str
