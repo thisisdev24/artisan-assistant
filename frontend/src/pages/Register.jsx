@@ -9,13 +9,14 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState("buyer"); // default role
+  const [store, setStore] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (password !== confirmPassword) return alert("Passwords do not match");
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/register", { name, email, password, role });
+      const res = await axios.post("http://localhost:5000/api/auth/register", { name, email, password, role , store});
       localStorage.setItem("token", res.data.token); // store JWT
       navigate("/Login") // redirect after registration
     } catch (err) {
@@ -58,6 +59,7 @@ const Register = () => {
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             />
+            
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
@@ -67,6 +69,16 @@ const Register = () => {
               <option value="seller">Seller</option>
               <option value="admin">Admin</option>
             </select>
+
+            {(role === "seller") ? (
+            <input id="storeInput"
+            placeholder="Store" 
+            value={store}
+            onChange={(e) => setStore(e.target.value)}
+              className="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            ) : null }
+
             <button
               type="submit"
               className="bg-gradient-to-r from-primary to-secondary text-white py-3 rounded-md hover:scale-105 duration-200 font-semibold"

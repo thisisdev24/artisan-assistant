@@ -18,8 +18,12 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    default: "buyer" // default role
+    default: "seller" // default role
+  },
+  store: {
+    type: String,
+    required: true
   }
 }, { timestamps: true });
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.model("Artisan", userSchema);
