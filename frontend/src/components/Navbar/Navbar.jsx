@@ -7,9 +7,28 @@ import { SiSnapcraft } from "react-icons/si";
 import { MdMenu } from "react-icons/md";
 import { Link } from "react-router-dom"; // Import Link
 import ResponsiveMenu from './ResponsiveMenu';
+import { useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
-    const [open,setOpen]=React.useState(false);
+    const [open, setOpen] = React.useState(false);
+    const [searchOpen, setSearchOpen] = React.useState(false); // for showing search input
+    const [searchQuery, setSearchQuery] = React.useState('');  // for input value
+    const navigate = useNavigate();
+
+    // handle form submission
+    const handleSearchSubmit = (e) => {
+        e.preventDefault();
+        if (searchQuery.trim() !== '') {
+            navigate(`/search?query=${encodeURIComponent(searchQuery)}`);
+            setSearchOpen(false);
+            setSearchQuery('');
+        }
+    };
+    // Handles closing search bar (when pressing escape or clicking X)
+    const closeSearch = () => {
+        setSearchOpen(false);
+        setSearchQuery('');
+    };
 
     return (
         <>
@@ -39,32 +58,61 @@ const Navbar = () => {
                     </div>
                     {/* icons section */}
                     <div className='flex items-center gap-4'>
-                        <button className='text-2xl hover:bg-primary hover:text-white p-2 rounded-full
+                        {/* icons section */}
+                        <div className="flex items-center gap-4 relative">
+                            {/* Search button */}
+                            <button
+                                onClick={() => setSearchOpen(!searchOpen)}
+                                className="text-2xl hover:bg-primary hover:text-white p-2 rounded-full duration-200"
+                            >
+                                <CiSearch />
+                            </button>
+
+                            {/* Animated search input */}
+                            {searchOpen && (
+                                <form
+                                    onSubmit={handleSearchSubmit}
+                                    className="absolute top-full left-0 mt-2 bg-white border border-gray-300 rounded-full flex items-center shadow-lg overflow-hidden transition-all duration-300 w-64"
+                                >
+                                    <input
+                                        type="text"
+                                        placeholder="Search products..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="flex-grow px-4 py-2 outline-none text-gray-700"
+                                        autoFocus
+                                    />
+                                    <button
+                                        type="submit"
+                                        className="bg-primary text-white px-4 py-2 font-semibold hover:bg-indigo-700 transition-all"
+                                    >
+                                        Go
+                                    </button>
+                                </form>
+                            )}
+                            <button className='text-2xl hover:bg-primary hover:text-white p-2 rounded-full
                  duration-200 '>
-                            <CiSearch />
-                        </button>
-                        <button className='text-2xl hover:bg-primary hover:text-white p-2 rounded-full
-                 duration-200 '>
-                            <PiShoppingCartThin />
-                        </button>
-                        {/* Login & Register buttons */}
-                        <div className='pl-32 hidden md:flex gap-2'>
-                            <Link to="/login" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
-                                Login
-                            </Link>
-                            <Link to="/register" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
-                                Register
-                            </Link>
+                                <PiShoppingCartThin />
+                            </button>
+                            {/* Login & Register buttons */}
+                            <div className='pl-32 hidden md:flex gap-2'>
+                                <Link to="/login" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
+                                    Login
+                                </Link>
+                                <Link to="/register" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
+                                    Register
+                                </Link>
+                            </div>
                         </div>
-                    </div>
-                    {/* mobile hamburger menu section */}
-                    <div className='md:hidden ' onClick={()=>setOpen(!open)}>
-                        <MdMenu className='text-4xl ' />
+                        {/* mobile hamburger menu section */}
+                        <div className='md:hidden ' onClick={() => setOpen(!open)}>
+                            <MdMenu className='text-4xl ' />
+                        </div>
                     </div>
                 </div>
             </nav>
             {/* mobile sidebar section */}
-            <ResponsiveMenu/>
+            <ResponsiveMenu />
         </>
     )
 }
