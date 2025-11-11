@@ -26,8 +26,8 @@ logger = logging.getLogger("gen_desc")
 
 # Module-level cached generator
 _generator = None
-_MODEL_NAME = os.getenv("GEN_DESC_MODEL", "google/flan-t5-small")  # small, fast
-_MAX_TOKENS = int(os.getenv("GEN_DESC_MAX_TOKENS", "80"))
+_MODEL_NAME = os.getenv("GEN_DESC_MODEL", "google/flan-t5-large")  # small, fast
+_MAX_TOKENS = int(os.getenv("GEN_DESC_MAX_TOKENS", "200"))
 
 
 def _init_generator():
