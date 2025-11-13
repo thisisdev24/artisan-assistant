@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 const LIMIT = 30;
 
-const ShowListing = () => {
+const ShowListingPublic = () => {
   const [products, setProducts] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -178,4 +178,4 @@ const ShowListing = () => {
   );
 };
 
-export default ShowListing;
+export default ShowListingPublic;
