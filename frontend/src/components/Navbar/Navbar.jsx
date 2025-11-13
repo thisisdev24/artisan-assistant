@@ -25,9 +25,11 @@ const Navbar = () => {
         }
     };
     // Handles closing search bar (when pressing escape or clicking X)
-    const closeSearch = () => {
-        setSearchOpen(false);
-        setSearchQuery('');
+    const closeSearchOnMouseOut = () => {
+        if(searchQuery.length === 0) {
+            setSearchOpen(false);
+            setSearchQuery('');
+        }
     };
 
     return (
@@ -62,23 +64,24 @@ const Navbar = () => {
                         <div className="flex items-center gap-4 relative">
                             {/* Search button */}
                             <button
-                                onClick={() => setSearchOpen(!searchOpen)}
+                                onMouseEnter={() => setSearchOpen(!searchOpen)}
                                 className="text-2xl hover:bg-primary hover:text-white p-2 rounded-full duration-200"
                             >
-                                <CiSearch />
+                                {searchOpen? '' : <CiSearch/> }
                             </button>
-
+                            
                             {/* Animated search input */}
                             {searchOpen && (
                                 <form
                                     onSubmit={handleSearchSubmit}
-                                    className="absolute top-full left-0 mt-2 bg-white border border-gray-300 rounded-full flex items-center shadow-lg overflow-hidden transition-all duration-300 w-64"
+                                    className="absolute top-full left-0 mt-2 bg-white border border-gray-300 rounded-full flex items-center shadow-lg overflow-hidden transition-all duration-300 w-64 relative"
                                 >
                                     <input
                                         type="text"
                                         placeholder="Search products..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
+                                        onMouseLeave={() => closeSearchOnMouseOut()}
                                         className="flex-grow px-4 py-2 outline-none text-gray-700"
                                         autoFocus
                                     />
@@ -95,6 +98,16 @@ const Navbar = () => {
                                 <PiShoppingCartThin />
                             </button>
                             {/* Login & Register buttons */}
+                            {searchOpen?
+                            <div className='pl-18 hidden md:flex gap-2'>
+                                <Link to="/login" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
+                                    Login
+                                </Link>
+                                <Link to="/register" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
+                                    Register
+                                </Link>
+                            </div>
+                            :
                             <div className='pl-32 hidden md:flex gap-2'>
                                 <Link to="/login" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
                                     Login
@@ -103,6 +116,7 @@ const Navbar = () => {
                                     Register
                                 </Link>
                             </div>
+                            }
                         </div>
                         {/* mobile hamburger menu section */}
                         <div className='md:hidden ' onClick={() => setOpen(!open)}>

@@ -29,7 +29,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/Seller" element={<Seller />} />
         <Route path="/CreateListing" element={<CreateListing />} />
-        <Route path="/seller/ShowListing" element={<ShowListing />} />
+        <Route path="/ShowListing" element={<ShowListing />} />
         <Route path="/SearchResults" element={<SearchResults />} />
         {/*<Route path="/artists" element={<Artists />} />
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Listing = require('../models/Listing');
+const Artisan = require('../models/Artisan');
 const upload = require('../middleware/upload');
 const { createThumbnailBuffer } = require('../utils/image');
 const { uploadBuffer, getSignedReadUrl } = require('../utils/gcs');
@@ -13,6 +14,9 @@ function makeKey(filename) {
   return `images/${id}${ext}`;
 }
 
+function getStore(id) {
+
+}
 // Create listing (multipart/form-data)
 // allow both images and videos
 router.post('/upload',
@@ -78,16 +82,85 @@ router.post('/upload',
   });
 
 // GET list
-// inside backend/src/routes/listings.js (add if missing)
-router.get('/:id', async (req, res) => {
+// in backend/src/routes/listings.js
+
+// GET /api/listings/retrieve?store=<storeName>&artisanId=<artisanId>&page=1&limit=20
+router.get('/retrieve', async (req, res) => {
   try {
-    const doc = await Listing.findById(req.params.id);
-    if (!doc) return res.status(404).json({ error: 'not_found' });
-    res.json(doc);
+    const { store: storeQuery, artisanId, page = 1, limit = 20 } = req.query;
+
+    // parse pagination values, enforce sane bounds
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const lim = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * lim;
+
+    let storeName = null;
+    if (storeQuery) {
+      storeName = String(storeQuery).trim();
+    } else if (artisanId) {
+      const artisan = await Artisan.findById(artisanId).select('store').lean();
+      if (!artisan) return res.status(404).json({ error: 'artisan_not_found' });
+      storeName = artisan.store;
+    }
+
+    const filter = storeName ? { store: storeName } : {};
+
+    // Try to fetch with index-backed sort and pagination
+    try {
+      const docs = await Listing.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(lim)
+        .select('title description price images createdAt')
+        .lean();
+
+      const mapped = docs.map(doc => {
+        let imageUrl;
+        if (Array.isArray(doc.images) && doc.images.length > 0) {
+          imageUrl = doc.images[0].thumbnailUrl || doc.images[0].url;
+        }
+        return {
+          _id: doc._id,
+          title: doc.title,
+          description: doc.description,
+          price: doc.price,
+          imageUrl,
+          createdAt: doc.createdAt
+        };
+      });
+
+      return res.json(mapped);
+    } catch (err) {
+      console.warn('Primary find() with sort failed, attempting fallback query:', err.message);
+
+      // If the sort failed due to memory limits, fallback: return a limited unsorted set (or use aggregation with allowDiskUse)
+      // Fallback: no sort, small limit
+      const fallbackDocs = await Listing.find(filter)
+        .limit(Math.min(lim, 50))
+        .select('title description price images createdAt')
+        .lean();
+
+      const mappedFallback = fallbackDocs.map(doc => {
+        let imageUrl;
+        if (Array.isArray(doc.images) && doc.images.length > 0) {
+          imageUrl = doc.images[0].thumbnailUrl || doc.images[0].url;
+        }
+        return {
+          _id: doc._id,
+          title: doc.title,
+          description: doc.description,
+          price: doc.price,
+          imageUrl,
+          createdAt: doc.createdAt
+        };
+      });
+
+      return res.json(mappedFallback);
+    }
   } catch (err) {
-    res.status(500).json({ error: 'internal', message: err.message });
+    console.error('Error in /retrieve:', err);
+    return res.status(500).json({ error: 'internal', message: err.message });
   }
 });
-
 
 module.exports = router;

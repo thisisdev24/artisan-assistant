@@ -30,4 +30,7 @@ const listingSchema = new mongoose.Schema({
   embedding_created_at: { type: Date, default: null }
 });
 
+// IMPORTANT: create an index on createdAt to support sort({createdAt: -1})
+listingSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Listing', listingSchema);
