@@ -69,7 +69,7 @@ const Navbar = () => {
                             >
                                 {searchOpen? '' : <CiSearch/> }
                             </button>
-
+                            
                             {/* Animated search input */}
                             {searchOpen && (
                                 <form

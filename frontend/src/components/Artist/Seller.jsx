@@ -38,7 +38,7 @@ const Seller = () => {
                         Browse through all your listed products.
                     </p>
                     <button
-                        onClick={() => handleNavigation("/seller/ShowListing")}
+                        onClick={() => handleNavigation("/ShowListing")}
                         className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-semibold transition-transform hover:scale-105"
                     >
                         View Products
