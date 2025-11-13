@@ -6,8 +6,8 @@ import numpy as np
 import io
 from PIL import Image
 import requests
-from models import get_text_model, get_image_model
-from faiss_index import FaissIndex
+#from models import get_text_model, get_image_model
+from faiss_index import FaissTextIndexer
 from generate_description import generate_description
 
 APP_PORT = int(os.environ.get("PORT", 8000))
@@ -15,13 +15,18 @@ DATA_DIR = os.environ.get("DATA_DIR", "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 
 # models
-text_model = get_text_model()
-image_model = get_image_model()
+#text_model = get_text_model()
+#image_model = get_image_model()
 
 # dimension (models should match)
-DIM = text_model.get_sentence_embedding_dimension()  # note: clip model may have different dim; choose strategy
+#DIM = text_model.get_sentence_embedding_dimension()  # note: clip model may have different dim; choose strategy
 # If dim differs between text and image models, project to same dim or average after mapping. For simplicity require same dim.
-index = FaissIndex(dim=DIM, index_path=os.path.join(DATA_DIR, 'index.faiss'), meta_path=os.path.join(DATA_DIR, 'meta.json'))
+index = FaissTextIndexer(
+    db_name="test",
+    collection_name="listings",
+    data_dir=DATA_DIR,
+    mongo_uri=os.environ.get("MONGO_URI", "mongodb://localhost:27017")
+)
 
 app = FastAPI(title="Embedding & FAISS Service")
 

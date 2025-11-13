@@ -7,7 +7,7 @@ export const NavbarMenu = [
   {
     id: 2,
     title: "Products",
-    link: "/products",
+    link: "/ShowListingPublic",
   },
   {
     id: 3,
