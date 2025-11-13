@@ -9,3 +9,7 @@ requests
 python-multipart
 pydantic
 motor           # async Mongo driver (optional)
+pymongo
+numpy
+pandas
+pytz
