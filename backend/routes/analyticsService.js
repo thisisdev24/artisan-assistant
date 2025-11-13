@@ -1,5 +1,5 @@
 // routes/analyticsService.js
-const { connectAnalyticsDB } = require("../db/connectAnalyticsDB");
+const { connectAnalyticsDB } = require("../db/connectAnalyticsDB.js");
 const { connectLogDB } = require("../db/connectLogDB"); // read logs_base
 const DailyStatsSchema = require("../models/analytics/dailyStats");
 const UserActivitySchema = require("../models/analytics/userActivity");
