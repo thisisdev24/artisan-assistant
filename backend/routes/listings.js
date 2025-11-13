@@ -84,14 +84,13 @@ router.post('/upload',
 // GET list
 // in backend/src/routes/listings.js
 
-// GET /api/listings/retrieve?store=<storeName>&artisanId=<artisanId>&page=1&limit=20
+// GET /api/listings/retrieve?store=<storeName>&artisanId=<artisanId>&page=1&limit=30
 router.get('/retrieve', async (req, res) => {
   try {
-    const { store: storeQuery, artisanId, page = 1, limit = 20 } = req.query;
-
-    // parse pagination values, enforce sane bounds
-    const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const lim = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const { store: storeQuery, artisanId } = req.query;
+    // default page=1 and limit=30 (30 per page)
+    const pageNum = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const lim = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 30));
     const skip = (pageNum - 1) * lim;
 
     let storeName = null;
@@ -107,12 +106,16 @@ router.get('/retrieve', async (req, res) => {
 
     // Try to fetch with index-backed sort and pagination
     try {
-      const docs = await Listing.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(lim)
-        .select('title description price images createdAt')
-        .lean();
+      // Fetch documents and total count in parallel
+      const [docs, total] = await Promise.all([
+        Listing.find(filter)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(lim)
+          .select('title description price images average_rating rating_number createdAt')
+          .lean(),
+        Listing.countDocuments(filter)
+      ]);
 
       const mapped = docs.map(doc => {
         let imageUrl;
@@ -124,20 +127,21 @@ router.get('/retrieve', async (req, res) => {
           title: doc.title,
           description: doc.description,
           price: doc.price,
+          average_rating: doc.average_rating,
+          rating_number: doc.rating_number,
           imageUrl,
           createdAt: doc.createdAt
         };
       });
 
-      return res.json(mapped);
+      return res.json({ results: mapped, total, page: pageNum, limit: lim });
     } catch (err) {
       console.warn('Primary find() with sort failed, attempting fallback query:', err.message);
 
-      // If the sort failed due to memory limits, fallback: return a limited unsorted set (or use aggregation with allowDiskUse)
-      // Fallback: no sort, small limit
+      // Fallback: small unsorted set and approximate total
       const fallbackDocs = await Listing.find(filter)
         .limit(Math.min(lim, 50))
-        .select('title description price images createdAt')
+        .select('title description price images average_rating rating_number createdAt')
         .lean();
 
       const mappedFallback = fallbackDocs.map(doc => {
@@ -150,12 +154,17 @@ router.get('/retrieve', async (req, res) => {
           title: doc.title,
           description: doc.description,
           price: doc.price,
+          average_rating: doc.average_rating,
+          rating_number: doc.rating_number,
           imageUrl,
           createdAt: doc.createdAt
         };
       });
 
-      return res.json(mappedFallback);
+      // total fallback: use collection count (may be expensive)
+      const total = await Listing.countDocuments(filter).catch(() => mappedFallback.length);
+
+      return res.json({ results: mappedFallback, total, page: pageNum, limit: lim });
     }
   } catch (err) {
     console.error('Error in /retrieve:', err);
