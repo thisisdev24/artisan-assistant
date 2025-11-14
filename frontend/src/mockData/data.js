@@ -25,3 +25,11 @@ export const NavbarMenu = [
     link: "/contact",
   },
 ];
+
+export const SearchBar = [
+  {
+    id: 1,
+    title: "Go",
+    link: "/SearchResults"
+  },
+];

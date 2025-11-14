@@ -1,156 +1,184 @@
 # ml/app.py
 import os
-from fastapi import FastAPI, UploadFile, File, Form
-from pydantic import BaseModel
-import numpy as np
-import io
-from PIL import Image
-import requests
-#from models import get_text_model, get_image_model
-from faiss_index import FaissTextIndexer
-from generate_description import generate_description
+import logging
+from contextlib import asynccontextmanager
+from typing import Optional
 
+import numpy as np
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from sentence_transformers import SentenceTransformer
+
+from faiss_index import FaissTextIndexer
+
+# ---------------------------
+# Configuration
+# ---------------------------
 APP_PORT = int(os.environ.get("PORT", 8000))
 DATA_DIR = os.environ.get("DATA_DIR", "data")
-os.makedirs(DATA_DIR, exist_ok=True)
+TEXT_EMBED_MODEL = os.environ.get("TEXT_EMBED_MODEL", "all-MiniLM-L6-v2")
+MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017")
+ML_DB = os.environ.get("ML_MONGO_DB", "test")
+ML_COLLECTION = os.environ.get("ML_MONGO_COLLECTION", "listings")
+DEFAULT_K = int(os.environ.get("DEFAULT_K", 10))
 
-# models
-#text_model = get_text_model()
-#image_model = get_image_model()
+# ---------------------------
+# Logging
+# ---------------------------
+logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(levelname)s: %(message)s")
+LOG = logging.getLogger("ml_service")
 
-# dimension (models should match)
-#DIM = text_model.get_sentence_embedding_dimension()  # note: clip model may have different dim; choose strategy
-# If dim differs between text and image models, project to same dim or average after mapping. For simplicity require same dim.
-index = FaissTextIndexer(
-    db_name="test",
-    collection_name="listings",
-    data_dir=DATA_DIR,
-    mongo_uri=os.environ.get("MONGO_URI", "mongodb://localhost:27017")
-)
+# ---------------------------
+# Globals (initialized in lifespan)
+# ---------------------------
+text_model: Optional[SentenceTransformer] = None
+indexer: Optional[FaissTextIndexer] = None
+index_ntotal: int = 0
+index_dim: Optional[int] = None
 
+# ---------------------------
+# FastAPI app with lifespan
+# ---------------------------
 app = FastAPI(title="Embedding & FAISS Service")
 
-class GenReq(BaseModel):
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+    allow_credentials=True,
+)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global text_model, indexer, index_ntotal, index_dim
+    # startup
+    try:
+        LOG.info("Loading text embedding model: %s", TEXT_EMBED_MODEL)
+        text_model = SentenceTransformer(TEXT_EMBED_MODEL)
+        LOG.info("Text model loaded.")
+    except Exception as e:
+        LOG.exception("Failed to load text model: %s", e)
+        text_model = None
+
+    try:
+        LOG.info("Initializing FaissTextIndexer (mongo=%s db=%s coll=%s)", MONGO_URI, ML_DB, ML_COLLECTION)
+        indexer = FaissTextIndexer(db_name=ML_DB, collection_name=ML_COLLECTION, data_dir=DATA_DIR, mongo_uri=MONGO_URI)
+        try:
+            index_ntotal = int(getattr(indexer.index, "ntotal", 0))
+        except Exception:
+            index_ntotal = 0
+        index_dim = getattr(indexer, "dim", None)
+        LOG.info("Indexer ready. ntotal=%s dim=%s", index_ntotal, index_dim)
+    except Exception as e:
+        LOG.exception("Failed to initialize indexer: %s", e)
+        indexer = None
+        index_ntotal = 0
+        index_dim = None
+
+    yield
+
+    # shutdown
+    LOG.info("Shutting down ML service.")
+    # (no explicit cleanup required for current objects)
+
+app.router.lifespan_context = lifespan
+
+# ---------------------------
+# Request models
+# ---------------------------
+class GenerateSearchReq(BaseModel):
+    query: str
+    k: int = DEFAULT_K
+
+class GenDescReq(BaseModel):
     title: str
-    features: list = None
-    category: str = None
+    features: Optional[list] = None
+    category: Optional[str] = None
     tone: str = "friendly and concise"
 
+# ---------------------------
+# Endpoints
+# ---------------------------
+@app.get("/health")
+def health():
+    return {
+        "ok": True,
+        "text_model_loaded": text_model is not None,
+        "index_loaded": indexer is not None,
+        "index_ntotal": index_ntotal,
+        "index_dim": index_dim
+    }
+
+@app.post("/generate_search_results")
+def generate_search_results(req: GenerateSearchReq):
+    q = (req.query or "").strip()
+    k = max(1, min(int(req.k or DEFAULT_K), 100))
+    if not q:
+        return {"results": []}
+
+    if text_model is None:
+        LOG.error("Text model not loaded.")
+        return {"results": [], "error": "text_model_not_loaded"}
+    if indexer is None:
+        LOG.error("Indexer not initialized.")
+        return {"results": [], "error": "index_not_initialized"}
+
+    try:
+        qvec = text_model.encode([q], convert_to_numpy=True)
+        if qvec is None or len(qvec) == 0:
+            LOG.error("Empty encoding for query.")
+            return {"results": []}
+        query_vector = np.asarray(qvec[0], dtype="float32")
+    except Exception as e:
+        LOG.exception("Encoding failed: %s", e)
+        return {"results": [], "error": "encode_failed", "detail": str(e)}
+
+    try:
+        results = indexer.search(query_vector, k=k)
+        out = []
+        seen = set()
+        for r in results:
+            lid = r.get("listing_id") or r.get("_id") or r.get("faiss_id") or None
+            if lid is None:
+                lid = str(r.get("id", r.get("faiss_id", "")))
+            if lid in seen:
+                continue
+            seen.add(lid)
+            out.append(r)
+            if len(out) >= k:
+                break
+        return {"results": out}
+    except Exception as e:
+        LOG.exception("Search failed: %s", e)
+        return {"results": [], "error": "search_failed", "detail": str(e)}
+
 @app.post("/generate_description")
-async def gen_description(req: GenReq):
-    desc = generate_description(title=req.title, features=req.features or [], category=req.category, tone=req.tone)
+def generate_description_endpoint(req: GenDescReq):
+    # placeholder wrapper; replace with your real generator if available
+    desc = f"{req.title}. Features: {', '.join(req.features or [])}."
     return {"description": desc}
 
-class IndexRequest(BaseModel):
-    listing_id: str
-    title: str = None
-    description: str = None
-    image_urls: list = None  # optional list of image URLs
-
-def _fetch_image_bytes(url):
-    r = requests.get(url, timeout=10)
-    r.raise_for_status()
-    return r.content
-
-def _encode_text(texts):
-    return np.array(text_model.encode(texts, convert_to_numpy=True))
-
-def _encode_images(img_bytes_list):
-    imgs = []
-    for b in img_bytes_list:
-        img = Image.open(io.BytesIO(b)).convert('RGB')
-        imgs.append(img)
-    return np.array(image_model.encode(imgs, convert_to_numpy=True))
-
-@app.post("/embed")
-async def embed_text(text: str = Form(None), file: UploadFile = File(None)):
-    """
-    Returns embedding for provided text or uploaded image.
-    """
-    if file:
-        b = await file.read()
-        img_vec = _encode_images([b])[0]
-        return {"embedding": img_vec.tolist()}
-    if text is None:
-        return {"error": "text or file required"}
-    vec = _encode_text([text])[0]
-    return {"embedding": vec.tolist()}
-
-@app.post("/index")
-async def index_listing(req: IndexRequest):
-    """
-    Build embedding for a listing (text + images), add to FAISS index.
-    """
-    # Build text vector
-    vectors = []
-    metas = []
-    text_parts = []
-    if req.title:
-        text_parts.append(req.title)
-    if req.description:
-        text_parts.append(req.description)
-    if len(text_parts) > 0:
-        txt = " . ".join(text_parts)
-        txt_vec = _encode_text([txt])[0]
-    else:
-        txt_vec = None
-
-    img_vecs = []
-    if req.image_urls:
-        for url in req.image_urls:
+@app.post("/rebuild_index")
+def rebuild_index():
+    if indexer is None:
+        return {"error": "index_not_initialized"}
+    try:
+        if hasattr(indexer, "rebuild_index"):
+            LOG.info("Starting FAISS rebuild...")
+            indexer.rebuild_index(batch_size=64)
             try:
-                b = _fetch_image_bytes(url)
-                v = _encode_images([b])[0]
-                img_vecs.append(v)
-            except Exception as e:
-                print("image fetch/encode failed", url, e)
-
-    # Strategy: combine text vec and average image vecs (if present)
-    if txt_vec is not None and len(img_vecs) > 0:
-        img_mean = np.mean(np.stack(img_vecs), axis=0)
-        combined = (txt_vec + img_mean) / 2.0
-    elif txt_vec is not None:
-        combined = txt_vec
-    elif len(img_vecs) > 0:
-        combined = np.mean(np.stack(img_vecs), axis=0)
-    else:
-        return {"error": "no content to index"}, 400
-
-    vectors.append(combined)
-    metas.append({"listing_id": req.listing_id, "title": req.title, "image_count": len(img_vecs)})
-
-    index.add(np.vstack(vectors), metas)
-    return {"status": "ok", "indexed": req.listing_id}
-
-@app.post("/search")
-async def search(text: str = Form(None), k: int = Form(10), file: UploadFile = File(None)):
-    # build query embedding
-    if file:
-        b = await file.read()
-        qvec = _encode_images([b])[0]
-    elif text:
-        qvec = _encode_text([text])[0]
-    else:
-        return {"error": "text or image required"}, 400
-
-    results = index.search(qvec, top_k=k)
-    return {"results": results}
-
-@app.post("/reindex_all")
-async def reindex_all():
-    # helper placeholder to call backend API to fetch listings and reindex
-    backend_url = os.environ.get("BACKEND_API_URL", "http://localhost:5000")
-    resp = requests.get(f"{backend_url}/api/listings?limit=1000")
-    resp.raise_for_status()
-    docs = resp.json().get("results", resp.json())
-    for doc in docs:
-        image_urls = [img.get('url') for img in doc.get('images', []) if img.get('url')]
-        payload = {"listing_id": str(doc.get('_id')), "title": doc.get('title'), "description": doc.get('description'), "image_urls": image_urls}
-        try:
-            requests.post(f"http://localhost:{APP_PORT}/index", json=payload, timeout=30)
-        except Exception as e:
-            print("index error for", doc.get('_id'), e)
-    return {"status": "reindex_started", "count": len(docs)}
+                global index_ntotal
+                index_ntotal = int(getattr(indexer.index, "ntotal", 0))
+            except Exception:
+                index_ntotal = 0
+            LOG.info("Rebuild finished. ntotal=%s", index_ntotal)
+            return {"status": "ok", "ntotal": index_ntotal}
+        return {"error": "rebuild_not_supported"}
+    except Exception as e:
+        LOG.exception("Rebuild failed: %s", e)
+        return {"error": "rebuild_failed", "detail": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
