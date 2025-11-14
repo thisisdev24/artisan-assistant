@@ -7,6 +7,8 @@ const { createThumbnailBuffer } = require('../utils/image');
 const { uploadBuffer, getSignedReadUrl } = require('../utils/gcs');
 const path = require('path');
 const crypto = require('crypto');
+const axios = require('axios');
+const mongoose = require('mongoose');
 
 function makeKey(filename) {
   const ext = path.extname(filename) || '.jpg';
@@ -14,11 +16,7 @@ function makeKey(filename) {
   return `images/${id}${ext}`;
 }
 
-function getStore(id) {
-
-}
-// Create listing (multipart/form-data)
-// allow both images and videos
+// upload route (unchanged)
 router.post('/upload',
   upload.fields([{ name: 'images', maxCount: 6 }, { name: 'videos', maxCount: 6 }]),
   async (req, res) => {
@@ -32,7 +30,6 @@ router.post('/upload',
       const numericPrice = parseFloat(price);
       if (Number.isNaN(numericPrice)) return res.status(400).json({ error: 'validation', message: 'price must be a number' });
 
-      // req.files is an object when using fields()
       const imageFiles = (req.files && req.files['images']) || [];
       const videoFiles = (req.files && req.files['videos']) || [];
 
@@ -69,8 +66,8 @@ router.post('/upload',
         main_category, title, average_rating, rating_number, features,
         description, store, categories, details, parent_asin,
         price: numericPrice,
-        images: imagesMeta,   // array of {key,url,thumbnailUrl}
-        videos: videosMeta    // array of {key,url}
+        images: imagesMeta,
+        videos: videosMeta
       });
 
       res.status(201).json(listing);
@@ -81,14 +78,10 @@ router.post('/upload',
     }
   });
 
-// GET list
-// in backend/src/routes/listings.js
-
-// GET /api/listings/retrieve?store=<storeName>&artisanId=<artisanId>&page=1&limit=30
+// retrieve with pagination (keeps existing behaviour)
 router.get('/retrieve', async (req, res) => {
   try {
     const { store: storeQuery, artisanId } = req.query;
-    // default page=1 and limit=30 (30 per page)
     const pageNum = Math.max(1, parseInt(req.query.page, 10) || 1);
     const lim = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 30));
     const skip = (pageNum - 1) * lim;
@@ -104,9 +97,7 @@ router.get('/retrieve', async (req, res) => {
 
     const filter = storeName ? { store: storeName } : {};
 
-    // Try to fetch with index-backed sort and pagination
     try {
-      // Fetch documents and total count in parallel
       const [docs, total] = await Promise.all([
         Listing.find(filter)
           .sort({ createdAt: -1 })
@@ -118,9 +109,9 @@ router.get('/retrieve', async (req, res) => {
       ]);
 
       const mapped = docs.map(doc => {
-        let imageUrl;
+        let imageUrl = null;
         if (Array.isArray(doc.images) && doc.images.length > 0) {
-          imageUrl = doc.images[0].thumbnailUrl || doc.images[0].url;
+          imageUrl = doc.images[0].thumbnailUrl || doc.images[0].url || doc.images[0].thumb || doc.images[0].large || doc.images[0].hi_res;
         }
         return {
           _id: doc._id,
@@ -138,16 +129,15 @@ router.get('/retrieve', async (req, res) => {
     } catch (err) {
       console.warn('Primary find() with sort failed, attempting fallback query:', err.message);
 
-      // Fallback: small unsorted set and approximate total
       const fallbackDocs = await Listing.find(filter)
         .limit(Math.min(lim, 50))
         .select('title description price images average_rating rating_number createdAt')
         .lean();
 
       const mappedFallback = fallbackDocs.map(doc => {
-        let imageUrl;
+        let imageUrl = null;
         if (Array.isArray(doc.images) && doc.images.length > 0) {
-          imageUrl = doc.images[0].thumbnailUrl || doc.images[0].url;
+          imageUrl = doc.images[0].thumbnailUrl || doc.images[0].url || doc.images[0].thumb || doc.images[0].large || doc.images[0].hi_res;
         }
         return {
           _id: doc._id,
@@ -161,7 +151,6 @@ router.get('/retrieve', async (req, res) => {
         };
       });
 
-      // total fallback: use collection count (may be expensive)
       const total = await Listing.countDocuments(filter).catch(() => mappedFallback.length);
 
       return res.json({ results: mappedFallback, total, page: pageNum, limit: lim });
@@ -169,6 +158,70 @@ router.get('/retrieve', async (req, res) => {
   } catch (err) {
     console.error('Error in /retrieve:', err);
     return res.status(500).json({ error: 'internal', message: err.message });
+  }
+});
+
+/**
+ * SEARCH route
+ * Flow:
+ *  - frontend calls GET /api/listings/search?query=...
+ *  - backend forwards the query to ML service POST /generate_search_results
+ *  - ML returns list of FAISS meta objects (each includes "listing_id")
+ *  - backend fetches the Listing documents for those IDs and returns enriched results
+ */
+router.get('/search', async (req, res) => {
+  try {
+    const searchQuery = (req.query.query || req.query.q || '').trim();
+    if (!searchQuery) return res.status(400).json({ error: 'missing_query' });
+
+    const ML = process.env.ML_SERVICE_URL || 'http://localhost:8000';
+    // call ML service
+    const mlResp = await axios.post(`${ML}/generate_search_results`, { query: searchQuery, k: 50 }, { timeout: 20000 });
+    const mlResults = (mlResp.data && mlResp.data.results) || [];
+
+    if (!Array.isArray(mlResults) || mlResults.length === 0) {
+      return res.json({ results: [], total: 0, page: 1, limit: 0 });
+    }
+
+    // collect listing ids (these should be the original Mongo _id strings)
+    const listingIds = mlResults.map(r => r.listing_id).filter(Boolean);
+    // convert to ObjectId safely
+    const objectIds = listingIds.map(id => {
+      try { return mongoose.Types.ObjectId(id); } catch (e) { return null; }
+    }).filter(Boolean);
+
+    // fetch listings
+    const docs = await Listing.find({ _id: { $in: objectIds } })
+      .select('title description price images average_rating rating_number createdAt')
+      .lean();
+
+    const docsById = {};
+    for (const d of docs) docsById[String(d._id)] = d;
+
+    // preserve order given by mlResults
+    const enriched = mlResults.map(r => {
+      const lid = String(r.listing_id);
+      const doc = docsById[lid] || {};
+      let imageUrl = null;
+      if (Array.isArray(doc.images) && doc.images.length > 0) {
+        imageUrl = doc.images[0].thumbnailUrl || doc.images[0].url || doc.images[0].thumb || doc.images[0].large || doc.images[0].hi_res;
+      }
+      return {
+        _id: lid,
+        title: r.title || doc.title,
+        description: doc.description || r.description || '',
+        price: doc.price || r.price || 0,
+        imageUrl,
+        average_rating: doc.average_rating || 0,
+        rating_number: doc.rating_number || 0,
+        score: r.score || null
+      };
+    });
+
+    return res.json({ results: enriched, total: enriched.length, page: 1, limit: enriched.length });
+  } catch (err) {
+    console.error('Error in /search:', err?.response?.data || err.message || err);
+    return res.status(500).json({ error: 'internal', message: err.message || 'search_failed' });
   }
 });
 
