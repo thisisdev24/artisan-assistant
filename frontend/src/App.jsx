@@ -20,6 +20,9 @@ import ShowListingPublic from './pages/ShowListingPublic';
 // import Contact from "./pages/Contact";
 
 function App() {
+  // read store from localStorage (if available)
+  const storeFromStorage = typeof window !== "undefined" ? localStorage.getItem("store") : null;
+  
   return (
     <Router>
       <Navbar />
@@ -30,7 +33,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/Seller" element={<Seller />} />
         <Route path="/CreateListing" element={<CreateListing />} />
-        <Route path="/ShowListing" element={<ShowListing />} />
+        <Route path="/ShowListing" element={<ShowListing storeName={storeFromStorage || undefined} />} />
         <Route path="/search" element={<SearchResults />} />
         <Route path="/ShowListingPublic" element={<ShowListingPublic />} />
         {/*<Route path="/artists" element={<Artists />} />

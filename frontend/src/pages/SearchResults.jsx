@@ -56,7 +56,6 @@ const SearchResults = () => {
 
       // Debug log — helpful to see what's calling the API repeatedly
       // You can remove this when stable
-      // eslint-disable-next-line no-console
       console.log(`[SearchResults] fetching /api/listings/search?query=${query}`);
 
       axios.get("http://localhost:5000/api/listings/search", {
@@ -75,7 +74,6 @@ const SearchResults = () => {
           if (!mountedRef.current) return;
           if (axios.isCancel(err)) {
             // request was cancelled — normal on new keystroke / navigation
-            // eslint-disable-next-line no-console
             console.log("[SearchResults] request cancelled");
             return;
           }
@@ -120,7 +118,7 @@ const SearchResults = () => {
           {results.map((item) => (
             <div key={item._id || item.listing_id || item.faiss_id || JSON.stringify(item)} className="bg-white rounded shadow p-4">
               <img
-                src={item.imageUrl || item.thumbnailUrl || "/placeholder.jpg"}
+                src={item.imageUrl || item.thumb}
                 alt={item.title || "item"}
                 className="w-full h-44 object-cover rounded mb-3"
                 onError={(e) => { e.currentTarget.src = "/placeholder.jpg"; }}

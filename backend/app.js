@@ -8,7 +8,29 @@ const logRequest = require("./routes/logMiddleware");
 const app = express();
 
 app.enable("trust proxy"); // detect public IP behind CDN/load balancer
-app.use(cors());
+
+// Use an env var for allowed frontend origin
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
+
+// Allow credentials and the specific origin (not '*')
+app.use(cors({
+  origin: (origin, callback) => {
+    // allow requests with no origin (like curl, mobile)
+    if (!origin) return callback(null, true);
+    if (origin === FRONTEND_ORIGIN) return callback(null, true);
+    return callback(new Error('CORS policy: This origin is not allowed'));
+  },
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization','X-Requested-With'],
+  credentials: true
+}));
+
+// Ensure preflight requests are handled
+app.options('*', cors({
+  origin: FRONTEND_ORIGIN,
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -21,6 +43,9 @@ app.use('/api/auth', authRoutes);
 // after other routes
 const genDesc = require('./routes/generateDescription');
 app.use('/api/generate_description', genDesc);
+
+const genSearchRes = require('./routes/generateSearchResults');
+app.use('/api/generate_description', genSearchRes);
 
 // attach log middleware
 app.use(logRequest);

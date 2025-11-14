@@ -1,45 +1,119 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 /**
- * If you have the current seller's store name available (e.g. from user profile),
- * pass it in via query param or set it here. Example uses optional query param.
+ * ShowListing
+ * Props:
+ *  - storeName (optional) => if provided, used directly
+ *
+ * Sources for effective store name (priority):
+ *  1. prop storeName
+ *  2. navigation state (location.state.storeName)
+ *  3. query param ?store=...
+ *  4. localStorage.getItem('store')
  */
-const ShowListing = ({ storeName }) => {
+const ShowListing = ({ storeName: propStoreName }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
-  const navigate = useNavigate();
+
+  // Refs for cancellation and mounted check
+  const abortRef = useRef(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (abortRef.current) abortRef.current.abort();
+    };
+  }, []);
+
+  const effectiveStore = useMemo(() => {
+    const fromState = location?.state?.storeName;
+    const params = new URLSearchParams(location?.search || "");
+    const fromQuery = params.get("store");
+    const fromLocal = typeof window !== "undefined" ? localStorage.getItem("store") : null;
+    return propStoreName || fromState || fromQuery || fromLocal || "";
+  }, [propStoreName, location]);
+
+  useEffect(() => {
+    // if no effective store, set friendly message and return
+    if (!effectiveStore) {
+      setProducts([]);
+      setErrorMsg("Store name not available.");
+      setLoading(false);
+      return;
+    }
+
     const fetchProducts = async () => {
       setLoading(true);
       setErrorMsg(null);
-      try {
-        // If you have storeName in props/state, include it as query param:
-        const url = storeName
-          ? `http://localhost:5000/api/listings/retrieve?store=${encodeURIComponent(storeName)}`
-          : `http://localhost:5000/api/listings/retrieve`;
 
-        const response = await axios.get(url, {
+      // cancel previous request
+      if (abortRef.current) abortRef.current.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      const url = `http://localhost:5000/api/listings/retrieve?store=${encodeURIComponent(effectiveStore)}&limit=30`;
+
+      try {
+        const resp = await axios.get(url, {
+          signal: controller.signal,
+          timeout: 20000,
           withCredentials: true,
         });
 
-        // backend returns array mapped with imageUrl
-        setProducts(response.data || []);
-      } catch (error) {
-        console.error("Error fetching products:", error);
-        setErrorMsg(error?.response?.data?.message || error.message || "Failed to load products");
+        if (!mountedRef.current) return;
+
+        // backend may return either an array or { results: [...], total, page }
+        const data = resp.data;
+        const items = Array.isArray(data) ? data : (Array.isArray(data.results) ? data.results : []);
+        setProducts(items);
+      } catch (err) {
+        if (!mountedRef.current) return;
+        if (axios.isCancel && axios.isCancel(err)) {
+          // request cancelled, ignore
+          return;
+        }
+        console.error("Error fetching products:", err);
+        setErrorMsg(err?.response?.data?.message || err.message || "Failed to load products");
+        setProducts([]);
       } finally {
-        setLoading(false);
+        if (mountedRef.current) setLoading(false);
       }
     };
 
     fetchProducts();
-  }, [storeName]);
+
+    return () => {
+      if (abortRef.current) abortRef.current.abort();
+    };
+  }, [effectiveStore]);
 
   const handleBack = () => navigate("/Seller");
+
+  const pickImageSrc = (product) => {
+    if (!product) return "/placeholder.jpg";
+    if (product.imageUrl) return product.imageUrl;
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      const img = product.images[0];
+      return img?.thumbnailUrl || img?.thumb || img?.url || img?.large || img?.hi_res || "/placeholder.jpg";
+    }
+    return "/placeholder.jpg";
+  };
+
+  const shortDescription = (product) => {
+    const d = product?.description;
+    if (!d) return "";
+    if (typeof d === "string") return d;
+    if (Array.isArray(d) && d.length > 0) return d[0];
+    return "";
+  };
 
   if (loading) {
     return (
@@ -89,16 +163,17 @@ const ShowListing = ({ storeName }) => {
                 className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6"
               >
                 <img
-                  src={product.imageUrl || (product.images && product.images[0] && product.images[0].thumbnailUrl) || "/placeholder.jpg"}
+                  src={pickImageSrc(product)}
                   alt={product.title}
                   className="w-full h-48 object-cover rounded-lg mb-4"
+                  onError={(e) => { e.currentTarget.src = "/placeholder.jpg"; }}
                 />
                 <h2 className="text-xl font-semibold text-gray-800 mb-2">
                   {product.title}
                 </h2>
-                <p className="text-gray-600 mb-2">{product.description}</p>
+                <p className="text-gray-600 mb-2">{shortDescription(product)}</p>
                 <p className="text-lg font-bold text-indigo-700 mb-4">
-                  ₹{product.price}
+                  ₹{product.price ?? "—"}
                 </p>
 
                 <div className="flex justify-between">

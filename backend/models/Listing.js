@@ -1,9 +1,10 @@
 const mongoose = require('mongoose');
 
 const ImageSchema = new mongoose.Schema({
-  key: String,
-  url: String,
-  thumbnailUrl: String
+  thumb: String,
+  large: String,
+  variant: String,
+  hi_res: String
 }, { _id: false });
 
 const VideoSchema = new mongoose.Schema({
