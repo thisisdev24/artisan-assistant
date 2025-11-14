@@ -38,7 +38,7 @@ const ShowListingPublic = () => {
     fetchProducts(1);
   }, []);
 
-  const handleBack = () => navigate("/Home");
+  const handleBack = () => navigate("/");
 
   const goToPage = (p) => {
     if (p < 1) return;
