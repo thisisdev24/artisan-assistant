@@ -30,7 +30,7 @@ const Login = () => {
       // Role-based redirect
       if (role === res.data.user.role) {
         if (res.data.user.role === "seller") {
-          navigate("/Seller");
+          navigate("/Seller", { state: { storeName: res.data.user.store }});
         } else if (res.data.user.role === "buyer") {
           navigate("/");
         }

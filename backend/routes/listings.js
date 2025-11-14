@@ -111,7 +111,7 @@ router.get('/retrieve', async (req, res) => {
       const mapped = docs.map(doc => {
         let imageUrl = null;
         if (Array.isArray(doc.images) && doc.images.length > 0) {
-          imageUrl = doc.images[0].thumbnailUrl || doc.images[0].url || doc.images[0].thumb || doc.images[0].large || doc.images[0].hi_res;
+          imageUrl = doc.images[0].thumb || doc.images[0].large || doc.images[0].hi_res;
         }
         return {
           _id: doc._id,
@@ -137,7 +137,7 @@ router.get('/retrieve', async (req, res) => {
       const mappedFallback = fallbackDocs.map(doc => {
         let imageUrl = null;
         if (Array.isArray(doc.images) && doc.images.length > 0) {
-          imageUrl = doc.images[0].thumbnailUrl || doc.images[0].url || doc.images[0].thumb || doc.images[0].large || doc.images[0].hi_res;
+          imageUrl = doc.images[0].thumb || doc.images[0].large || doc.images[0].hi_res;
         }
         return {
           _id: doc._id,
@@ -204,8 +204,9 @@ router.get('/search', async (req, res) => {
       const doc = docsById[lid] || {};
       let imageUrl = null;
       if (Array.isArray(doc.images) && doc.images.length > 0) {
-        imageUrl = doc.images[0].thumbnailUrl || doc.images[0].url || doc.images[0].thumb || doc.images[0].large || doc.images[0].hi_res;
+        imageUrl = doc.images[0].large || doc.images[0].thumb;
       }
+
       return {
         _id: lid,
         title: r.title || doc.title,

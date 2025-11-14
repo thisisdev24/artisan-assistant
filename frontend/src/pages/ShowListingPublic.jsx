@@ -90,8 +90,7 @@ const ShowListingPublic = () => {
                   <img
                     src={
                       product.imageUrl ||
-                      (product.images && product.images[0] && (product.images[0].thumbnailUrl || product.images[0].url)) ||
-                      "/placeholder.jpg"
+                      (product.images && product.images[0] && (product.images[0].thumb || product.images[0].large))
                     }
                     alt={product.title}
                     className="w-full h-56 object-cover rounded-lg mb-4"
