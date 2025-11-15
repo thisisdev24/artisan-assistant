@@ -111,12 +111,18 @@ router.get('/retrieve', async (req, res) => {
       const mapped = docs.map(doc => {
         let imageUrl = null;
         if (Array.isArray(doc.images) && doc.images.length > 0) {
-          imageUrl = doc.images[0].thumb || doc.images[0].large || doc.images[0].hi_res;
+          imageUrl = doc.images[0].large || doc.images[0].hi_res;
         }
+
+        let desc = doc.description || '';
+        if(desc.length > 200) {
+          desc = desc.replaceAll(desc.substring(200), '...');
+        }
+
         return {
           _id: doc._id,
           title: doc.title,
-          description: doc.description,
+          description: desc,
           price: doc.price,
           average_rating: doc.average_rating,
           rating_number: doc.rating_number,
@@ -137,12 +143,18 @@ router.get('/retrieve', async (req, res) => {
       const mappedFallback = fallbackDocs.map(doc => {
         let imageUrl = null;
         if (Array.isArray(doc.images) && doc.images.length > 0) {
-          imageUrl = doc.images[0].thumb || doc.images[0].large || doc.images[0].hi_res;
+          imageUrl = doc.images[0].large || doc.images[0].hi_res;
         }
+
+        let desc = doc.description || '';
+        if(desc.length > 200) {
+          desc = desc.replaceAll(desc.substring(200), '...');
+        }
+
         return {
           _id: doc._id,
           title: doc.title,
-          description: doc.description,
+          description: desc,
           price: doc.price,
           average_rating: doc.average_rating,
           rating_number: doc.rating_number,
@@ -204,13 +216,18 @@ router.get('/search', async (req, res) => {
       const doc = docsById[lid] || {};
       let imageUrl = null;
       if (Array.isArray(doc.images) && doc.images.length > 0) {
-        imageUrl = doc.images[0].large || doc.images[0].thumb;
+        imageUrl = doc.images[0].large || doc.images[0].hi_res;
+      }
+
+      let desc = doc.description || r.description || '';
+      if(desc.length > 200) {
+        desc = desc.replaceAll(desc.substring(200), '...');
       }
 
       return {
         _id: lid,
         title: r.title || doc.title,
-        description: doc.description || r.description || '',
+        description: desc,
         price: doc.price || r.price || 0,
         imageUrl,
         average_rating: doc.average_rating || 0,
