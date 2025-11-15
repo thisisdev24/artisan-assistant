@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const LIMIT = 30;
+const LIMIT = 32;
 
 const ShowListingPublic = () => {
   const [products, setProducts] = useState([]);
