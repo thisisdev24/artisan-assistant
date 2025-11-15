@@ -3,7 +3,7 @@ const router = express.Router();
 const Listing = require('../models/Listing');
 const Artisan = require('../models/Artisan');
 const upload = require('../middleware/upload');
-const { createThumbnailBuffer } = require('../utils/image');
+const { createThumbnailBuffer, createLargeThumbnailBuffer, createHighResThumbnailBuffer } = require('../utils/image');
 const { uploadBuffer, getSignedReadUrl } = require('../utils/gcs');
 const path = require('path');
 const crypto = require('crypto');
@@ -31,6 +31,7 @@ router.post('/upload',
       if (Number.isNaN(numericPrice)) return res.status(400).json({ error: 'validation', message: 'price must be a number' });
 
       const imageFiles = (req.files && req.files['images']) || [];
+      if (imageFiles.length === 0) return res.status(400).json({error: 'validation', message: 'Upload minimum one image of the product'});
       const videoFiles = (req.files && req.files['videos']) || [];
 
       const imagesMeta = [];
@@ -38,20 +39,31 @@ router.post('/upload',
         const key = makeKey(file.originalname);
         await uploadBuffer(file.buffer, key, file.mimetype);
 
-        let thumbBuf;
+        let thumbBuf, largeThumbnailBuf, highResThumbnailBuf;
         try {
           thumbBuf = await createThumbnailBuffer(file.buffer, 320);
+          largeThumbnailBuf = await createLargeThumbnailBuffer(file.buffer, 640);
+          highResThumbnailBuf = await createHighResThumbnailBuffer(file.buffer, 1024);
+
         } catch (thumbErr) {
           console.warn('Thumbnail generation failed for', file.originalname, thumbErr);
           thumbBuf = file.buffer;
+          largeThumbnailBuf = file.buffer;
+          highResThumbnailBuf = file.buffer;
         }
+
         const thumbKey = key.replace(/(\.[^.]+)$/, '_thumb$1');
         await uploadBuffer(thumbBuf, thumbKey, 'image/jpeg');
+        const largeThumbKey = key.replace(/(\.[^.]+)$/, '_thumb$2');
+        await uploadBuffer(largeThumbnailBuf, largeThumbKey, 'image/jpeg');
+        const highResThumbKey = key.replace(/(\.[^.]+)$/, '_thumb$3')
+        await uploadBuffer(highResThumbnailBuf, highResThumbKey, 'image/jpeg');
 
-        const url = await getSignedReadUrl(key, 24 * 60 * 60 * 1000);
         const thumbnailUrl = await getSignedReadUrl(thumbKey, 24 * 60 * 60 * 1000);
+        const largeThumbnailUrl = await getSignedReadUrl(largeThumbKey, 24 * 60 * 60 * 1000);
+        const highResThumbnailUrl = await getSignedReadUrl(highResThumbKey, 24 * 60 * 60 * 1000);
 
-        imagesMeta.push({ key, url, thumbnailUrl });
+        imagesMeta.push({ thumb: thumbnailUrl , large: largeThumbnailUrl, hi_res: highResThumbnailUrl});
       }
 
       const videosMeta = [];

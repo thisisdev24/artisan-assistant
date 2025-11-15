@@ -30,8 +30,12 @@ class FaissTextIndexer:
                  collection_name="listings",
                  data_dir="data",
                  mongo_uri="mongodb://localhost:27017"):
-        self.db_name = db_name
-        self.collection_name = collection_name
+        self.client = MongoClient(mongo_uri)
+        self.db_name = self.client[db_name]
+        
+        # This is the critical line: assign the PyMongo Collection object
+        self.collection_name = self.db_name[collection_name]
+        
         self.data_dir = data_dir
         os.makedirs(self.data_dir, exist_ok=True)
 
@@ -107,7 +111,8 @@ class FaissTextIndexer:
 
         # 1. Fetch Data
         logger.info("Fetching documents from MongoDB...")
-        cursor = self.collection.find(
+        logger.info(f"Type of self.collection_name: {type(self.collection_name)}")
+        cursor = self.collection_name.find(
             {},
             {"title": 1, "description": 1, "features": 1, "price": 1, "category": 1}
         )
@@ -145,9 +150,10 @@ class FaissTextIndexer:
         # 3. Encode Texts
         logger.info("Encoding text embeddings...")
         embeddings = []
+        model = SentenceTransformer(os.environ.get("TEXT_EMBED_MODEL", "all-MiniLM-L6-v2"))
         for i in tqdm(range(0, total_docs, batch_size), desc="Encoding", ncols=100):
             batch = texts[i:i + batch_size]
-            batch_emb = self.model.encode(batch, convert_to_numpy=True)
+            batch_emb = model.encode(batch, convert_to_numpy=True)
             embeddings.append(batch_emb)
         embeddings = np.vstack(embeddings).astype("float32")
         embeddings = self._normalize(embeddings)
@@ -180,7 +186,7 @@ class FaissTextIndexer:
                     "price": meta["price"],
                     "category": meta["category"]
                 }
-                result = self.collection.update_one(
+                result = self.collection_name.update_one(
                     {"_id": ObjectId(meta["listing_id"])},
                     {"$set": update_data}
                 )
