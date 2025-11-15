@@ -71,6 +71,7 @@ const CreateListing = () => {
       window.location.href = `/listings/${res.data._id}`;
     } catch (err) {
       console.error('Publish error:', err?.response?.data || err.message);
+      alert(err?.response?.data.message);
       alert('Publish failed. See console for details.');
     }
   }
