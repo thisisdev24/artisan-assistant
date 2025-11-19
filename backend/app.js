@@ -1,6 +1,6 @@
 require("dotenv").config();
-const express = require("express");
 const cors = require("cors");
+const express = require("express");
 const logRoutes = require("./routes/logRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const logRequest = require("./routes/logMiddleware");
@@ -41,8 +41,8 @@ const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 
 // after other routes
-const genDesc = require('./routes/generateDescription');
-app.use('/api/generate_description', genDesc);
+const generateDescRouter = require("./routes/generateDescriptionProxy");
+app.use("/api", generateDescRouter);
 
 const genSearchRes = require('./routes/generateSearchResults');
 app.use('/api/generate_description', genSearchRes);
