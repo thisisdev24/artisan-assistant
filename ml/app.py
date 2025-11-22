@@ -12,6 +12,9 @@ from sentence_transformers import SentenceTransformer
 
 from faiss_index import FaissTextIndexer
 
+# Import the generator implemented above
+from generate_description import generate_description as generate_desc_fn
+
 # ---------------------------
 # Configuration
 # ---------------------------
@@ -156,9 +159,26 @@ def generate_search_results(req: GenerateSearchReq):
 
 @app.post("/generate_description")
 def generate_description_endpoint(req: GenDescReq):
-    # placeholder wrapper; replace with your real generator if available
-    desc = f"{req.title}. Features: {', '.join(req.features or [])}."
-    return {"description": desc}
+    """
+    Use the generate_description function from generate_description.py
+    This will try the local Transformers model (google/flan-t5-large) and revert to safe fallback if needed.
+    """
+    title = (req.title or "").strip()
+    features = req.features or []
+    category = req.category or None
+    tone = req.tone or None
+
+    if not title:
+        return {"description": ""}
+
+    try:
+        desc = generate_desc_fn(title=title, features=features, category=category, tone=tone, max_lines=int(os.getenv("GEN_DESC_MAX_LINES", "10")))
+        return {"description": desc}
+    except Exception as e:
+        LOG.exception("Description generation endpoint failed: %s", e)
+        # final safety: return a simple constructed description rather than crashing
+        fallback = f"{title}. Features: {', '.join(features or [])}."
+        return {"description": fallback, "error": "generation_failed", "detail": str(e)}
 
 @app.post("/rebuild_index")
 def rebuild_index():
