@@ -8,6 +8,13 @@ const Listing = require('./models/Listing');
 
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI; // MAIN DB
+const listingDraftsRouter = require('./routes/listingDrafts');
+const listingsRouter = require('./routes/listings');
+
+// mount draft routes BEFORE or AFTER existing routes — both fine since paths are unique
+app.use('/api/listings', listingDraftsRouter);
+app.use('/api/listings', listingsRouter);
+
 
 async function startServer() {
   try {

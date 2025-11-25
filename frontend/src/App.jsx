@@ -11,9 +11,11 @@ import Register from "./pages/Register";
 import Hero from './components/hero/Hero';
 import Seller from './components/Artist/Seller'
 import CreateListing from './components/Artist/CreateListing';
+import ProductDetailsForm from './components/Artist/ProductDetailsForm';
 import ShowListing from './components/Artist/ShowListing';
 import SearchResults from './pages/SearchResults';
 import ShowListingPublic from './pages/ShowListingPublic';
+import ProductDetails from './pages/ProductDetail';
 // import Products from "./pages/Products";
 // import Artists from "./pages/Artists";
 // import Shorts from "./pages/Shorts";
@@ -33,9 +35,11 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/Seller" element={<Seller />} />
         <Route path="/CreateListing" element={<CreateListing />} />
+        <Route path="/product-details/:id" element={<ProductDetailsForm />} />
         <Route path="/ShowListing" element={<ShowListing storeName={storeFromStorage || undefined} />} />
         <Route path="/search" element={<SearchResults />} />
         <Route path="/ShowListingPublic" element={<ShowListingPublic />} />
+        <Route path="/product/:id" element={<ProductDetails />} />
         {/*<Route path="/artists" element={<Artists />} />
 
 
