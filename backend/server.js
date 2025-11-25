@@ -1,83 +1,40 @@
+// server.js
 require("dotenv").config();
 const mongoose = require("mongoose");
 const http = require("http");
-const os = require("os");
 const app = require("./app");
-const { createLog } = require("./routes/loggerService");
-const Listing = require('./models/Listing');
+const Listing = require("./models/Listing");
+
+// Load system lifecycle logging (OPTION 3)
+require("./startup/systemLogs");
 
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI; // MAIN DB
+const MONGO_URI = process.env.MONGO_URI;
 
 async function startServer() {
   try {
     // -------------------------
-    // Connect MAIN database
+    // CONNECT MAIN DATABASE
     // -------------------------
     await mongoose.connect(MONGO_URI);
     console.log("✅ Main MongoDB connected");
 
+    // Ensure Listing index
     try {
-  // ensure index exists (harmless if it already exists)
-  await Listing.collection.createIndex({ createdAt: -1 });
-  console.log('Ensured index on Listing.createdAt');
-} catch (err) {
-  console.warn('Could not create Listing.createdAt index:', err.message);
-}
+      await Listing.collection.createIndex({ createdAt: -1 });
+      console.log("Ensured index on Listing.createdAt");
+    } catch (err) {
+      console.warn("Could not create Listing.createdAt index:", err.message);
+    }
 
+    // -------------------------
+    // START SERVER
+    // ------------------------
     const server = http.createServer(app);
 
-    // -------------------------
-    // Start Server
-    // -------------------------
-    server.listen(PORT, async () => {
+    server.listen(PORT, () => {
       console.log(`⚡ Server running on port ${PORT}`);
-    // server.js
-    const { initAnalyticsService } = require("./routes/analyticsService");
-    (async () => {
-      try {
-        await initAnalyticsService();
-        console.log("Analytics DB initialized on startup");
-      } catch (err) {
-        console.error("Analytics DB initialization failed:", err.message);
-      }
-    })();
-
-      // Log startup event
-      try {
-        await createLog("system", {
-          event_type: "SERVER_START",
-          category: "infrastructure",
-          action: `Server started on port ${PORT}`,
-          status: "success",
-          severity: "info",
-          system_context: {
-            host: os.hostname(),
-            platform: os.platform(),
-            node_version: process.version,
-          }
-        });
-      } catch (err) {
-        console.error("❗ Startup log failed:", err.message);
-      }
-    });
-
-    // -------------------------
-    // Graceful Shutdown
-    // -------------------------
-    process.on("SIGINT", async () => {
-      console.log("🔻 SIGINT received, shutting down gracefully...");
-
-      try {
-        await createLog("system", {
-          event_type: "SERVER_SHUTDOWN",
-          category: "infrastructure",
-          action: "Server shutting down (SIGINT)",
-          status: "success",
-        });
-      } catch (_) {}
-
-      process.exit(0);
+      
     });
 
   } catch (err) {
