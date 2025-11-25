@@ -22,7 +22,9 @@ const Login = () => {
         password,
         role,
       });
-
+      
+      // User data ko localStorage me store karein
+        localStorage.setItem("user", JSON.stringify(res.data));
       // Save token + role in localStorage
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("role", res.data.user.role);

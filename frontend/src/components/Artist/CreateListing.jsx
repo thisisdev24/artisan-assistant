@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const CreateListing = () => {
+  const navigate = useNavigate();
   const [main_category] = useState('Handmade');
   const [title, setTitle] = useState('');
   const [average_rating] = useState('');
@@ -15,6 +17,7 @@ const CreateListing = () => {
   const [categories] = useState([]);
   const [details] = useState('');
   const [parent_asin] = useState('');
+  const [loading, setLoading] = useState(false);
   const token = localStorage.getItem('token');
 
   async function handleAutoDesc() {
@@ -40,39 +43,97 @@ const CreateListing = () => {
       return;
     }
 
-    const formData = new FormData();
-    formData.append('main_category', main_category);
-    formData.append('title', title);
-    formData.append('average_rating', average_rating);
-    formData.append('rating_number', rating_number);
+    if (files.length === 0) {
+      alert('Please upload at least one image.');
+      return;
+    }
 
-    // stringify arrays/objects before adding to FormData
-    formData.append('features', JSON.stringify(features));
-    formData.append('description', description);
-    formData.append('price', price);
+    if (loading) {
+      return; // Prevent double submission
+    }
 
-    // append images only
-    files.forEach(f => formData.append('images', f));
-
-    formData.append('store', store);
-    formData.append('categories', JSON.stringify(categories));
-    formData.append('details', details);
-    formData.append('parent_asin', parent_asin);
+    setLoading(true);
 
     try {
-      const res = await axios.post('http://localhost:5000/api/listings/upload', formData, {
+      // Step 1: Create draft listing
+      const draftData = {
+        main_category: main_category || 'Handmade',
+        title,
+        average_rating: average_rating || '',
+        rating_number: rating_number || '',
+        features: Array.isArray(features) && features.length > 0 ? JSON.stringify(features) : JSON.stringify([]),
+        description: description || '',
+        price,
+        store: store || '',
+        categories: Array.isArray(categories) && categories.length > 0 ? JSON.stringify(categories) : JSON.stringify([]),
+        details: details || '',
+        parent_asin: parent_asin || ''
+      };
+
+      console.log('Creating draft with data:', draftData);
+      const draftRes = await axios.post('http://localhost:5000/api/listings/draft', draftData, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: 'Bearer ' + token } : {})
+        }
+      });
+
+      console.log('Draft response:', draftRes.data);
+
+      // Extract draft ID from response - handle different response structures
+      let draftId = null;
+      if (draftRes.data.id) {
+        draftId = draftRes.data.id.toString();
+      } else if (draftRes.data.listing?._id) {
+        draftId = draftRes.data.listing._id.toString();
+      } else if (draftRes.data._id) {
+        draftId = draftRes.data._id.toString();
+      }
+
+      if (!draftId) {
+        console.error('Could not extract draft ID from response:', draftRes.data);
+        throw new Error('Draft ID not found in response. Please check the console for details.');
+      }
+
+      console.log('Draft ID extracted:', draftId);
+
+      // Step 2: Upload images to the draft
+      const imageFormData = new FormData();
+      files.forEach(f => imageFormData.append('images', f));
+
+      console.log('Uploading images...');
+      await axios.post(`http://localhost:5000/api/listings/${draftId}/images`, imageFormData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           ...(token ? { Authorization: 'Bearer ' + token } : {})
         }
       });
-      alert('Created');
-      console.log('Created listing:', res.data);
-      window.location.href = `/listings/${res.data._id}`;
+
+      console.log('Images uploaded successfully. Redirecting...');
+
+      // Step 3: Redirect to product details form
+      try {
+        navigate(`/product-details/${draftId}`);
+        // Fallback navigation in case navigate doesn't work
+        setTimeout(() => {
+          if (window.location.pathname !== `/product-details/${draftId}`) {
+            console.log('Navigate did not work, using window.location');
+            window.location.href = `/product-details/${draftId}`;
+          }
+        }, 100);
+      } catch (navError) {
+        console.error('Navigation error:', navError);
+        window.location.href = `/product-details/${draftId}`;
+      }
     } catch (err) {
-      console.error('Publish error:', err?.response?.data || err.message);
-      alert(err?.response?.data.message);
-      alert('Publish failed. See console for details.');
+      console.error('Draft creation error:', err);
+      console.error('Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status
+      });
+      alert(err?.response?.data?.message || err.message || 'Failed to create draft. See console for details.');
+      setLoading(false);
     }
   }
 
@@ -152,8 +213,10 @@ const CreateListing = () => {
         </div>
 
         <div className="flex gap-4 mt-6">
-          <button type="button" onClick={handleAutoDesc} className="flex-1 bg-blue-500 text-white py-2 rounded-lg">✨ Auto-generate Description</button>
-          <button type="submit" className="flex-1 bg-green-500 text-white py-2 rounded-lg">🚀 Publish</button>
+          <button type="button" onClick={handleAutoDesc} disabled={loading} className="flex-1 bg-blue-500 text-white py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">✨ Auto-generate Description</button>
+          <button type="submit" disabled={loading} className="flex-1 bg-green-500 text-white py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
+            {loading ? 'Creating Draft...' : '🚀 Publish'}
+          </button>
         </div>
       </form>
     </div>
