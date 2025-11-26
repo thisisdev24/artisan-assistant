@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Navbar from './components/Navbar/Navbar';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
@@ -14,37 +13,32 @@ import CreateListing from './components/Artist/CreateListing';
 import ShowListing from './components/Artist/ShowListing';
 import SearchResults from './pages/SearchResults';
 import ShowListingPublic from './pages/ShowListingPublic';
-// import Products from "./pages/Products";
-// import Artists from "./pages/Artists";
-// import Shorts from "./pages/Shorts";
-// import Contact from "./pages/Contact";
+
+// >>> Added imports for logging <<<
+import { LoggerProvider } from "./utils/logger/loggerProvider";
 
 function App() {
   // read store from localStorage (if available)
   const storeFromStorage = typeof window !== "undefined" ? localStorage.getItem("store") : null;
-  
+
   return (
-    <Router>
-      <Navbar />
+    // >>> Wrap the whole app with LoggerProvider <<<
+    <LoggerProvider>
+      <Router>
+        <Navbar />
 
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/Seller" element={<Seller />} />
-        <Route path="/CreateListing" element={<CreateListing />} />
-        <Route path="/ShowListing" element={<ShowListing storeName={storeFromStorage || undefined} />} />
-        <Route path="/search" element={<SearchResults />} />
-        <Route path="/ShowListingPublic" element={<ShowListingPublic />} />
-        {/*<Route path="/artists" element={<Artists />} />
-
-
-        {/* <Route path="/products" element={<Products />} />
-        <Route path="/artists" element={<Artists />} />
-        <Route path="/shorts" element={<Shorts />} />
-        <Route path="/contact" element={<Contact />} /> */}
-      </Routes>
-    </Router>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/Seller" element={<Seller />} />
+          <Route path="/CreateListing" element={<CreateListing />} />
+          <Route path="/ShowListing" element={<ShowListing storeName={storeFromStorage || undefined} />} />
+          <Route path="/search" element={<SearchResults />} />
+          <Route path="/ShowListingPublic" element={<ShowListingPublic />} />
+        </Routes>
+      </Router>
+    </LoggerProvider>
   );
 }
 

@@ -4,15 +4,19 @@ const mongoose = require("mongoose");
 const http = require("http");
 const app = require("./app");
 const Listing = require("./models/Listing");
+const { getLogModels } = require("./models/logs");
 
-// Load system lifecycle logging (OPTION 3)
-require("./startup/systemLogs");
+
+
 
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
 
 async function startServer() {
   try {
+
+    // initialize models once on startup
+    getLogModels();
     // -------------------------
     // CONNECT MAIN DATABASE
     // -------------------------

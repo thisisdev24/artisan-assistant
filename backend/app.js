@@ -2,8 +2,8 @@ require("dotenv").config();
 const cors = require("cors");
 const express = require("express");
 const logRoutes = require("./routes/logRoutes");
-const analyticsRoutes = require("./routes/analyticsRoutes");
-const logRequest = require("./routes/logMiddleware");
+//const analyticsRoutes = require("./routes/analyticsRoutes");
+const logRequest = require("./middleware/logMiddleware");
 
 const app = express();
 
@@ -48,8 +48,14 @@ const genSearchRes = require('./routes/generateSearchResults');
 app.use('/api/generate_description', genSearchRes);
 
 // attach log middleware
-app.use(logRequest);
+// app.use(logRequest);
 app.use("/api/logs", logRoutes);
-app.use("/api/analytics", analyticsRoutes);
+//app.use("/api/analytics", analyticsRoutes);
+
+const perfMiddleware = require("./middleware/perfMiddleware");
+app.use(perfMiddleware);
+
+const AutoLoggingEngine = require("./services/logs/autoLoggingEngine");
+new AutoLoggingEngine(app);
 
 module.exports = app;

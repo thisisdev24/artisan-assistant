@@ -15,7 +15,7 @@ const EndpointMetricsSchema = new Schema({
 }, { _id: false });
 
 const DatabaseMetricsSchema = new Schema({
-  collection: String,
+  collection_name: String,
   avg_query_time_ms: Number,
   p95_query_time_ms: Number,
   query_count: Number,

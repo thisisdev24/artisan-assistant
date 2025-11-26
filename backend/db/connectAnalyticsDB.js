@@ -6,16 +6,19 @@ let analyticsConnection;
 async function connectAnalyticsDB() {
   if (analyticsConnection) return analyticsConnection;
 
-  analyticsConnection = await mongoose.createConnection(
-    process.env.MONGO_URI_ANALYTICS,
-    {
-      dbName: "artisan_analytics",
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    }
-  );
+  const conn = mongoose.createConnection(process.env.MONGO_URI_ANALYTICS, {
+    dbName: "artisan_analytics",
+  });
 
-  console.log("🟩 Connected to artisan_analytics DB");
+  conn.on("connected", () => {
+    console.log("✅ Connected to artisan_analytics");
+  });
+
+  conn.on("error", (err) => {
+    console.error("❌ Analytics DB Error:", err.message);
+  });
+
+  analyticsConnection = conn;
   return analyticsConnection;
 }
 

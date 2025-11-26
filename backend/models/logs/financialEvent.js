@@ -1,55 +1,76 @@
-// financialEvent.js
+// models/logs/financialEvent.js
 const mongoose = require("mongoose");
-const BaseEvent = require("./baseEvent");
 const { Schema } = mongoose;
+const BaseEvent = require("./baseEvent");
 
-const TransactionSchema = new Schema({
-  transaction_id: String,
-  order_id: String,
-  type: { type: String, enum: ["payment","refund","payout","fee"] },
-  amount: Number,
-  currency: String,
-  method: String,
-  provider: String,
-  provider_txn_id: String,
-  fee: Number,
-  exchange_rate: Number,
-  status: String,
-  occurred_at: Date,
-}, { _id: false });
+/* ---------------------- TRANSACTION ---------------------- */
+const TransactionSchema = new Schema(
+  {
+    transaction_id: { type: String, default: null },
+    order_id: { type: String, default: null },
+    type: {
+      type: String,
+      enum: ["payment", "refund", "payout", "fee"],
+      default: null,
+    },
+    amount: { type: Number, default: null },
+    currency: { type: String, default: null },
+    method: { type: String, default: null },
+    provider: { type: String, default: null },
+    provider_txn_id: { type: String, default: null },
+    fee: { type: Number, default: null },
+    exchange_rate: { type: Number, default: null },
+    status: { type: String, default: null },
+    occurred_at: { type: Date, default: null },
+  },
+  { _id: false }
+);
 
-const LedgerEntrySchema = new Schema({
-  account_id: String,
-  account_type: String, // merchant, platform, tax
-  debit: Number,
-  credit: Number,
-  balance_after: Number,
-  reference_txn_id: String,
-}, { _id: false });
+/* ---------------------- LEDGER ENTRY ---------------------- */
+const LedgerEntrySchema = new Schema(
+  {
+    account_id: { type: String, default: null },
+    account_type: { type: String, default: null }, // merchant, platform, tax
+    debit: { type: Number, default: null },
+    credit: { type: Number, default: null },
+    balance_after: { type: Number, default: null },
+    reference_txn_id: { type: String, default: null },
+  },
+  { _id: false }
+);
 
-const ReconciliationSchema = new Schema({
-  reconciliation_id: String,
-  matched: Boolean,
-  variance_amount: Number,
-  variance_reason: String,
-  reconciled_by: String,
-  reconciled_at: Date,
-}, { _id: false });
+/* ---------------------- RECONCILIATION ---------------------- */
+const ReconciliationSchema = new Schema(
+  {
+    reconciliation_id: { type: String, default: null },
+    matched: { type: Boolean, default: false },
+    variance_amount: { type: Number, default: null },
+    variance_reason: { type: String, default: null },
+    reconciled_by: { type: String, default: null },
+    reconciled_at: { type: Date, default: null },
+  },
+  { _id: false }
+);
 
-const FinancialEventSchema = new Schema({
-  transaction: TransactionSchema,
-  ledger_entries: [LedgerEntrySchema],
-  reconciliation: ReconciliationSchema,
-  audit_status: {
-    internal_audit: Boolean,
-    external_audit: Boolean,
-    last_audited_at: Date,
-  }
-}, { timestamps: true });
+/* ---------------------- MAIN FINANCIAL EVENT ---------------------- */
+const FinancialEventSchema = new Schema(
+  {
+    transaction: { type: TransactionSchema, default: {} },
 
+    ledger_entries: { type: [LedgerEntrySchema], default: [] },
+
+    reconciliation: { type: ReconciliationSchema, default: {} },
+
+    audit_status: {
+      internal_audit: { type: Boolean, default: false },
+      external_audit: { type: Boolean, default: false },
+      last_audited_at: { type: Date, default: null },
+    },
+  },
+  { timestamps: true }
+);
+
+/* ---------------------- MERGE BASE EVENT ---------------------- */
 FinancialEventSchema.add(BaseEvent);
-
-FinancialEventSchema.index({ "transaction.transaction_id": 1 });
-FinancialEventSchema.index({ "transaction.order_id": 1 });
 
 module.exports = FinancialEventSchema;
