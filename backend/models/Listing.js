@@ -1,16 +1,6 @@
+// backend/models/Listing.js
 const mongoose = require('mongoose');
 
-const SoftDeleteSchema = new mongoose.Schema({
-is_deleted: { type: Boolean, default: false },
-deleted_at: Date,
-}, { _id: false });
-
-const ActivitySchema = new mongoose.Schema({
-first_seen: Date,
-last_seen: Date,
-loyalty_tier: String,
-flags: [String],
-}, { _id: false });
 const ImageSchema = new mongoose.Schema({
   thumb: String,
   large: String,
@@ -21,6 +11,13 @@ const ImageSchema = new mongoose.Schema({
 const VideoSchema = new mongoose.Schema({
   key: String,
   url: String
+}, { _id: false });
+
+const DimensionsSchema = new mongoose.Schema({
+  height: { type: Number, default: null }, // in cm
+  length: { type: Number, default: null }, // in cm
+  width: { type: Number, default: null }, // in cm
+  weight: { type: Number, default: null }  // in grams (or kg depending on your app)
 }, { _id: false });
 
 const listingSchema = new mongoose.Schema({
@@ -39,10 +36,7 @@ const listingSchema = new mongoose.Schema({
   parent_asin: { type: String },
   createdAt: { type: Date, default: Date.now },
   faiss_vector_id: { type: Number, default: null },
-  embedding_created_at: { type: Date, default: null },
-  activity: ActivitySchema,
-  soft_delete: SoftDeleteSchema,
-  createdAt: { type: Date, default: Date.now },
+  embedding_created_at: { type: Date, default: null }
 });
 
 // IMPORTANT: create an index on createdAt to support sort({createdAt: -1})
