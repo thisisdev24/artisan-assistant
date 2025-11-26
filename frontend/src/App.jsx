@@ -14,10 +14,6 @@ import ProductDetailsForm from './components/Artist/ProductDetailsForm';
 import ShowListing from './components/Artist/ShowListing';
 import SearchResults from './pages/SearchResults';
 import ShowListingPublic from './pages/ShowListingPublic';
-
-// >>> Added imports for logging <<<
-import { LoggerProvider } from "./utils/logger/loggerProvider";
-import ProductDetails from './pages/ProductDetail';
 // import Products from "./pages/Products";
 // import Artists from "./pages/Artists";
 // import Shorts from "./pages/Shorts";
