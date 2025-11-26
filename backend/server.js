@@ -1,13 +1,11 @@
 require("dotenv").config();
-const mongoose = require("mongoose");
 const http = require("http");
 const os = require("os");
 const app = require("./app");
+const connect = require("./db/connectDB");
 const { createLog } = require("./routes/loggerService");
-const Listing = require('./models/Listing');
 
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI; // MAIN DB
 const listingDraftsRouter = require('./routes/listingDrafts');
 const listingsRouter = require('./routes/listings');
 
@@ -21,16 +19,8 @@ async function startServer() {
     // -------------------------
     // Connect MAIN database
     // -------------------------
-    await mongoose.connect(MONGO_URI);
+    await connect();
     console.log("✅ Main MongoDB connected");
-
-    try {
-  // ensure index exists (harmless if it already exists)
-  await Listing.collection.createIndex({ createdAt: -1 });
-  console.log('Ensured index on Listing.createdAt');
-} catch (err) {
-  console.warn('Could not create Listing.createdAt index:', err.message);
-}
 
     const server = http.createServer(app);
 
