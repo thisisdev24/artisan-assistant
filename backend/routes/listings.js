@@ -255,4 +255,24 @@ router.get('/search', async (req, res) => {
   }
 });
 
+// Get a single listing by ID (must be after /retrieve and /search to avoid conflicts)
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'invalid_id', message: 'Invalid listing ID' });
+    }
+
+    const listing = await Listing.findById(id).lean();
+    if (!listing) {
+      return res.status(404).json({ error: 'not_found', message: 'Listing not found' });
+    }
+
+    return res.json(listing);
+  } catch (err) {
+    console.error('Error fetching listing:', err);
+    return res.status(500).json({ error: 'internal', message: err.message });
+  }
+});
+
 module.exports = router;

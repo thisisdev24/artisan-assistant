@@ -127,6 +127,13 @@ const SearchResults = () => {
               <p className="text-sm text-gray-600 line-clamp-3">{item.description}</p>
               <div className="mt-2 font-bold text-indigo-600">₹{item.price ?? "—"}</div>
               {typeof item.score !== "undefined" && <div className="text-xs text-gray-500 mt-1">score: {item.score.toFixed(3)}</div>}
+                            <button
+                onClick={() => navigate(`/product/${item._id || item.listing_id}`)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
+              >
+                View
+              </button>
+
             </div>
           ))}
         </div>
