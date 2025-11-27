@@ -21,13 +21,13 @@ const { getInfrastructureSnapshot } = require("./systemMonitor");
 class AutoLoggingEngine {
   constructor(app) {
     this.app = app;
-    console.log('🤖 [AutoLoggingEngine] Initializing...');
+    // console.log('🤖 [AutoLoggingEngine] Initializing...');
 
     this.patchMongoose();
     this.patchAxios();
     this.attachRequestHooks();
 
-    console.log('✅ [AutoLoggingEngine] Initialized successfully');
+    // console.log('✅ [AutoLoggingEngine] Initialized successfully');
   }
 
   // ----------------------------------------------
@@ -95,7 +95,7 @@ class AutoLoggingEngine {
 
           const domainEvent = this.detectDomainEvent(req);
 
-          console.log(`🔍 [AutoLoggingEngine] ${req.method} ${req.originalUrl} → ${domainEvent ? domainEvent.event_type : 'SKIPPED'}`);
+          // console.log(`🔍 [AutoLoggingEngine] ${req.method} ${req.originalUrl} → ${domainEvent ? domainEvent.event_type : 'SKIPPED'}`);
 
           // Skip logging if detectDomainEvent returns null (e.g., /logs/ingest)
           if (!domainEvent) return;
@@ -162,9 +162,9 @@ class AutoLoggingEngine {
             },
           };
 
-          console.log(`📝 [AutoLoggingEngine] Logging event: ${eventBody.event_type}`);
+          // console.log(`📝 [AutoLoggingEngine] Logging event: ${eventBody.event_type}`);
           await logEvent(eventBody, context);
-          console.log(`✅ [AutoLoggingEngine] Event logged successfully`);
+          // console.log(`✅ [AutoLoggingEngine] Event logged successfully`);
         } catch (err) {
           console.error("[AutoLoggingEngine] error:", err);
         }
