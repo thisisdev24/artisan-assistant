@@ -5,7 +5,7 @@ import { PiShoppingCartThin } from "react-icons/pi";
 import { FaDumbbell } from "react-icons/fa";
 import { SiSnapcraft } from "react-icons/si";
 import { MdMenu } from "react-icons/md";
-import { Link, useLocation, useNavigate } from "react-router-dom"; // Import Link
+import { Link, useNavigate } from "react-router-dom"; // Import Link
 import ResponsiveMenu from './ResponsiveMenu';
 import { FaUser } from "react-icons/fa";
 import { useCart } from '../../context/CartContext';
@@ -15,7 +15,6 @@ const Navbar = () => {
     const [searchOpen, setSearchOpen] = React.useState(false); // for showing search input
     const [searchQuery, setSearchQuery] = React.useState('');  // for input value
     const navigate = useNavigate();
-    const location = useLocation(); // Trigger re-render on route change
 
     const user = JSON.parse(localStorage.getItem("user"));
     const { cartCount } = useCart();
