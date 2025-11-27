@@ -17,12 +17,13 @@ import ShowListingPublic from './pages/ShowListingPublic';
 import ProductDetail from './pages/ProductDetail';
 import CartPage from './pages/CartPage';
 import Checkout from './pages/Checkout';
+import Artists from "./pages/Artists";
 
 import { LoggerProvider } from './utils/logger/loggerProvider.jsx';
 // import Products from "./pages/Products";
 // import Artists from "./pages/Artists";
 // import Shorts from "./pages/Shorts";
-// import Contact from "./pages/Contact";
+import Contact from "./pages/Contact";
 
 function App() {
   // read store from localStorage (if available)
@@ -48,6 +49,8 @@ function App() {
           <Route path="/search" element={<SearchResults />} />
           <Route path="/ShowListingPublic" element={<ShowListingPublic />} />
           <Route path="/product/:id" element={<ProductDetail />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/artists" element={<Artists />} />
 
           {/*<Route path="/artists" element={<Artists />} />
 

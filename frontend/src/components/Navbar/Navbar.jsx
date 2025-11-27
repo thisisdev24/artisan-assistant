@@ -76,7 +76,7 @@ const Navbar = () => {
                             {searchOpen && (
                                 <form
                                     onSubmit={handleSearchSubmit}
-                                    className="absolute top-full left-0 mt-2 bg-white border border-gray-300 rounded-full flex items-center shadow-lg overflow-hidden transition-all duration-300 w-64 relative"
+                                    className=" top-full left-0 mt-2 bg-white border border-gray-300 rounded-full flex items-center shadow-lg overflow-hidden transition-all duration-300 w-64 relative"
                                 >
                                     <input
                                         type="text"

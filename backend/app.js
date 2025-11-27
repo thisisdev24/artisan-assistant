@@ -55,6 +55,9 @@ new AutoLoggingEngine(app);
 const listings = require('./routes/listings');
 app.use('/api/listings', listings);
 
+const artisanRoutes = require('./routes/artisans');
+app.use('/api/artisans', artisanRoutes);
+
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 
