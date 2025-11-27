@@ -21,7 +21,20 @@ app.use(cors({
     return callback(new Error('CORS policy: This origin is not allowed'));
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'x-network-type',
+    'x-network-effective-type',
+    'x-network-downlink',
+    'x-network-rtt',
+    'x-network-save-data',
+    'x-device-memory',
+    'x-device-platform',
+    'x-device-hardware-concurrency',
+    'x-timezone'
+  ],
   credentials: true
 }));
 

@@ -5,15 +5,18 @@ import { PiShoppingCartThin } from "react-icons/pi";
 import { FaDumbbell } from "react-icons/fa";
 import { SiSnapcraft } from "react-icons/si";
 import { MdMenu } from "react-icons/md";
-import { Link } from "react-router-dom"; // Import Link
+import { Link, useLocation, useNavigate } from "react-router-dom"; // Import Link
 import ResponsiveMenu from './ResponsiveMenu';
-import { useNavigate } from 'react-router-dom';
+import { FaUser } from "react-icons/fa";
 
 const Navbar = () => {
     const [open, setOpen] = React.useState(false);
     const [searchOpen, setSearchOpen] = React.useState(false); // for showing search input
     const [searchQuery, setSearchQuery] = React.useState('');  // for input value
     const navigate = useNavigate();
+    const location = useLocation(); // Trigger re-render on route change
+
+    const user = JSON.parse(localStorage.getItem("user"));
 
     // handle form submission
     const handleSearchSubmit = (e) => {
@@ -26,7 +29,7 @@ const Navbar = () => {
     };
     // Handles closing search bar (when pressing escape or clicking X)
     const closeSearchOnMouseOut = () => {
-        if(searchQuery.length === 0) {
+        if (searchQuery.length === 0) {
             setSearchOpen(false);
             setSearchQuery('');
         }
@@ -67,9 +70,9 @@ const Navbar = () => {
                                 onMouseEnter={() => setSearchOpen(!searchOpen)}
                                 className="text-2xl hover:bg-primary hover:text-white p-2 rounded-full duration-200"
                             >
-                                {searchOpen? '' : <CiSearch/> }
+                                {searchOpen ? '' : <CiSearch />}
                             </button>
-                            
+
                             {/* Animated search input */}
                             {searchOpen && (
                                 <form
@@ -98,25 +101,30 @@ const Navbar = () => {
                                 <PiShoppingCartThin />
                             </button>
                             {/* Login & Register buttons */}
-                            {searchOpen?
-                            <div className='pl-18 hidden md:flex gap-2'>
-                                <Link to="/login" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
-                                    Login
+                            {user ? (
+                                <Link to="/profile" className='text-2xl hover:bg-primary hover:text-white p-2 rounded-full duration-200'>
+                                    <FaUser />
                                 </Link>
-                                <Link to="/register" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
-                                    Register
-                                </Link>
-                            </div>
-                            :
-                            <div className='pl-32 hidden md:flex gap-2'>
-                                <Link to="/login" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
-                                    Login
-                                </Link>
-                                <Link to="/register" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
-                                    Register
-                                </Link>
-                            </div>
-                            }
+                            ) : (
+                                searchOpen ?
+                                    <div className='pl-18 hidden md:flex gap-2'>
+                                        <Link to="/login" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
+                                            Login
+                                        </Link>
+                                        <Link to="/register" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
+                                            Register
+                                        </Link>
+                                    </div>
+                                    :
+                                    <div className='pl-32 hidden md:flex gap-2'>
+                                        <Link to="/login" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
+                                            Login
+                                        </Link>
+                                        <Link to="/register" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
+                                            Register
+                                        </Link>
+                                    </div>
+                            )}
                         </div>
                         {/* mobile hamburger menu section */}
                         <div className='md:hidden ' onClick={() => setOpen(!open)}>

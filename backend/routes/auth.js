@@ -8,8 +8,8 @@ const Admin = require("../models/Admin");
 require("dotenv").config();
 
 function getModelName(role) {
-  if(role === "buyer") return User;
-  else if(role === "seller") return Artisan;
+  if (role === "buyer") return User;
+  else if (role === "seller") return Artisan;
   return Admin;
 }
 
@@ -22,21 +22,21 @@ router.post("/register", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    if(req.body.role === "buyer") {
+    if (req.body.role === "buyer") {
       user = new User({ name, email, password: hashedPassword, role: req.body.role });
       await user.save();
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
-    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
-    } else if(req.body.role === "seller") {
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+      res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+    } else if (req.body.role === "seller") {
       user = new Artisan({ name, email, password: hashedPassword, role: req.body.role, store: req.body.store });
       await user.save();
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
-    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role, store: user.store } });
-    } else if(req.body.role === "admin") {
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+      res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role, store: user.store } });
+    } else if (req.body.role === "admin") {
       user = new Admin({ name, email, password: hashedPassword, role: req.body.role });
       await user.save();
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
-    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+      res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
     }
   } catch (err) {
     console.error(err);
@@ -46,20 +46,28 @@ router.post("/register", async (req, res) => {
 
 // Login route
 router.post("/login", async (req, res) => {
-  const { email, password, role} = req.body;
+  const { email, password, role } = req.body;
+  console.log("Login attempt:", { email, role }); // Debug log
   try {
-    const user = await getModelName(role).findOne({ email });
-    if (!user) return res.status(400).json({ msg: "Invalid credentials" });
+    const Model = getModelName(role);
+    console.log("Using model:", Model.modelName); // Debug log
+
+    const user = await Model.findOne({ email });
+    if (!user) {
+      console.log("User not found in DB");
+      return res.status(400).json({ msg: "Invalid credentials" });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
+    console.log("Password match:", isMatch); // Debug log
 
     if (!isMatch) return res.status(400).json({ msg: "Invalid password" });
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
-    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role, store: user.store} });
+    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role, store: user.store } });
   } catch (err) {
-    console.error(err);
+    console.error("Login Error:", err);
     res.status(500).send("Server error");
   }
 });

@@ -5,25 +5,25 @@ const { enrichBaseEvent } = require("./logEnricher");
 
 async function writeLog(rawEvent, context = {}) {
   try {
-    console.log(`📝 [logWriter] Processing event: ${rawEvent.event_type}`);
+    // console.log(`📝 [logWriter] Processing event: ${rawEvent.event_type}`);
 
     // enrichBaseEvent is now async and fetches infrastructure internally
     const enriched = await enrichBaseEvent(rawEvent, context);
-    console.log(`✨ [logWriter] Enriched event: ${enriched.event_id}`);
+    // console.log(`✨ [logWriter] Enriched event: ${enriched.event_id}`);
 
     validateBaseEvent(enriched);
-    console.log(`✅ [logWriter] Validation passed`);
+    // console.log(`✅ [logWriter] Validation passed`);
 
     const Model = await resolveModelForEvent(enriched.event_type);
     if (!Model) {
       console.error(`❌ [logWriter] No model found for event type: ${enriched.event_type}`);
       throw new Error(`No model found for event type: ${enriched.event_type}`);
     }
-    console.log(`📚 [logWriter] Resolved model: ${Model.modelName}`);
+    // console.log(`📚 [logWriter] Resolved model: ${Model.modelName}`);
 
     const doc = new Model(enriched);
     await doc.save();
-    console.log(`💾 [logWriter] Saved to DB: ${doc._id}`);
+    // console.log(`💾 [logWriter] Saved to DB: ${doc._id}`);
     return doc;
   } catch (err) {
     console.error(`❌ [logWriter] Error saving log: ${err.message}`);

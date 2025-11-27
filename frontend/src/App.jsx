@@ -15,6 +15,7 @@ import ShowListing from './components/Artist/ShowListing';
 import SearchResults from './pages/SearchResults';
 import ShowListingPublic from './pages/ShowListingPublic';
 import ProductDetail from "./pages/ProductDetail";
+import Profile from "./pages/Profile";
 
 import { LoggerProvider } from './utils/logger/loggerProvider.jsx';
 // import Products from "./pages/Products";
@@ -43,6 +44,7 @@ function App() {
           <Route path="/search" element={<SearchResults />} />
           <Route path="/ShowListingPublic" element={<ShowListingPublic />} />
           <Route path="/product/:id" element={<ProductDetail />} />
+          <Route path="/profile" element={<Profile />} />
           {/*<Route path="/artists" element={<Artists />} />
 
 
