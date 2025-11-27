@@ -39,7 +39,7 @@ const Navbar = () => {
     return (
         <>
             <nav>
-                <div className='absolute p-8 w-screen container flex justify-between items-center py-4 bg-white/10 backdrop-blur-lg border-b border-white/20 shadow-lg'>
+                <div className='absolute p-8 w-screen container flex justify-between items-center py-4 bg-white/10 backdrop-blur-lg border-b border-white/20 shadow-lg z-50'>
                     {/* logo section */}
                     <div className='text-2xl flex items-center gap-2 font-bold uppercase'>
                         <SiSnapcraft />
