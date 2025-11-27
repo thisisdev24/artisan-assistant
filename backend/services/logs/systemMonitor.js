@@ -1,6 +1,7 @@
 // services/logs/systemMonitor.js
 const os = require("os");
 const pidusage = require("pidusage");
+const checkDiskSpace = require("check-disk-space").default;
 
 /**
  * getInfrastructureSnapshot() -> returns object compatible with InfraSchema
@@ -25,6 +26,8 @@ async function getInfrastructureSnapshot() {
     disk_usage_gb: null,
     uptime_seconds,
     node_health: "unknown",
+    node_version: process.version,
+    process_id: process.pid,
   };
 
   try {
@@ -32,12 +35,22 @@ async function getInfrastructureSnapshot() {
     // pidusage.cpu is percent (e.g. 12.3)
     infra.cpu_percent = typeof stats.cpu === "number" ? Math.round(stats.cpu * 100) / 100 : null;
     infra.memory_mb = typeof stats.memory === "number" ? Math.round(stats.memory / (1024 * 1024)) : infra.memory_mb;
-    infra.node_version = process.version;
-    infra.process_id = process.pid;
     infra.node_health = "ok";
   } catch (err) {
     // eslint-disable-next-line no-console
     console.warn("[systemMonitor] pidusage failed:", err && err.message);
+  }
+
+  // Get disk usage
+  try {
+    const diskPath = process.platform === "win32" ? "C:\\" : "/";
+    const diskSpace = await checkDiskSpace(diskPath);
+    // diskSpace returns { free, size } in bytes
+    const usedBytes = diskSpace.size - diskSpace.free;
+    infra.disk_usage_gb = Math.round((usedBytes / (1024 * 1024 * 1024)) * 100) / 100;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("[systemMonitor] disk space check failed:", err && err.message);
   }
 
   return infra;

@@ -1,16 +1,16 @@
 require("dotenv").config();
+const mongoose = require("mongoose");
 const http = require("http");
 const os = require("os");
 const app = require("./app");
 const Listing = require("./models/Listing");
 
-// Load system lifecycle logging (OPTION 3)
-require("./startup/systemLogs");
 
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI; // MAIN DB
 const listingDraftsRouter = require('./routes/listingDrafts');
 const listingsRouter = require('./routes/listings');
+const { getLogModels } = require("./models/logs");
 
 // mount draft routes BEFORE or AFTER existing routes — both fine since paths are unique
 app.use('/api/listings', listingDraftsRouter);
@@ -20,12 +20,11 @@ app.use('/api/listings', listingsRouter);
 async function startServer() {
   try {
 
-    // initialize models once on startup
-    getLogModels();
+    await getLogModels();
     // -------------------------
     // Connect MAIN database
     // -------------------------
-    await connect();
+    await mongoose.connect(MONGO_URI);
     console.log("✅ Main MongoDB connected");
 
     const server = http.createServer(app);

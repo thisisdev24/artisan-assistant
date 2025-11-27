@@ -20,6 +20,8 @@ function attachLogger(req, res, next) {
         ip: extractIp(req),
         userAgent: req.headers["user-agent"] || null,
         hostName: req.headers.host || null,
+        referer: req.headers.referer || null,
+        origin: req.headers.origin || null,
       },
       serviceName: process.env.SERVICE_NAME || "api",
       appName: req.headers["x-app-name"] || null,

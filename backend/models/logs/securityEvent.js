@@ -48,7 +48,7 @@ const SecurityEventSchema = new Schema(
       action_performed: { type: String, default: null },
     },
   },
-  { timestamps: true }
+  { timestamps: false }
 );
 
 /* ---------------------- MERGE BASE EVENT ---------------------- */

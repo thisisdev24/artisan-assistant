@@ -28,6 +28,7 @@ const GeoSchema = new Schema(
 const DeviceSchema = new Schema(
   {
     device_id: { type: String, default: null },
+    device_name: { type: String, default: null },
     device_type: { type: String, default: null },
     brand: { type: String, default: null },
     model: { type: String, default: null },
@@ -147,12 +148,10 @@ const BaseEvent = {
   // tracing
   trace: TraceSchema,
 
-  // canonical timestamps (server-side canonical UTC time)
-  timestamp_received_utc: { type: Date, default: Date.now, index: true },
-
-  // optional processing timestamps
-  timestamp_processed_utc: { type: Date, default: null },
-  timestamp_completed_utc: { type: Date, default: null },
+  // IST timestamps only (no UTC)
+  timestamp_received_ist: { type: String, default: null, index: true },
+  timestamp_processed_ist: { type: String, default: null },
+  timestamp_completed_ist: { type: String, default: null },
 
   // client timezone info (frontend/enricher may populate)
   client_timezone: { type: String, default: null },

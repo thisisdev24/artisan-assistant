@@ -103,7 +103,7 @@ const ArtistEventSchema = new Schema(
       utm: { type: Schema.Types.Mixed, default: {} },
     },
   },
-  { timestamps: true }
+  { timestamps: false }
 );
 
 /* ---------------------- MERGE BASE EVENT ---------------------- */

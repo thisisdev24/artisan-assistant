@@ -1,5 +1,5 @@
 // src/utils/logger/loggerClient.js
- 
+
 
 
 import { LOGGER_CONFIG } from "./loggerConfig";
@@ -48,12 +48,59 @@ export function createLoggerClient() {
     }, LOGGER_CONFIG.flushIntervalMs);
   };
 
+  function getDeviceInfo() {
+    if (typeof window === "undefined") return {};
+
+    const info = {
+      screen_resolution: `${window.screen.width}x${window.screen.height}`,
+      language: navigator.language || navigator.userLanguage,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      user_agent: navigator.userAgent,
+      platform: navigator.platform,
+    };
+
+    // Calculate timezone offset in minutes
+    const offset = -new Date().getTimezoneOffset();
+    info.timezone_offset_minutes = offset;
+
+    return info;
+  }
+
+  function getNetworkInfo() {
+    if (typeof window === "undefined" || !navigator.connection) return {};
+
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!conn) return {};
+
+    return {
+      connection_type: conn.type || null,
+      effective_type: conn.effectiveType || null,
+      downlink: conn.downlink || null, // Mbps
+      rtt: conn.rtt || null, // milliseconds
+      saveData: conn.saveData || false,
+    };
+  }
+
   async function logEvent(event) {
+    const deviceInfo = getDeviceInfo();
+    const networkInfo = getNetworkInfo();
+
     const enrichedEvent = {
       ...event,
       session_id: getOrCreateSessionId(),
       anonymous_id: getOrCreateAnonymousId(),
       timestamp_client_utc: new Date().toISOString(),
+      device: {
+        ...(event.device || {}),
+        ...deviceInfo,
+      },
+      network: {
+        ...(event.network || {}),
+        ...networkInfo,
+        latency_ms: networkInfo.rtt || null,
+      },
+      client_timezone: deviceInfo.timezone,
+      timezone_offset_minutes: deviceInfo.timezone_offset_minutes,
     };
 
     if (!LOGGER_CONFIG.batch) {

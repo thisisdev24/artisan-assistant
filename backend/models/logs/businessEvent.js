@@ -107,7 +107,7 @@ const BusinessEventSchema = new Schema(
       tax_code: { type: String, default: null },
     },
   },
-  { timestamps: true }
+  { timestamps: false }
 );
 
 /* ---------------------- MERGE BASE EVENT ---------------------- */

@@ -84,7 +84,7 @@ const SystemEventSchema = new Schema(
       uptime_percent: { type: Number, default: null },
     },
   },
-  { timestamps: true }
+  { timestamps: false }
 );
 
 /* ---------------------- MERGE BASE EVENT ---------------------- */

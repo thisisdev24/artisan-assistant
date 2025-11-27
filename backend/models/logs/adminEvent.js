@@ -85,7 +85,7 @@ const AdminEventSchema = new Schema(
       downtime_seconds: { type: Number, default: null },
     },
   },
-  { timestamps: true }
+  { timestamps: false }
 );
 
 /* ------------ MERGE BASE EVENT INTO ADMIN EVENT ------------ */

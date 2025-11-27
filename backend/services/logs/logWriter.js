@@ -1,30 +1,35 @@
-// services/logs/logWriter.js (updated writeLog)
+// services/logs/logWriter.js
 const { resolveModelForEvent } = require("./logRouter");
 const { validateBaseEvent } = require("./logValidator");
 const { enrichBaseEvent } = require("./logEnricher");
-const { getInfrastructureSnapshot } = require("./systemMonitor"); // adjust path as needed
 
 async function writeLog(rawEvent, context = {}) {
-  const enriched = enrichBaseEvent(rawEvent, context);
+  try {
+    console.log(`📝 [logWriter] Processing event: ${rawEvent.event_type}`);
 
-  // if enricher indicated full infra required, fetch it now and merge
-  if (enriched.__need_full_infra) {
-    try {
-      const infra = await getInfrastructureSnapshot();
-      enriched.infrastructure = { ...(enriched.infrastructure || {}), ...(infra || {}) };
-      delete enriched.__need_full_infra;
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn("[logWriter] failed to attach full infra snapshot:", err && err.message);
+    // enrichBaseEvent is now async and fetches infrastructure internally
+    const enriched = await enrichBaseEvent(rawEvent, context);
+    console.log(`✨ [logWriter] Enriched event: ${enriched.event_id}`);
+
+    validateBaseEvent(enriched);
+    console.log(`✅ [logWriter] Validation passed`);
+
+    const Model = await resolveModelForEvent(enriched.event_type);
+    if (!Model) {
+      console.error(`❌ [logWriter] No model found for event type: ${enriched.event_type}`);
+      throw new Error(`No model found for event type: ${enriched.event_type}`);
     }
+    console.log(`📚 [logWriter] Resolved model: ${Model.modelName}`);
+
+    const doc = new Model(enriched);
+    await doc.save();
+    console.log(`💾 [logWriter] Saved to DB: ${doc._id}`);
+    return doc;
+  } catch (err) {
+    console.error(`❌ [logWriter] Error saving log: ${err.message}`);
+    console.error(err.stack);
+    throw err;
   }
-
-  validateBaseEvent(enriched);
-
-  const Model = await resolveModelForEvent(enriched.event_type);
-  const doc = new Model(enriched);
-  await doc.save();
-  return doc;
 }
 
 async function writeLogs(events, context = {}) {

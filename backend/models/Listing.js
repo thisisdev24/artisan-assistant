@@ -12,6 +12,7 @@ const ActivitySchema = new mongoose.Schema({
   loyalty_tier: String,
   flags: [String],
 }, { _id: false });
+
 const ImageSchema = new mongoose.Schema({
   thumb: String,
   large: String,
@@ -27,7 +28,6 @@ const VideoSchema = new mongoose.Schema({
 const DimensionsSchema = new mongoose.Schema({
   height: { type: Number, default: null }, // in cm
   length: { type: Number, default: null }, // in cm
-  width: { type: Number, default: null }, // in cm
   width: { type: Number, default: null }, // in cm
   weight: { type: Number, default: null }  // in grams (or kg depending on your app)
 }, { _id: false });
@@ -48,7 +48,14 @@ const listingSchema = new mongoose.Schema({
   parent_asin: { type: String },
   createdAt: { type: Date, default: Date.now },
   faiss_vector_id: { type: Number, default: null },
-  embedding_created_at: { type: Date, default: null }
+  embedding_created_at: { type: Date, default: null },
+
+  // Fields from logging events
+  activity: ActivitySchema,
+  soft_delete: SoftDeleteSchema,
+
+  // Fields from other branch
+  dimensions: { type: DimensionsSchema, default: {} },
 });
 
 // IMPORTANT: create an index on createdAt to support sort({createdAt: -1})

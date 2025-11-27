@@ -5,7 +5,7 @@ import Seller from '../components/Artist/Seller';
 // import Buyer from '../components/Buyer/Buyer';
 // import Admin from '../components/Admin/Admin';
 
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -17,14 +17,14 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/login", {
+      const res = await apiClient.post("/api/auth/login", {
         email,
         password,
         role,
       });
-      
+
       // User data ko localStorage me store karein
-        localStorage.setItem("user", JSON.stringify(res.data));
+      localStorage.setItem("user", JSON.stringify(res.data));
       // Save token + role in localStorage
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("role", res.data.user.role);
@@ -32,7 +32,7 @@ const Login = () => {
       // Role-based redirect
       if (role === res.data.user.role) {
         if (res.data.user.role === "seller") {
-          navigate("/Seller", { state: { storeName: res.data.user.store }});
+          navigate("/Seller", { state: { storeName: res.data.user.store } });
         } else if (res.data.user.role === "buyer") {
           navigate("/");
         }

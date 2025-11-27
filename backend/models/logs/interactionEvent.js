@@ -88,7 +88,7 @@ const InteractionEventSchema = new Schema(
       batch_id: { type: String, default: null },
     },
   },
-  { timestamps: true }
+  { timestamps: false }
 );
 
 /* ---------------------- MERGE BASE EVENT ---------------------- */

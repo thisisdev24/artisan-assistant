@@ -2,6 +2,7 @@
 const connectLogDB = require("../../db/connectLogDB");
 
 // schemas (exactly as you shared, updated with safe defaults)
+const BaseEventSchema = require("./baseEvent");
 const AdminEventSchema = require("./adminEvent");
 const ArtistEventSchema = require("./artistEvent");
 const BuyerEventSchema = require("./buyerEvent");
@@ -19,6 +20,7 @@ async function getLogModels() {
   modelsPromise = (async () => {
     const conn = await connectLogDB();
 
+    const BaseEvent = conn.model("BaseEvent", BaseEventSchema, "base_events");
     const AdminEvent = conn.model("AdminEvent", AdminEventSchema, "admin_events");
     const ArtistEvent = conn.model("ArtistEvent", ArtistEventSchema, "artist_events");
     const BuyerEvent = conn.model("BuyerEvent", BuyerEventSchema, "buyer_events");
@@ -29,6 +31,7 @@ async function getLogModels() {
     const SystemEvent = conn.model("SystemEvent", SystemEventSchema, "system_events");
 
     return {
+      BaseEvent,
       AdminEvent,
       ArtistEvent,
       BuyerEvent,

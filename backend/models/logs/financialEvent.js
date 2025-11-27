@@ -67,7 +67,7 @@ const FinancialEventSchema = new Schema(
       last_audited_at: { type: Date, default: null },
     },
   },
-  { timestamps: true }
+  { timestamps: false }
 );
 
 /* ---------------------- MERGE BASE EVENT ---------------------- */

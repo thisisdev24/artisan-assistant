@@ -106,7 +106,7 @@ const BuyerEventSchema = new Schema(
       flags: { type: [String], default: [] },
     },
   },
-  { timestamps: true }
+  { timestamps: false }
 );
 
 /* ---------------------- MERGE BASE EVENT ---------------------- */
