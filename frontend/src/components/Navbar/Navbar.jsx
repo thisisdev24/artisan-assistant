@@ -8,6 +8,8 @@ import { MdMenu } from "react-icons/md";
 import { Link, useLocation, useNavigate } from "react-router-dom"; // Import Link
 import ResponsiveMenu from './ResponsiveMenu';
 import { FaUser } from "react-icons/fa";
+import { useNavigate } from 'react-router-dom';
+import { useCart } from '../../context/CartContext';
 
 const Navbar = () => {
     const [open, setOpen] = React.useState(false);
@@ -17,6 +19,7 @@ const Navbar = () => {
     const location = useLocation(); // Trigger re-render on route change
 
     const user = JSON.parse(localStorage.getItem("user"));
+    const { cartCount } = useCart();
 
     // handle form submission
     const handleSearchSubmit = (e) => {
@@ -96,9 +99,17 @@ const Navbar = () => {
                                     </button>
                                 </form>
                             )}
-                            <button className='text-2xl hover:bg-primary hover:text-white p-2 rounded-full
-                 duration-200 '>
+                            <button
+                                onClick={() => navigate('/cart')}
+                                className='relative text-2xl hover:bg-primary hover:text-white p-2 rounded-full duration-200'
+                                aria-label="Open cart"
+                            >
                                 <PiShoppingCartThin />
+                                {cartCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5">
+                                        {cartCount}
+                                    </span>
+                                )}
                             </button>
                             {/* Login & Register buttons */}
                             {user ? (

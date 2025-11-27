@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useCart } from "../context/CartContext";
 
 /**
  * ProductDetail.jsx
@@ -10,6 +11,7 @@ import axios from "axios";
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { addToCart } = useCart();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -63,9 +65,8 @@ const ProductDetail = () => {
     if (product.stock === 0) return alert("Product out of stock");
     setAdding(true);
     try {
-      // TODO: wire to your backend cart API
-      // await axios.post('/api/cart', { productId: product._id, quantity: qty });
-      alert(`Added ${qty} × "${product.title}" to cart (placeholder)`);
+      addToCart(product, qty);
+      alert(`Added ${qty} × "${product.title}" to cart`);
     } catch (err) {
       console.error(err);
       alert("Failed to add to cart");
@@ -189,7 +190,7 @@ const ProductDetail = () => {
               <div className="mt-4 flex items-center gap-4">
                 <div className="flex items-center gap-1">
                   {Array.from({ length: fullStars }).map((_, i) => (
-                    <svg key={"f"+i} className="w-5 h-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                    <svg key={"f" + i} className="w-5 h-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.449a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.539 1.118L10 13.347l-3.37 2.449c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.644 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69L9.05 2.927z" />
                     </svg>
                   ))}
@@ -199,7 +200,7 @@ const ProductDetail = () => {
                     </svg>
                   )}
                   {Array.from({ length: emptyStars }).map((_, i) => (
-                    <svg key={"e"+i} className="w-5 h-5 text-gray-300" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                    <svg key={"e" + i} className="w-5 h-5 text-gray-300" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.449a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.539 1.118L10 13.347l-3.37 2.449c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.644 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69L9.05 2.927z" />
                     </svg>
                   ))}
@@ -207,7 +208,7 @@ const ProductDetail = () => {
                 <div className="text-sm text-gray-600">
                   {avg ? `${avg.toFixed(1)} • ` : ""}{product.rating_number ?? 0} ratings
                 </div>
-                <div className="ml-auto text-sm text-gray-500">SKU: <span className="font-mono">{product.sku || product._id.slice(0,8)}</span></div>
+                <div className="ml-auto text-sm text-gray-500">SKU: <span className="font-mono">{product.sku || product._id.slice(0, 8)}</span></div>
               </div>
 
               {/* Price */}

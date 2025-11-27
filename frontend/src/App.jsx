@@ -16,6 +16,9 @@ import SearchResults from './pages/SearchResults';
 import ShowListingPublic from './pages/ShowListingPublic';
 import ProductDetail from "./pages/ProductDetail";
 import Profile from "./pages/Profile";
+import ProductDetail from './pages/ProductDetail';
+import CartPage from './pages/CartPage';
+import Checkout from './pages/Checkout';
 
 import { LoggerProvider } from './utils/logger/loggerProvider.jsx';
 // import Products from "./pages/Products";
@@ -40,6 +43,9 @@ function App() {
           <Route path="/Seller" element={<Seller />} />
           <Route path="/CreateListing" element={<CreateListing />} />
           <Route path="/product-details/:id" element={<ProductDetailsForm />} />
+          <Route path="/products/:id" element={<ProductDetail />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/checkout" element={<Checkout />} />
           <Route path="/ShowListing" element={<ShowListing storeName={storeFromStorage || undefined} />} />
           <Route path="/search" element={<SearchResults />} />
           <Route path="/ShowListingPublic" element={<ShowListingPublic />} />
