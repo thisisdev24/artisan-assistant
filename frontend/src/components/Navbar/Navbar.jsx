@@ -8,7 +8,6 @@ import { MdMenu } from "react-icons/md";
 import { Link, useLocation, useNavigate } from "react-router-dom"; // Import Link
 import ResponsiveMenu from './ResponsiveMenu';
 import { FaUser } from "react-icons/fa";
-import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 
 const Navbar = () => {
