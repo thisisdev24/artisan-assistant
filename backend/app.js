@@ -21,7 +21,20 @@ app.use(cors({
     return callback(new Error('CORS policy: This origin is not allowed'));
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'x-network-type',
+    'x-network-effective-type',
+    'x-network-downlink',
+    'x-network-rtt',
+    'x-network-save-data',
+    'x-device-memory',
+    'x-device-platform',
+    'x-device-hardware-concurrency',
+    'x-timezone'
+  ],
   credentials: true
 }));
 
@@ -54,6 +67,9 @@ new AutoLoggingEngine(app);
 
 const listings = require('./routes/listings');
 app.use('/api/listings', listings);
+
+const artisanRoutes = require('./routes/artisans');
+app.use('/api/artisans', artisanRoutes);
 
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);

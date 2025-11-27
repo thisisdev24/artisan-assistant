@@ -106,8 +106,8 @@ const ShowListingPublic = () => {
                         ? product.description.slice(0, 157) + "..."
                         : product.description
                       : Array.isArray(product.description) && product.description.length > 0
-                      ? product.description[0]
-                      : ""}
+                        ? product.description[0]
+                        : ""}
                   </p>
 
                   <div className="flex items-center text-yellow-500 text-sm mb-3">
@@ -119,7 +119,7 @@ const ShowListingPublic = () => {
                       ₹{product.price}
                     </span>
                     <button
-                      onClick={() => navigate(`/product/${product._id}`)}
+                      onClick={() => navigate(`/products/${product._id}`)}
                       className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
                     >
                       View
