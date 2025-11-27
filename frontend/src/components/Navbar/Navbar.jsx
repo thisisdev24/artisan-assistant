@@ -37,7 +37,7 @@ const Navbar = () => {
     return (
         <>
             <nav>
-                <div className='pl-12 container flex justify-between items-center py-8 '>
+                <div className='absolute p-8 w-screen container flex justify-between items-center py-4 bg-white/10 backdrop-blur-lg border-b border-white/20 shadow-lg'>
                     {/* logo section */}
                     <div className='text-2xl flex items-center gap-2 font-bold uppercase'>
                         <SiSnapcraft />
@@ -47,7 +47,7 @@ const Navbar = () => {
                     </div>
                     {/* menu section */}
                     <div className='hidden md:block'>
-                        <ul className='flex items-center gap-6 text-gray-600 '>
+                        <ul className='flex items-center gap-6 text-black'>
                             {
                                 NavbarMenu.map((item) => {
                                     return (<li key={item.id}>
