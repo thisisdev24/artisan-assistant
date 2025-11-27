@@ -8,12 +8,14 @@ import { MdMenu } from "react-icons/md";
 import { Link } from "react-router-dom"; // Import Link
 import ResponsiveMenu from './ResponsiveMenu';
 import { useNavigate } from 'react-router-dom';
+import { useCart } from '../../context/CartContext';
 
 const Navbar = () => {
     const [open, setOpen] = React.useState(false);
     const [searchOpen, setSearchOpen] = React.useState(false); // for showing search input
     const [searchQuery, setSearchQuery] = React.useState('');  // for input value
     const navigate = useNavigate();
+    const { cartCount } = useCart();
 
     // handle form submission
     const handleSearchSubmit = (e) => {
@@ -26,7 +28,7 @@ const Navbar = () => {
     };
     // Handles closing search bar (when pressing escape or clicking X)
     const closeSearchOnMouseOut = () => {
-        if(searchQuery.length === 0) {
+        if (searchQuery.length === 0) {
             setSearchOpen(false);
             setSearchQuery('');
         }
@@ -67,9 +69,9 @@ const Navbar = () => {
                                 onMouseEnter={() => setSearchOpen(!searchOpen)}
                                 className="text-2xl hover:bg-primary hover:text-white p-2 rounded-full duration-200"
                             >
-                                {searchOpen? '' : <CiSearch/> }
+                                {searchOpen ? '' : <CiSearch />}
                             </button>
-                            
+
                             {/* Animated search input */}
                             {searchOpen && (
                                 <form
@@ -93,29 +95,37 @@ const Navbar = () => {
                                     </button>
                                 </form>
                             )}
-                            <button className='text-2xl hover:bg-primary hover:text-white p-2 rounded-full
-                 duration-200 '>
+                            <button
+                                onClick={() => navigate('/cart')}
+                                className='relative text-2xl hover:bg-primary hover:text-white p-2 rounded-full duration-200'
+                                aria-label="Open cart"
+                            >
                                 <PiShoppingCartThin />
+                                {cartCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5">
+                                        {cartCount}
+                                    </span>
+                                )}
                             </button>
                             {/* Login & Register buttons */}
-                            {searchOpen?
-                            <div className='pl-18 hidden md:flex gap-2'>
-                                <Link to="/login" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
-                                    Login
-                                </Link>
-                                <Link to="/register" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
-                                    Register
-                                </Link>
-                            </div>
-                            :
-                            <div className='pl-32 hidden md:flex gap-2'>
-                                <Link to="/login" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
-                                    Login
-                                </Link>
-                                <Link to="/register" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
-                                    Register
-                                </Link>
-                            </div>
+                            {searchOpen ?
+                                <div className='pl-18 hidden md:flex gap-2'>
+                                    <Link to="/login" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
+                                        Login
+                                    </Link>
+                                    <Link to="/register" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
+                                        Register
+                                    </Link>
+                                </div>
+                                :
+                                <div className='pl-32 hidden md:flex gap-2'>
+                                    <Link to="/login" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
+                                        Login
+                                    </Link>
+                                    <Link to="/register" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
+                                        Register
+                                    </Link>
+                                </div>
                             }
                         </div>
                         {/* mobile hamburger menu section */}
