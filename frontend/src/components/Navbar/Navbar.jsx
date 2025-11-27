@@ -5,9 +5,9 @@ import { PiShoppingCartThin } from "react-icons/pi";
 import { FaDumbbell } from "react-icons/fa";
 import { SiSnapcraft } from "react-icons/si";
 import { MdMenu } from "react-icons/md";
-import { Link } from "react-router-dom"; // Import Link
+import { Link, useLocation, useNavigate } from "react-router-dom"; // Import Link
 import ResponsiveMenu from './ResponsiveMenu';
-import { useNavigate } from 'react-router-dom';
+import { FaUser } from "react-icons/fa";
 import { useCart } from '../../context/CartContext';
 
 const Navbar = () => {
@@ -15,6 +15,9 @@ const Navbar = () => {
     const [searchOpen, setSearchOpen] = React.useState(false); // for showing search input
     const [searchQuery, setSearchQuery] = React.useState('');  // for input value
     const navigate = useNavigate();
+    const location = useLocation(); // Trigger re-render on route change
+
+    const user = JSON.parse(localStorage.getItem("user"));
     const { cartCount } = useCart();
 
     // handle form submission
@@ -108,25 +111,30 @@ const Navbar = () => {
                                 )}
                             </button>
                             {/* Login & Register buttons */}
-                            {searchOpen ?
-                                <div className='pl-18 hidden md:flex gap-2'>
-                                    <Link to="/login" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
-                                        Login
-                                    </Link>
-                                    <Link to="/register" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
-                                        Register
-                                    </Link>
-                                </div>
-                                :
-                                <div className='pl-32 hidden md:flex gap-2'>
-                                    <Link to="/login" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
-                                        Login
-                                    </Link>
-                                    <Link to="/register" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
-                                        Register
-                                    </Link>
-                                </div>
-                            }
+                            {user ? (
+                                <Link to="/profile" className='text-2xl hover:bg-primary hover:text-white p-2 rounded-full duration-200'>
+                                    <FaUser />
+                                </Link>
+                            ) : (
+                                searchOpen ?
+                                    <div className='pl-18 hidden md:flex gap-2'>
+                                        <Link to="/login" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
+                                            Login
+                                        </Link>
+                                        <Link to="/register" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
+                                            Register
+                                        </Link>
+                                    </div>
+                                    :
+                                    <div className='pl-32 hidden md:flex gap-2'>
+                                        <Link to="/login" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
+                                            Login
+                                        </Link>
+                                        <Link to="/register" className='text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200'>
+                                            Register
+                                        </Link>
+                                    </div>
+                            )}
                         </div>
                         {/* mobile hamburger menu section */}
                         <div className='md:hidden ' onClick={() => setOpen(!open)}>
