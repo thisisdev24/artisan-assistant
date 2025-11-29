@@ -19,6 +19,8 @@ import Profile from "./pages/Profile";
 import CartPage from './pages/CartPage';
 import Checkout from './pages/Checkout';
 import Artists from "./pages/Artists";
+import Admin from './components/Admin/Admin';
+import ProtectedRoute from './components/ProtectedRoute';
 
 import { LoggerProvider } from './utils/logger/loggerProvider.jsx';
 // import Products from "./pages/Products";
@@ -39,21 +41,78 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/Seller" element={<Seller />} />
-          <Route path="/CreateListing" element={<CreateListing />} />
-          <Route path="/product-details/:id" element={<ProductDetailsForm />} />
+          <Route path="/search" element={<SearchResults />} />
+          <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/products/:id" element={<ProductDetail />} />
           <Route path="/ShowListingPublic" element={<ShowListingPublic />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/search" element={<SearchResults />} />
-          <Route path="/ShowListingPublic" element={<ShowListingPublic />} />
-          <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/artists" element={<Artists />} />
-
-
-          <Route path="/profile" element={<Profile />} />
+          
+          {/* Protected Routes */}
+          <Route 
+            path="/Seller" 
+            element={
+              <ProtectedRoute allowedRoles={['seller']}>
+                <Seller />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/CreateListing" 
+            element={
+              <ProtectedRoute allowedRoles={['seller']}>
+                <CreateListing />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/product-details/:id" 
+            element={
+              <ProtectedRoute allowedRoles={['seller']}>
+                <ProductDetailsForm />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/ShowListing" 
+            element={
+              <ProtectedRoute allowedRoles={['seller']}>
+                <ShowListing />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/cart" 
+            element={
+              <ProtectedRoute allowedRoles={['buyer']}>
+                <CartPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/checkout" 
+            element={
+              <ProtectedRoute allowedRoles={['buyer']}>
+                <Checkout />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute allowedRoles={['buyer']}>
+                <Profile />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/Admin" 
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <Admin />
+              </ProtectedRoute>
+            } 
+          />
           {/*<Route path="/artists" element={<Artists />} />
 
 

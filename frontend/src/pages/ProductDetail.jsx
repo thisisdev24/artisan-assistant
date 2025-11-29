@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 
 /**
  * ProductDetail.jsx
@@ -12,6 +13,7 @@ const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { isAuthenticated, isBuyer } = useAuth();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -62,14 +64,24 @@ const ProductDetail = () => {
 
   const handleAddToCart = async () => {
     if (!product) return;
+    if (!isAuthenticated || !isBuyer) {
+      alert("Please login as a buyer to add items to cart");
+      navigate("/login");
+      return;
+    }
     if (product.stock === 0) return alert("Product out of stock");
     setAdding(true);
     try {
-      addToCart(product, qty);
+      await addToCart(product, qty);
       alert(`Added ${qty} × "${product.title}" to cart`);
     } catch (err) {
       console.error(err);
-      alert("Failed to add to cart");
+      if (err.response?.status === 401) {
+        alert("Please login to add items to cart");
+        navigate("/login");
+      } else {
+        alert("Failed to add to cart");
+      }
     } finally {
       setAdding(false);
     }

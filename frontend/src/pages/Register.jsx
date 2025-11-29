@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
-import Navbar from "../components/Navbar/Navbar";
+import apiClient from "../utils/apiClient";
+import { useAuth } from "../context/AuthContext";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -11,16 +11,25 @@ const Register = () => {
   const [role, setRole] = useState("buyer"); // default role
   const [store, setStore] = useState('');
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (password !== confirmPassword) return alert("Passwords do not match");
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/register", { name, email, password, role , store});
-      localStorage.setItem("token", res.data.token); // store JWT
-      navigate("/Login") // redirect after registration
+      const res = await apiClient.post("/api/auth/register", { name, email, password, role, store });
+      // Use AuthContext login function
+      login(res.data.token, res.data.user);
+      // Role-based redirect
+      if (res.data.user.role === "seller") {
+        navigate("/Seller", { state: { storeName: res.data.user.store } });
+      } else if (res.data.user.role === "admin") {
+        navigate("/Admin");
+      } else {
+        navigate("/");
+      }
     } catch (err) {
-      alert(err.response.data.msg);
+      alert(err.response?.data?.msg || "Registration failed");
     }
   };
 
@@ -59,7 +68,7 @@ const Register = () => {
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            
+
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
@@ -67,17 +76,16 @@ const Register = () => {
             >
               <option value="buyer">Buyer</option>
               <option value="seller">Seller</option>
-              <option value="admin">Admin</option>
             </select>
 
             {(role === "seller") ? (
-            <input id="storeInput"
-            placeholder="Store" 
-            value={store}
-            onChange={(e) => setStore(e.target.value)}
-              className="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            ) : null }
+              <input id="storeInput"
+                placeholder="Store"
+                value={store}
+                onChange={(e) => setStore(e.target.value)}
+                className="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            ) : null}
 
             <button
               type="submit"

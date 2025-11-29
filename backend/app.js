@@ -74,6 +74,12 @@ app.use('/api/artisans', artisanRoutes);
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 
+const cartRoutes = require('./routes/cart');
+app.use('/api/cart', cartRoutes);
+
+const adminRoutes = require('./routes/admin');
+app.use('/api/admin', adminRoutes);
+
 // after other routes
 const generateDescRouter = require("./routes/generateDescriptionProxy");
 app.use("/api", generateDescRouter);

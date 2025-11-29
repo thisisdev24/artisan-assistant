@@ -1,5 +1,6 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 
 const formatCurrency = (value) =>
   typeof value === "number"
@@ -8,7 +9,21 @@ const formatCurrency = (value) =>
 
 const CartPage = () => {
   const navigate = useNavigate();
-  const { items, subtotal, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { items, subtotal, updateQuantity, removeFromCart, clearCart, loading } = useCart();
+  const { isAuthenticated, isBuyer, loading: authLoading } = useAuth();
+
+  // Redirect to login if not authenticated or not a buyer
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !isBuyer) {
+    return <Navigate to="/login" replace />;
+  }
 
   const handleCheckout = () => {
     navigate("/checkout");
@@ -47,7 +62,7 @@ const CartPage = () => {
 
           <div className="space-y-4">
             {items.map((item) => (
-              <div key={item._id} className="flex gap-4 border rounded-xl p-4">
+              <div key={item.listing_id?._id || item.listing_id} className="flex gap-4 border rounded-xl p-4">
                 <div className="w-28 h-28 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
                   <img
                     src={item.image || "/placeholder.svg"}
@@ -82,21 +97,21 @@ const CartPage = () => {
                   <div className="mt-4 flex items-center gap-4">
                     <div className="flex items-center rounded border divide-x overflow-hidden">
                       <button
-                        onClick={() => updateQuantity(item._id, item.quantity - 1)}
+                        onClick={() => updateQuantity(item.listing_id?._id || item.listing_id, item.quantity - 1)}
                         className="px-3 py-2 text-gray-700 hover:bg-gray-100"
                       >
                         −
                       </button>
                       <div className="px-4 py-2 bg-white text-sm font-medium">{item.quantity}</div>
                       <button
-                        onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                        onClick={() => updateQuantity(item.listing_id?._id || item.listing_id, item.quantity + 1)}
                         className="px-3 py-2 text-gray-700 hover:bg-gray-100"
                       >
                         +
                       </button>
                     </div>
                     <button
-                      onClick={() => removeFromCart(item._id)}
+                      onClick={() => removeFromCart(item.listing_id?._id || item.listing_id)}
                       className="text-red-500 hover:text-red-600 text-sm font-medium"
                     >
                       Remove

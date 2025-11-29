@@ -35,4 +35,20 @@ apiClient.interceptors.request.use((config) => {
     return Promise.reject(error);
 });
 
+// Add a response interceptor to handle 401 errors globally
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        // If we get a 401 and we're not on the verify endpoint, clear auth
+        // The AuthContext will handle the state update
+        if (error.response?.status === 401 && !error.config?.url?.includes('/api/auth/verify')) {
+            // Clear auth data - AuthContext will detect this on next render
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('role');
+        }
+        return Promise.reject(error);
+    }
+);
+
 export default apiClient;

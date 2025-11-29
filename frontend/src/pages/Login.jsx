@@ -1,10 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar/Navbar";
-import Seller from '../components/Artist/Seller';
-// import Buyer from '../components/Buyer/Buyer';
-// import Admin from '../components/Admin/Admin';
-
+import { useAuth } from '../context/AuthContext';
 import apiClient from '../utils/apiClient';
 
 const Login = () => {
@@ -12,6 +8,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("buyer"); // default role
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   // 🔹 Define handleSubmit BEFORE using it in <form onSubmit={handleSubmit}>
   const handleSubmit = async (e) => {
@@ -23,11 +20,8 @@ const Login = () => {
         role,
       });
 
-      // User data ko localStorage me store karein
-      localStorage.setItem("user", JSON.stringify(res.data));
-      // Save token + role in localStorage
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("role", res.data.user.role);
+      // Use AuthContext login function
+      login(res.data.token, res.data.user);
 
       // Role-based redirect
       if (role === res.data.user.role) {

@@ -9,6 +9,7 @@ import { Link, useNavigate } from "react-router-dom"; // Import Link
 import ResponsiveMenu from './ResponsiveMenu';
 import { FaUser } from "react-icons/fa";
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 
 const Navbar = () => {
     const [open, setOpen] = React.useState(false);
@@ -16,7 +17,7 @@ const Navbar = () => {
     const [searchQuery, setSearchQuery] = React.useState('');  // for input value
     const navigate = useNavigate();
 
-    const user = JSON.parse(localStorage.getItem("user"));
+    const { user, logout, isBuyer, isSeller, isAdmin } = useAuth();
     const { cartCount } = useCart();
 
     // handle form submission
@@ -39,27 +40,61 @@ const Navbar = () => {
     return (
         <>
             <nav>
-                <div className='absolute p-8 w-screen container flex justify-between items-center py-4 bg-white/10 backdrop-blur-lg border-b border-white/20 shadow-lg z-50'>
+                <div className='absolute p-8 w-screen  flex justify-between items-center py-4 bg-white/10 backdrop-blur-lg border-b border-white/20 shadow-lg z-50 '>
                     {/* logo section */}
-                    <div className='text-2xl flex items-center gap-2 font-bold uppercase'>
+                    <Link to={user ? (isSeller ? "/Seller" : isAdmin ? "/Admin" : "/") : "/"} className='text-2xl flex items-center gap-2 font-bold uppercase'>
                         <SiSnapcraft />
                         <p>Artist</p>
                         <p className='text-secondary '>Point</p>
-
-                    </div>
-                    {/* menu section */}
+                    </Link>
+                    {/* menu section - Role-based navigation */}
                     <div className='hidden md:block'>
                         <ul className='flex items-center gap-6 text-black'>
-                            {
+                            {!user ? (
+                                // Not logged in - show public menu
                                 NavbarMenu.map((item) => {
                                     return (<li key={item.id}>
-                                        <a href={item.link} className='incline-block py-1 px-3
-                                 hover:text-primary font-semibold'>
+                                        <a href={item.link} className='incline-block py-1 px-3 hover:text-primary font-semibold'>
                                             {item.title} </a>
-                                    </li>
-                                    );
+                                    </li>);
                                 })
-                            }
+                            ) : isSeller ? (
+                                // Seller menu - only seller options
+                                <>
+                                    <li>
+                                        <Link to="/Seller" className='incline-block py-1 px-3 hover:text-primary font-semibold'>
+                                            Dashboard
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link to="/CreateListing" className='incline-block py-1 px-3 hover:text-primary font-semibold'>
+                                            Add Product
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link to="/ShowListing" className='incline-block py-1 px-3 hover:text-primary font-semibold'>
+                                            My Products
+                                        </Link>
+                                    </li>
+                                </>
+                            ) : isAdmin ? (
+                                // Admin menu - only admin options
+                                <>
+                                    <li>
+                                        <Link to="/Admin" className='incline-block py-1 px-3 hover:text-primary font-semibold'>
+                                            Dashboard
+                                        </Link>
+                                    </li>
+                                </>
+                            ) : (
+                                // Buyer menu - show public menu
+                                NavbarMenu.map((item) => {
+                                    return (<li key={item.id}>
+                                        <a href={item.link} className='incline-block py-1 px-3 hover:text-primary font-semibold'>
+                                            {item.title} </a>
+                                    </li>);
+                                })
+                            )}
                         </ul>
                     </div>
                     {/* icons section */}
@@ -97,23 +132,41 @@ const Navbar = () => {
                                     </button>
                                 </form>
                             )}
+                            {/* Cart button - show for everyone, redirect to login if not logged in */}
                             <button
-                                onClick={() => navigate('/cart')}
+                                onClick={() => {
+                                    if (isBuyer) {
+                                        navigate('/cart');
+                                    } else {
+                                        navigate('/login');
+                                    }
+                                }}
                                 className='relative text-2xl hover:bg-primary hover:text-white p-2 rounded-full duration-200'
                                 aria-label="Open cart"
                             >
                                 <PiShoppingCartThin />
-                                {cartCount > 0 && (
+                                {isBuyer && cartCount > 0 && (
                                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5">
                                         {cartCount}
                                     </span>
                                 )}
                             </button>
-                            {/* Login & Register buttons */}
+                            {/* User menu */}
                             {user ? (
-                                <Link to="/profile" className='text-2xl hover:bg-primary hover:text-white p-2 rounded-full duration-200'>
-                                    <FaUser />
-                                </Link>
+                                <div className="flex items-center gap-2">
+                                    <Link to={isBuyer ? "/profile" : isSeller ? "/Seller" : "/Admin"} className='text-2xl hover:bg-primary hover:text-white p-2 rounded-full duration-200' title={user.name}>
+                                        <FaUser />
+                                    </Link>
+                                    <button
+                                        onClick={() => {
+                                            logout();
+                                            navigate('/');
+                                        }}
+                                        className='text-sm text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-4 py-1 duration-200'
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
                             ) : (
                                 searchOpen ?
                                     <div className='pl-18 hidden md:flex gap-2'>
