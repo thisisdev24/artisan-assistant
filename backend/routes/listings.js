@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const Listing = require('../models/Listing');
-const Artisan = require('../models/Artisan');
+const Listing = require('../models/artisan_point/artisan/Listing');
+const Artisan = require('../models/artisan_point/artisan/Artisan');
 const upload = require('../middleware/upload');
 const { createThumbnailBuffer, createLargeThumbnailBuffer, createHighResThumbnailBuffer } = require('../utils/image');
 const { uploadBuffer, getSignedReadUrl } = require('../utils/gcs');
@@ -31,7 +31,7 @@ router.post('/upload',
       if (Number.isNaN(numericPrice)) return res.status(400).json({ error: 'validation', message: 'price must be a number' });
 
       const imageFiles = (req.files && req.files['images']) || [];
-      if (imageFiles.length === 0) return res.status(400).json({error: 'validation', message: 'Upload minimum one image of the product'});
+      if (imageFiles.length === 0) return res.status(400).json({ error: 'validation', message: 'Upload minimum one image of the product' });
       const videoFiles = (req.files && req.files['videos']) || [];
 
       const imagesMeta = [];
@@ -63,7 +63,7 @@ router.post('/upload',
         const largeThumbnailUrl = await getSignedReadUrl(largeThumbKey, 24 * 60 * 60 * 1000);
         const highResThumbnailUrl = await getSignedReadUrl(highResThumbKey, 24 * 60 * 60 * 1000);
 
-        imagesMeta.push({ thumb: thumbnailUrl , large: largeThumbnailUrl, hi_res: highResThumbnailUrl});
+        imagesMeta.push({ thumb: thumbnailUrl, large: largeThumbnailUrl, hi_res: highResThumbnailUrl });
       }
 
       const videosMeta = [];
@@ -127,7 +127,7 @@ router.get('/retrieve', async (req, res) => {
         }
 
         let desc = doc.description || '';
-        if(desc.length > 200) {
+        if (desc.length > 200) {
           desc = desc.replaceAll(desc.substring(200), '...');
         }
 
@@ -159,7 +159,7 @@ router.get('/retrieve', async (req, res) => {
         }
 
         let desc = doc.description || '';
-        if(desc.length > 200) {
+        if (desc.length > 200) {
           desc = desc.replaceAll(desc.substring(200), '...');
         }
 
@@ -232,7 +232,7 @@ router.get('/search', async (req, res) => {
       }
 
       let desc = doc.description || r.description || '';
-      if(desc.length > 200) {
+      if (desc.length > 200) {
         desc = desc.replaceAll(desc.substring(200), '...');
       }
 

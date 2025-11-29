@@ -1,20 +1,20 @@
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
-const Artisan = require("../models/Artisan");
-const Admin = require("../models/Admin");
+const User = require("../models/artisan_point/user/User");
+const Artisan = require("../models/artisan_point/artisan/Artisan");
+const Admin = require("../models/artisan_point/admin/Admin");
 
 // Middleware to verify JWT token and attach user to request
 const authenticate = async (req, res, next) => {
   try {
-    const token = req.header("Authorization")?.replace("Bearer ", "") || 
-                  req.headers.authorization?.replace("Bearer ", "");
+    const token = req.header("Authorization")?.replace("Bearer ", "") ||
+      req.headers.authorization?.replace("Bearer ", "");
 
     if (!token) {
       return res.status(401).json({ msg: "No token, authorization denied" });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     // Try to find user in all models
     let user = await User.findById(decoded.id);
     if (!user) {

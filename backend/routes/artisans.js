@@ -1,7 +1,7 @@
 // backend/routes/artisans.js
 const express = require('express');
 const router = express.Router();
-const Artisan = require('../models/Artisan');
+const Artisan = require('../models/artisan_point/artisan/Artisan');
 
 /**
  * GET /api/artisans

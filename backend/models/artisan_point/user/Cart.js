@@ -18,7 +18,7 @@ const cartSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Calculate subtotal before saving
-cartSchema.pre('save', function(next) {
+cartSchema.pre('save', function (next) {
   this.subtotal = this.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   this.updated_at = Date.now();
   next();
@@ -26,5 +26,5 @@ cartSchema.pre('save', function(next) {
 
 cartSchema.index({ buyer_id: 1 });
 
-module.exports = mongoose.model("Cart", cartSchema);
+module.exports = mongoose.model("Cart", cartSchema, "carts");
 

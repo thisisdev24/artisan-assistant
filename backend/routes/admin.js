@@ -1,9 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const User = require("../models/User");
-const Artisan = require("../models/Artisan");
-const Admin = require("../models/Admin");
-const Listing = require("../models/Listing");
+const User = require("../models/artisan_point/user/User");
+const Artisan = require("../models/artisan_point/artisan/Artisan");
+const Admin = require("../models/artisan_point/admin/Admin");
+const Listing = require("../models/artisan_point/artisan/Listing");
 const { authenticate, requireAdmin } = require("../middleware/auth");
 
 // All routes require admin authentication

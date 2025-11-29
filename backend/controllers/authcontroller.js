@@ -1,7 +1,7 @@
 // routes/auth.js
 const express = require("express");
 const bcrypt = require("bcryptjs");
-const User = require("../models/User");
+const User = require("../models/artisan_point/user/User");
 
 const router = express.Router();
 

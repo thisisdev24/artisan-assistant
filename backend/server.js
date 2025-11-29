@@ -3,8 +3,8 @@ const mongoose = require("mongoose");
 const http = require("http");
 const os = require("os");
 const app = require("./app");
-const Listing = require("./models/Listing");
-
+const Listing = require("./models/artisan_point/artisan/Listing");
+const loadArtisanPointModels = require("./models/artisan_point");
 
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI; // MAIN DB
@@ -19,19 +19,27 @@ app.use('/api/listings', listingsRouter);
 
 async function startServer() {
   try {
+    // ------------------------------
+    // MONGODB CONNECTION (UPDATED)
+    // ------------------------------
 
+    mongoose.connect(MONGO_URI, {
+      dbName: "test",
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    })
+      .then(() => console.log("✅MongoDB connected"))
+      .catch(err => console.error("MongoDB connection error:", err));
+
+    // ------------------------------
+    // LOG DB CONNECTION (UPDATED)
+    // ------------------------------
     await getLogModels();
-    // -------------------------
-    // Connect MAIN database
-    // -------------------------
-    await mongoose.connect(MONGO_URI);
-    console.log("✅ Main MongoDB connected");
-
-    const server = http.createServer(app);
 
     // -------------------------
     // Start Server
     // -------------------------
+    const server = http.createServer(app);
     server.listen(PORT, async () => {
       console.log(`⚡ Server running on port ${PORT}`);
 

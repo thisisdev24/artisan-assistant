@@ -2,9 +2,9 @@ const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
-const Artisan = require("../models/Artisan");
-const Admin = require("../models/Admin");
+const User = require("../models/artisan_point/user/User");
+const Artisan = require("../models/artisan_point/artisan/Artisan");
+const Admin = require("../models/artisan_point/admin/Admin");
 require("dotenv").config();
 
 function getModelName(role) {

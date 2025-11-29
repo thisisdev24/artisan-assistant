@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
-const Cart = require("../models/Cart");
-const Listing = require("../models/Listing");
+const Cart = require("../models/artisan_point/user/Cart");
+const Listing = require("../models/artisan_point/artisan/Listing");
 const { authenticate, requireBuyer } = require("../middleware/auth");
 
 // Get user's cart
@@ -10,7 +10,7 @@ router.get("/", authenticate, requireBuyer, async (req, res) => {
   try {
     const buyerId = new mongoose.Types.ObjectId(req.user.id);
     let cart = await Cart.findOne({ buyer_id: buyerId }).populate("items.listing_id");
-    
+
     if (!cart) {
       cart = new Cart({ buyer_id: buyerId, items: [] });
       await cart.save();
@@ -155,4 +155,3 @@ router.delete("/clear", authenticate, requireBuyer, async (req, res) => {
 });
 
 module.exports = router;
-
