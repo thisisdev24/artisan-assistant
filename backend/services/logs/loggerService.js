@@ -1,15 +1,11 @@
 // services/logs/loggerService.js
-const { writeLog, writeLogs } = require("./logWriter");
+const logWriter = require("./logWriter");
 
-async function logEvent(event, context) {
-  return writeLog(event, context);
+async function logEvent(event, context = {}) {
+  // minimal defaults
+  if (!event) return;
+  // ensure base event structure
+  await logWriter.writeLog(event, context);
 }
 
-async function logEvents(events, context) {
-  return writeLogs(events, context);
-}
-
-module.exports = {
-  logEvent,
-  logEvents,
-};
+module.exports = { logEvent };

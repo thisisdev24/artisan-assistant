@@ -1,149 +1,142 @@
 // src/utils/logger/loggerClient.js
+import { randId } from "./eventId.js";
+import { getSessionId, getAnonymousId } from "./sessionManager.js";
+import indexedDbQueue from "./indexedDbQueue.js";
+import config from "./loggerConfig.js";
+import { shouldSample } from "./sampling.js";
 
+const DEFAULT_BATCH = config.BATCH_SIZE || 25;
+const FLUSH_INTERVAL = config.FLUSH_INTERVAL_MS || 2000;
 
+export default class LoggerClient {
+  constructor({ endpoint = config.ENDPOINT, batchSize = DEFAULT_BATCH } = {}) {
+    this.endpoint = endpoint;
+    this.batchSize = batchSize;
+    this.queue = [];
+    this.user = null;
+    this.timer = null;
+    this.isFlushing = false;
+    this.initInterval();
+  }
 
-import { LOGGER_CONFIG } from "./loggerConfig";
-import {
-  getOrCreateSessionId,
-  getOrCreateAnonymousId,
-} from "./sessionManager";
+  initInterval() {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = setInterval(() => this.flush(), FLUSH_INTERVAL);
+    window.addEventListener("online", () => this.flush());
+    window.addEventListener("beforeunload", () => this.flush(true));
+  }
 
-export function createLoggerClient() {
-  const queue = [];
-  let flushTimer = null;
+  setUser(user) {
+    this.user = user;
+  }
 
-  const flush = async () => {
-    if (queue.length === 0) return;
+  _prepareEvent(raw) {
+    const event = {
+      event_id: raw.event_id || randId(),
+      event_version: raw.event_version || 1,
+      event_type: raw.event_type || raw.type || "UNKNOWN",
+      category: raw.category || raw.cat || "interaction",
+      action: raw.action || null,
+      description: raw.description || null,
+      user_id: (this.user && this.user.id) || raw.user_id || null,
+      session_id: getSessionId(),
+      anonymous_id: getAnonymousId(),
+      timestamp_client_utc: new Date().toISOString(),
+      client_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      device: {
+        user_agent: navigator.userAgent,
+        language: navigator.language,
+        hw_concurrency: navigator.hardwareConcurrency || null,
+        device_memory: navigator.deviceMemory || null,
+        platform: navigator.platform || null,
+        screen: `${window.screen.width}x${window.screen.height}`,
+      },
+      network: (navigator.connection ? {
+        type: navigator.connection.type,
+        effectiveType: navigator.connection.effectiveType,
+        downlink: navigator.connection.downlink,
+        rtt: navigator.connection.rtt,
+        saveData: navigator.connection.saveData,
+      } : {}),
+      ...raw,
+    };
 
-    const batch = [...queue];
-    queue.length = 0; // clear queue
+    return event;
+  }
+
+  logEvent(rawEvent = {}) {
+    // sampling for interactions
+    if (rawEvent.category === "interaction" && !shouldSample(rawEvent.session_id || getSessionId(), config.INTERACTION_SAMPLE_RATE || 0.02)) {
+      return false;
+    }
+
+    const e = this._prepareEvent(rawEvent);
+    this.queue.push(e);
+
+    if (config.ENABLE_OFFLINE_PERSIST) {
+      indexedDbQueue.push(e).catch(() => { });
+    }
+
+    if (this.queue.length >= this.batchSize) this.flush();
+    return true;
+  }
+
+  async flush(isUnload = false) {
+    if (this.isFlushing) return;
+    this.isFlushing = true;
 
     try {
-      // If batching is disabled in config, we might want to send one by one, 
-      // but the plan implies we use batching to fix performance. 
-      // We'll send the array. The backend supports array payload.
+      // Prefer persisted items first
+      let batch = [];
+      if (config.ENABLE_OFFLINE_PERSIST) {
+        const persisted = await indexedDbQueue.peekBatch(this.batchSize);
+        if (persisted && persisted.length) {
+          batch = persisted.map(p => p.value);
+        }
+      }
 
-      await fetch(LOGGER_CONFIG.endpoint, {
+      if (!batch.length) {
+        batch = this.queue.splice(0, this.batchSize);
+      } else {
+        // also take from in-memory to fill
+        const extra = this.queue.splice(0, this.batchSize - batch.length);
+        batch.push(...extra);
+      }
+
+      if (!batch.length) return;
+
+      const payload = JSON.stringify(batch);
+
+      // sendBeacon on unload
+      if (isUnload && navigator.sendBeacon) {
+        const ok = navigator.sendBeacon(this.endpoint, payload);
+        if (ok && config.ENABLE_OFFLINE_PERSIST) {
+          await indexedDbQueue.removeKeys(batch.map(b => b.event_id));
+        }
+        return;
+      }
+
+      const headers = { "Content-Type": "application/json" };
+      const token = window.__apiClientAuthToken;
+      if (token) headers.Authorization = `Bearer ${token}`;
+
+      const resp = await fetch(this.endpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-app-name": LOGGER_CONFIG.appName,
-          "x-app-version": LOGGER_CONFIG.appVersion,
-          "x-logger-client": "frontend",
-        },
-        body: JSON.stringify(batch),
+        headers,
+        body: payload,
         keepalive: true,
       });
+
+      if (!resp.ok) throw new Error("Failed to send logs");
+
+      if (config.ENABLE_OFFLINE_PERSIST) {
+        await indexedDbQueue.removeKeys(batch.map(b => b.event_id));
+      }
     } catch (err) {
-      console.warn("loggerClient batch flush failed:", err);
-      // Optionally re-queue critical events, but for now we drop to avoid infinite growth
-    }
-  };
-
-  const scheduleFlush = () => {
-    if (flushTimer) return;
-    flushTimer = setTimeout(() => {
-      flushTimer = null;
-      flush();
-    }, LOGGER_CONFIG.flushIntervalMs);
-  };
-
-  function getDeviceInfo() {
-    if (typeof window === "undefined") return {};
-
-    const info = {
-      screen_resolution: `${window.screen.width}x${window.screen.height}`,
-      language: navigator.language || navigator.userLanguage,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      user_agent: navigator.userAgent,
-      platform: navigator.platform,
-    };
-
-    // Calculate timezone offset in minutes
-    const offset = -new Date().getTimezoneOffset();
-    info.timezone_offset_minutes = offset;
-
-    return info;
-  }
-
-  function getNetworkInfo() {
-    if (typeof window === "undefined" || !navigator.connection) return {};
-
-    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    if (!conn) return {};
-
-    return {
-      connection_type: conn.type || null,
-      effective_type: conn.effectiveType || null,
-      downlink: conn.downlink || null, // Mbps
-      rtt: conn.rtt || null, // milliseconds
-      saveData: conn.saveData || false,
-    };
-  }
-
-  async function logEvent(event) {
-    const deviceInfo = getDeviceInfo();
-    const networkInfo = getNetworkInfo();
-
-    const enrichedEvent = {
-      ...event,
-      session_id: getOrCreateSessionId(),
-      anonymous_id: getOrCreateAnonymousId(),
-      timestamp_client_utc: new Date().toISOString(),
-      device: {
-        ...(event.device || {}),
-        ...deviceInfo,
-      },
-      network: {
-        ...(event.network || {}),
-        ...networkInfo,
-        latency_ms: networkInfo.rtt || null,
-      },
-      client_timezone: deviceInfo.timezone,
-      timezone_offset_minutes: deviceInfo.timezone_offset_minutes,
-    };
-
-    if (!LOGGER_CONFIG.batch) {
-      // Fallback to immediate send if batching is explicitly disabled
-      try {
-        await fetch(LOGGER_CONFIG.endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-app-name": LOGGER_CONFIG.appName,
-            "x-app-version": LOGGER_CONFIG.appVersion,
-            "x-logger-client": "frontend",
-          },
-          body: JSON.stringify(enrichedEvent),
-          keepalive: true,
-        });
-      } catch (err) {
-        console.warn("loggerClient failed:", err);
-      }
-      return;
-    }
-
-    queue.push(enrichedEvent);
-
-    if (queue.length >= LOGGER_CONFIG.maxBatchSize) {
-      if (flushTimer) {
-        clearTimeout(flushTimer);
-        flushTimer = null;
-      }
-      flush();
-    } else {
-      scheduleFlush();
+      // keep items in memory; will retry later
+      console.warn("[LoggerClient] flush failed", err.message);
+    } finally {
+      this.isFlushing = false;
     }
   }
-
-  // Flush on page hide/unload
-  if (typeof window !== "undefined") {
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") {
-        flush();
-      }
-    });
-  }
-
-  return { logEvent };
 }

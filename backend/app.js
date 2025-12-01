@@ -2,12 +2,11 @@ require("dotenv").config();
 const cors = require("cors");
 const express = require("express");
 const logRoutes = require("./routes/logRoutes");
-//const analyticsRoutes = require("./routes/analyticsRoutes");
-const { attachLogger } = require("./middleware/logMiddleware");
-
+const attachLogger = require("./middleware/logMiddleware");
+const analyticsRoutes = require("./routes/analyticsRoutes");  // old, unused
 const app = express();
 
-app.enable("trust proxy"); // detect public IP behind CDN/load balancer
+app.enable("trust proxy"); // detect public IP behind CDN/load balancer  :contentReference[oaicite:0]{index=0}
 
 // Use an env var for allowed frontend origin
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
@@ -15,7 +14,6 @@ const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
 // Allow credentials and the specific origin (not '*')
 app.use(cors({
   origin: (origin, callback) => {
-    // allow requests with no origin (like curl, mobile)
     if (!origin) return callback(null, true);
     if (origin === FRONTEND_ORIGIN) return callback(null, true);
     return callback(new Error('CORS policy: This origin is not allowed'));
@@ -38,7 +36,7 @@ app.use(cors({
   credentials: true
 }));
 
-// Ensure preflight requests are handled
+// Preflight
 app.options('*', cors({
   origin: FRONTEND_ORIGIN,
   credentials: true
@@ -47,12 +45,12 @@ app.options('*', cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Response tracking middleware (must be early to capture all responses)
-const { responseTrackerMiddleware } = require('./middleware/responseTracker');
-const { healthMonitor } = require('./services/logs/healthMonitor');
-app.use(responseTrackerMiddleware);
+// Response tracking middleware (keep early)  :contentReference[oaicite:1]{index=1}
+const { responseTracker } = require('./middleware/responseTracker');
+app.use(responseTracker);
 
-// Track all requests in health monitor
+// HealthMonitor hookup (correct import)  :contentReference[oaicite:2]{index=2}
+const healthMonitor = require('./services/logs/healthMonitor');
 app.use((req, res, next) => {
   res.on('finish', () => {
     const isError = res.statusCode >= 400;
@@ -61,10 +59,11 @@ app.use((req, res, next) => {
   next();
 });
 
-// Initialize AutoLoggingEngine BEFORE routes (so it can hook all requests)
+// AutoLoggingEngine BEFORE routes  :contentReference[oaicite:3]{index=3}
 const AutoLoggingEngine = require("./services/logs/autoLoggingEngine");
 new AutoLoggingEngine(app);
 
+// existing routes remain unchanged
 const listings = require('./routes/listings');
 app.use('/api/listings', listings);
 
@@ -80,18 +79,21 @@ app.use('/api/cart', cartRoutes);
 const adminRoutes = require('./routes/admin');
 app.use('/api/admin', adminRoutes);
 
-// after other routes
+// other existing routes unchanged
 const generateDescRouter = require("./routes/generateDescriptionProxy");
 app.use("/api", generateDescRouter);
 
 const genSearchRes = require('./routes/generateSearchResults');
 app.use('/api/generate_description', genSearchRes);
 
-// attach log middleware - now ENABLED
+// enable logging middleware AFTER application routes  :contentReference[oaicite:4]{index=4}
 app.use(attachLogger);
-app.use("/api/logs", logRoutes);
-//app.use("/api/analytics", analyticsRoutes);
 
+// attach log ingestion endpoint
+app.use("/api/logs", logRoutes);
+app.use("/api/analytics", analyticsRoutes);
+
+// keep perf middleware last  :contentReference[oaicite:5]{index=5}
 const perfMiddleware = require("./middleware/perfMiddleware");
 app.use(perfMiddleware);
 

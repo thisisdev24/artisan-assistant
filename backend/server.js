@@ -5,6 +5,9 @@ const os = require("os");
 const app = require("./app");
 const Listing = require("./models/artisan_point/artisan/Listing");
 const loadArtisanPointModels = require("./models/artisan_point");
+// Load analytics models on startup
+const { loadAnalyticsModels } = require("./models/analytics");
+
 
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI; // MAIN DB
@@ -19,6 +22,8 @@ app.use('/api/listings', listingsRouter);
 
 async function startServer() {
   try {
+
+
     // ------------------------------
     // MONGODB CONNECTION (UPDATED)
     // ------------------------------
@@ -35,6 +40,15 @@ async function startServer() {
     // LOG DB CONNECTION (UPDATED)
     // ------------------------------
     await getLogModels();
+
+    // ------------------------------
+    // ANALYTICS DB CONNECTION (UPDATED)
+    // ------------------------------
+    await loadAnalyticsModels();
+
+    require("./cron/dailyAnalytics.cron");
+    require("./cron/hourlyAnalytics.cron");
+    require("./cron/weeklyAnalytics.cron");
 
     // -------------------------
     // Start Server

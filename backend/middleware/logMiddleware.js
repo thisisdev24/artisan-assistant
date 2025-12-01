@@ -1,43 +1,21 @@
 // middleware/logMiddleware.js
-const { logEvent } = require("../services/logs/loggerService");
+const loggerService = require("../services/logs/loggerService");
 
-function attachLogger(req, res, next) {
-  req.logEvent = async (event) => {
-    const context = {
-      actor: {
-        userId: req.user ? req.user.id : null,
-        role: req.user ? req.user.role : null,
-        sessionId: req.headers["x-session-id"] || null,
-      },
-      trace: {
-        traceId: req.headers["x-trace-id"] || null,
-        correlationId: req.headers["x-correlation-id"] || null,
-      },
+module.exports = (req, res, next) => {
+  req.logEvent = (event) => {
+    const ctx = {
+      actor: { userId: req.user?.id || null, role: req.user?.role || null },
       request: {
+        ip: req.headers["x-forwarded-for"]?.split(",")[0] || req.ip,
+        userAgent: req.headers["user-agent"],
         method: req.method,
-        routePath: req.route ? req.route.path : req.path,
         originalUrl: req.originalUrl,
-        ip: extractIp(req),
-        userAgent: req.headers["user-agent"] || null,
-        hostName: req.headers.host || null,
-        referer: req.headers.referer || null,
-        origin: req.headers.origin || null,
+        _perf: req._perf,
+        _responseMetrics: { bytes: res._bytesSent, statusCode: res.statusCode }
       },
-      serviceName: process.env.SERVICE_NAME || "api",
-      appName: req.headers["x-app-name"] || null,
-      appVersion: req.headers["x-app-version"] || null,
+      trace: { traceId: req.headers["x-trace-id"] || null, correlationId: req.headers["x-correlation-id"] || null }
     };
-
-    return logEvent(event, context);
+    return loggerService.logEvent(event, ctx);
   };
-
   next();
-}
-
-function extractIp(req) {
-  const xff = req.headers["x-forwarded-for"];
-  if (xff) return xff.split(",")[0].trim();
-  return req.ip || req.connection?.remoteAddress || null;
-}
-
-module.exports = { attachLogger };
+};

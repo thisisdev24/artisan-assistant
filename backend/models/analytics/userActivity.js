@@ -1,8 +1,5 @@
-// models/analytics/userActivity.js
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
-
-/* ----------------------- SUBSCHEMAS ----------------------- */
 
 const SessionStatsSchema = new Schema({
   sessions: Number,
@@ -37,8 +34,6 @@ const DeviceBreakdownSchema = new Schema({
   sessions: Number,
   avg_duration_sec: Number,
 }, { _id: false });
-
-/* ----------------------- MAIN SCHEMA ----------------------- */
 
 const UserActivitySchema = new Schema({
   user_id: { type: String, index: true },

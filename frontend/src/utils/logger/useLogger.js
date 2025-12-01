@@ -1,10 +1,13 @@
 // src/utils/logger/useLogger.js
-import { useLoggerClient } from "./loggerProvider.jsx";
+import { useContext } from "react";
+import { LoggerContext } from "./loggerProvider.jsx"; // adjust export if needed
 
 export function useLogger() {
-  const client = useLoggerClient();
-  function logEvent(event) {
-    client.logEvent(event);
-  }
-  return { logEvent };
+  const client = useContext(LoggerContext);
+  if (!client) throw new Error("LoggerProvider is missing");
+  return {
+    logEvent: (e) => client.logEvent(e),
+    flush: (u) => client.flush(u),
+    setUser: (u) => client.setUser(u),
+  };
 }

@@ -1,4 +1,3 @@
-// models/analytics/errorTrends.js
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
@@ -8,8 +7,8 @@ const ErrorTypeSchema = new Schema({
   count: Number,
   p95_latency_ms: Number,
   avg_latency_ms: Number,
-  severity: { type: String, enum: ["info","warn","error","critical"] },
-  sample_events: [String], // event IDs
+  severity: { type: String, enum: ["info", "warn", "error", "critical"] },
+  sample_events: [String],
 }, { _id: false });
 
 const IncidentSchema = new Schema({

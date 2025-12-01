@@ -1,26 +1,12 @@
 // src/utils/logger/loggerProvider.jsx
-/* eslint-disable react-refresh/only-export-components */
-
-
-import React, { createContext, useContext, useEffect } from "react";
-import { createLoggerClient } from "./loggerClient";
-import { initFrontendLogging } from "./initLogger";
+import React, { createContext, useContext, useMemo } from "react";
+import { initLogger } from "./initLogger.js";
 
 const LoggerContext = createContext(null);
 
-export function LoggerProvider({ children }) {
-  const client = createLoggerClient();
-
-  // safe: this is inside a component & after Provider exists
-  useEffect(() => {
-    initFrontendLogging(client);
-  }, [client]);
-
-  return (
-    <LoggerContext.Provider value={client}>
-      {children}
-    </LoggerContext.Provider>
-  );
+export function LoggerProvider({ children, options }) {
+  const client = useMemo(() => initLogger(options), []);
+  return <LoggerContext.Provider value={client}>{children}</LoggerContext.Provider>;
 }
 
 export function useLoggerClient() {

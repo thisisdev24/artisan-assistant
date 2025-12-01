@@ -1,54 +1,19 @@
-import axios from 'axios';
+// src/utils/apiClient.js
+import axios from "axios";
+const apiClient = axios.create({ baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000" });
 
-const apiClient = axios.create({
-    baseURL: 'http://localhost:5000',
-});
-
-// Add a request interceptor to attach device and network info
-apiClient.interceptors.request.use((config) => {
-    // Network Info
+apiClient.interceptors.request.use(config => {
+    const token = localStorage.getItem("token") || window.__apiClientAuthToken;
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    // network headers
     if (navigator.connection) {
-        const conn = navigator.connection;
-        config.headers['x-network-type'] = conn.type || 'unknown';
-        config.headers['x-network-effective-type'] = conn.effectiveType || 'unknown';
-        config.headers['x-network-downlink'] = conn.downlink || 0;
-        config.headers['x-network-rtt'] = conn.rtt || 0;
-        config.headers['x-network-save-data'] = conn.saveData ? 'true' : 'false';
+        const c = navigator.connection;
+        config.headers["x-network-type"] = c.type || "";
+        config.headers["x-network-effective-type"] = c.effectiveType || "";
+        config.headers["x-network-rtt"] = c.rtt || 0;
     }
-
-    // Device Info (basic)
-    config.headers['x-device-memory'] = navigator.deviceMemory || 0;
-    config.headers['x-device-platform'] = navigator.platform || 'unknown';
-    config.headers['x-device-hardware-concurrency'] = navigator.hardwareConcurrency || 0;
-
-    // Timezone
-    config.headers['x-timezone'] = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-    // Auth Token
-    const token = localStorage.getItem('token');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-
+    config.headers["x-timezone"] = Intl.DateTimeFormat().resolvedOptions().timeZone;
     return config;
-}, (error) => {
-    return Promise.reject(error);
 });
-
-// Add a response interceptor to handle 401 errors globally
-apiClient.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        // If we get a 401 and we're not on the verify endpoint, clear auth
-        // The AuthContext will handle the state update
-        if (error.response?.status === 401 && !error.config?.url?.includes('/api/auth/verify')) {
-            // Clear auth data - AuthContext will detect this on next render
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            localStorage.removeItem('role');
-        }
-        return Promise.reject(error);
-    }
-);
 
 export default apiClient;

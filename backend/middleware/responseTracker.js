@@ -1,7 +1,7 @@
 // middleware/responseTracker.js
 // Middleware to capture response metrics (status code, timing, bytes)
 
-function responseTrackerMiddleware(req, res, next) {
+function responseTracker(req, res, next) {
     const startTime = Date.now();
     const startBytes = process.memoryUsage().heapUsed;
 
@@ -49,4 +49,4 @@ function responseTrackerMiddleware(req, res, next) {
     next();
 }
 
-module.exports = { responseTrackerMiddleware };
+module.exports = { responseTracker };
