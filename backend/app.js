@@ -3,10 +3,10 @@ const cors = require("cors");
 const express = require("express");
 const logRoutes = require("./routes/logRoutes");
 const attachLogger = require("./middleware/logMiddleware");
-const analyticsRoutes = require("./routes/analyticsRoutes");  // old, unused
+const analyticsRoutes = require("./routes/analyticsRoutes");
 const app = express();
 
-app.enable("trust proxy"); // detect public IP behind CDN/load balancer  :contentReference[oaicite:0]{index=0}
+app.enable("trust proxy"); // detect public IP behind CDN/load balancer
 
 // Use an env var for allowed frontend origin
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
@@ -14,8 +14,12 @@ const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
 // Allow credentials and the specific origin (not '*')
 app.use(cors({
   origin: (origin, callback) => {
+    // allow requests with no origin (like curl, mobile)
     if (!origin) return callback(null, true);
-    if (origin === FRONTEND_ORIGIN) return callback(null, true);
+    // Allow any localhost for development
+    if (origin.startsWith('http://localhost') || origin === FRONTEND_ORIGIN) {
+      return callback(null, true);
+    }
     return callback(new Error('CORS policy: This origin is not allowed'));
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -31,7 +35,7 @@ app.use(cors({
     'x-device-memory',
     'x-device-platform',
     'x-device-hardware-concurrency',
-    'x-timezone'
+    'x-timezone',
   ],
   credentials: true
 }));
@@ -45,11 +49,11 @@ app.options('*', cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Response tracking middleware (keep early)  :contentReference[oaicite:1]{index=1}
+// Response tracking middleware (keep early)
 const { responseTracker } = require('./middleware/responseTracker');
 app.use(responseTracker);
 
-// HealthMonitor hookup (correct import)  :contentReference[oaicite:2]{index=2}
+// HealthMonitor hookup
 const healthMonitor = require('./services/logs/healthMonitor');
 app.use((req, res, next) => {
   res.on('finish', () => {
@@ -59,7 +63,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// AutoLoggingEngine BEFORE routes  :contentReference[oaicite:3]{index=3}
+// AutoLoggingEngine BEFORE routes
 const AutoLoggingEngine = require("./services/logs/autoLoggingEngine");
 new AutoLoggingEngine(app);
 
@@ -72,6 +76,9 @@ app.use('/api/artisans', artisanRoutes);
 
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
+
+const wishlistRoutes = require('./routes/wishlist');
+app.use('/api/wishlist', wishlistRoutes);
 
 const cartRoutes = require('./routes/cart');
 app.use('/api/cart', cartRoutes);
@@ -86,14 +93,14 @@ app.use("/api", generateDescRouter);
 const genSearchRes = require('./routes/generateSearchResults');
 app.use('/api/generate_description', genSearchRes);
 
-// enable logging middleware AFTER application routes  :contentReference[oaicite:4]{index=4}
+// enable logging middleware AFTER application routes
 app.use(attachLogger);
 
 // attach log ingestion endpoint
 app.use("/api/logs", logRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
-// keep perf middleware last  :contentReference[oaicite:5]{index=5}
+// keep perf middleware last
 const perfMiddleware = require("./middleware/perfMiddleware");
 app.use(perfMiddleware);
 

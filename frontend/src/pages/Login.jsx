@@ -24,21 +24,16 @@ const Login = () => {
       login(res.data.token, res.data.user);
 
       // Role-based redirect
-      if (role === res.data.user.role) {
-        if (res.data.user.role === "seller") {
-          navigate("/Seller", { state: { storeName: res.data.user.store } });
-        } else if (res.data.user.role === "buyer") {
-          navigate("/");
-        }
-        else if (res.data.user.role === "admin") {
-          navigate("/Admin");
-        }
-        else {
-          navigate("/");
-        }
+      // Role-based redirect (auto-detect from response)
+      const userRole = res.data.user.role;
+      if (userRole === "seller") {
+        navigate("/Seller", { state: { storeName: res.data.user.store } });
+      } else if (userRole === "buyer") {
+        navigate("/");
+      } else if (userRole === "admin") {
+        navigate("/Admin");
       } else {
-        alert("Role mismatch");
-        throw new Error();
+        navigate("/");
       }
 
     } catch (err) {

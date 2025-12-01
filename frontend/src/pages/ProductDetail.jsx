@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
+import apiClient from "../utils/apiClient";
 
 /**
  * ProductDetail.jsx
@@ -21,6 +22,7 @@ const ProductDetail = () => {
   const [selectedImage, setSelectedImage] = useState("");
   const [qty, setQty] = useState(1);
   const [adding, setAdding] = useState(false);
+  const [inWishlist, setInWishlist] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -42,8 +44,43 @@ const ProductDetail = () => {
         setLoading(false);
       }
     };
-    if (id) fetchProduct();
+
+    if (id) {
+      fetchProduct();
+      checkWishlist();
+    }
   }, [id]);
+
+  const checkWishlist = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    try {
+      const res = await apiClient.get("/api/wishlist");
+      const exists = res.data.some(item => item._id === id);
+      setInWishlist(exists);
+    } catch (err) {
+      console.error("Wishlist check error", err);
+    }
+  };
+
+  const toggleWishlist = async () => {
+    if (!isAuthenticated) {
+      alert("Please login to use wishlist");
+      navigate("/login");
+      return;
+    }
+    try {
+      if (inWishlist) {
+        await apiClient.post("/api/wishlist/remove", { listingId: id });
+        setInWishlist(false);
+      } else {
+        await apiClient.post("/api/wishlist/add", { listingId: id });
+        setInWishlist(true);
+      }
+    } catch (err) {
+      console.error("Wishlist toggle error", err);
+    }
+  };
 
   // Helpers
   const allImages = () => {
@@ -301,6 +338,16 @@ const ProductDetail = () => {
                     className={`px-4 py-3 rounded-lg ${product.stock === 0 ? "bg-gray-200" : "bg-white border"}`}
                   >
                     Buy Now
+                  </button>
+
+                  <button
+                    onClick={toggleWishlist}
+                    className={`px-4 py-3 rounded-lg border ${inWishlist ? "bg-red-50 border-red-200 text-red-600" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+                    title={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${inWishlist ? "fill-current" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
                   </button>
                 </div>
 

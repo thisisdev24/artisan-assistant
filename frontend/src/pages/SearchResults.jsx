@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
+import apiClient from "../utils/apiClient";
 
 function useQueryString() {
   const { search } = useLocation();
@@ -14,6 +15,7 @@ const SearchResults = () => {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [wishlistIds, setWishlistIds] = useState(new Set());
   const navigate = useNavigate();
 
   // refs for cancellation and mounted state
@@ -28,7 +30,59 @@ const SearchResults = () => {
       if (abortRef.current) abortRef.current.abort();
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
+    mountedRef.current = true;
+    fetchWishlist();
+    return () => {
+      mountedRef.current = false;
+      if (abortRef.current) abortRef.current.abort();
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, []);
+
+  const fetchWishlist = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    try {
+      const res = await apiClient.get("/api/wishlist");
+      const ids = new Set(res.data.map(item => item._id));
+      setWishlistIds(ids);
+    } catch (err) {
+      console.error("Failed to fetch wishlist", err);
+    }
+  };
+
+  const toggleWishlist = async (e, item) => {
+    e.stopPropagation();
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Please login to use wishlist");
+      return;
+    }
+
+    const itemId = item._id || item.listing_id || item.faiss_id;
+    const isInWishlist = wishlistIds.has(itemId);
+
+    try {
+      if (isInWishlist) {
+        await apiClient.post("/api/wishlist/remove", { listingId: itemId });
+        setWishlistIds(prev => {
+          const next = new Set(prev);
+          next.delete(itemId);
+          return next;
+        });
+      } else {
+        await apiClient.post("/api/wishlist/add", { listingId: itemId });
+        setWishlistIds(prev => {
+          const next = new Set(prev);
+          next.add(itemId);
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error("Wishlist toggle error", err);
+      alert("Failed to update wishlist");
+    }
+  };
 
   useEffect(() => {
     // run only when query changes
@@ -116,13 +170,38 @@ const SearchResults = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {results.map((item) => (
-            <div key={item._id || item.listing_id || item.faiss_id || JSON.stringify(item)} className="bg-white rounded shadow p-4">
+            <div key={item._id || item.listing_id || item.faiss_id || JSON.stringify(item)} className="bg-white rounded shadow p-4 relative">
               <img
-                src={item.imageUrl || item.thumb}
+                src={
+                  item.imageUrl ||
+                  (item.images && item.images[0] && (item.images[0].thumb || item.images[0].large))
+                }
                 alt={item.title || "item"}
                 className="w-full h-44 object-cover rounded mb-3"
                 onError={(e) => { e.currentTarget.src = "/placeholder.jpg"; }}
               />
+
+              {/* Wishlist Heart Icon */}
+              <button
+                onClick={(e) => toggleWishlist(e, item)}
+                className="absolute top-4 right-4 p-2 bg-white/80 rounded-full shadow-sm hover:bg-white transition-colors"
+                title={wishlistIds.has(item._id || item.listing_id || item.faiss_id) ? "Remove from Wishlist" : "Add to Wishlist"}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className={`h-6 w-6 ${wishlistIds.has(item._id || item.listing_id || item.faiss_id) ? "text-red-500 fill-current" : "text-gray-400"}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                  />
+                </svg>
+              </button>
               <h3 className="font-semibold">{item.title}</h3>
               <p className="text-sm text-gray-600 line-clamp-3">{item.description}</p>
               <div className="mt-2 font-bold text-indigo-600">₹{item.price ?? "—"}</div>

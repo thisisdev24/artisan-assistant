@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/artisan_point/user/User");
 const Artisan = require("../models/artisan_point/artisan/Artisan");
 const Admin = require("../models/artisan_point/admin/Admin");
+const { authenticate } = require("../middleware/auth");
 require("dotenv").config();
 
 function getModelName(role) {
@@ -52,7 +53,7 @@ router.post("/login", async (req, res) => {
     const Model = getModelName(role);
     console.log("Using model:", Model.modelName); // Debug log
 
-    const user = await Model.findOne({ email });
+    const user = await Model.findOne({ email }).select("+password");
     if (!user) {
       console.log("User not found in DB");
       return res.status(400).json({ msg: "Invalid credentials" });
@@ -132,6 +133,68 @@ router.get("/verify", async (req, res) => {
     }
     console.error("Verify token error:", err);
     res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Get full profile data (aggregated)
+router.get("/profile-full", authenticate, async (req, res) => {
+  try {
+    const { id, role } = req.user;
+    let profileData = {
+      user: req.user // Basic info from token/middleware
+    };
+
+    if (role === "buyer") {
+      // Fetch Buyer specific data
+      const [userDoc, addresses, recentOrders, wishlist] = await Promise.all([
+        User.findById(id).select("-password"),
+        require("../models/artisan_point/user/Address").find({ user_id: id }),
+        require("../models/artisan_point/user/Order").find({ user_id: id }).sort({ createdAt: -1 }).limit(5),
+        require("../models/artisan_point/user/Wishlist").findOne({ user_id: id })
+      ]);
+      profileData.details = userDoc;
+      profileData.addresses = addresses;
+      profileData.recent_orders = recentOrders;
+      profileData.wishlist_count = wishlist ? wishlist.listing_ids.length : 0;
+
+    } else if (role === "seller") {
+      // Fetch Seller specific data
+      const [
+        artisanDoc,
+        storefront,
+        settings,
+        payoutAccount,
+        documents,
+        notificationPref,
+        warehouses
+      ] = await Promise.all([
+        Artisan.findById(id).select("-password"),
+        require("../models/artisan_point/artisan/ArtisanStorefront").findOne({ artisan_id: id }),
+        require("../models/artisan_point/artisan/ArtisanSettings").findOne({ artisan_id: id }),
+        require("../models/artisan_point/artisan/ArtisanPayoutAccount").findOne({ artisan_id: id }),
+        require("../models/artisan_point/artisan/ArtisanDocument").find({ artisan_id: id }),
+        require("../models/artisan_point/artisan/ArtisanNotificationPref").findOne({ artisan_id: id }),
+        require("../models/artisan_point/artisan/ArtisanWarehouse").find({ artisan_id: id })
+      ]);
+
+      profileData.details = artisanDoc;
+      profileData.storefront = storefront;
+      profileData.settings = settings;
+      profileData.payout_account = payoutAccount; // masked is available by default
+      profileData.documents = documents;
+      profileData.notification_pref = notificationPref;
+      profileData.warehouses = warehouses;
+
+    } else if (role === "admin") {
+      // Fetch Admin specific data
+      const adminDoc = await Admin.findById(id).select("-password");
+      profileData.details = adminDoc;
+    }
+
+    res.json(profileData);
+  } catch (err) {
+    console.error("Profile fetch error:", err);
+    res.status(500).json({ msg: "Server error fetching profile" });
   }
 });
 

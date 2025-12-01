@@ -103,6 +103,9 @@ export default class LoggerClient {
         batch.push(...extra);
       }
 
+      // Filter out any undefined/null items that might have crept in
+      batch = batch.filter(b => b && typeof b === 'object');
+
       if (!batch.length) return;
 
       const payload = JSON.stringify(batch);

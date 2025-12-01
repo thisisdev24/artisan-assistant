@@ -402,12 +402,21 @@ class FaissTextIndexer:
     # ==========================================================
     #                           SEARCH
     # ==========================================================
-    def search(self, text, k=5):
+    def search(self, query, k=5):
         if self.index is None or (hasattr(self.index, "ntotal") and self.index.ntotal == 0):
             return []
 
-        q = self.model.encode([text], convert_to_numpy=True)
-        q = self._normalize(q.astype("float32"))
+        if isinstance(query, str):
+            q = self.model.encode([query], convert_to_numpy=True)
+            q = self._normalize(q.astype("float32"))
+        else:
+            # Assume it is a numpy vector
+            q = query
+            if not isinstance(q, np.ndarray):
+                q = np.array(q, dtype="float32")
+            if len(q.shape) == 1:
+                q = q.reshape(1, -1)
+            q = self._normalize(q.astype("float32"))
 
         scores, ids = self.index.search(q, k)
 

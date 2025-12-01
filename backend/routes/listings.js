@@ -228,7 +228,7 @@ router.get('/search', async (req, res) => {
       const doc = docsById[lid] || {};
       let imageUrl = null;
       if (Array.isArray(doc.images) && doc.images.length > 0) {
-        imageUrl = doc.images[0].large || doc.images[0].hi_res;
+        imageUrl = doc.images[0].large || doc.images[0].hi_res || doc.images[0].thumb;
       }
 
       let desc = doc.description || r.description || '';
@@ -242,6 +242,7 @@ router.get('/search', async (req, res) => {
         description: desc,
         price: doc.price || r.price || 0,
         imageUrl,
+        images: doc.images, // Return full images array
         average_rating: doc.average_rating || 0,
         rating_number: doc.rating_number || 0,
         score: r.score || null
