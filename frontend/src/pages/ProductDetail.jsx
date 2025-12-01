@@ -37,6 +37,9 @@ const ProductDetail = () => {
           data.imageUrl ||
           (data.images && data.images[0] && (data.images[0].large || data.images[0].thumb));
         setSelectedImage(initialImage || "");
+
+        // Add to recently viewed
+        addToRecentlyViewed(data);
       } catch (err) {
         console.error(err);
         setErrorMsg(err?.response?.data?.message || "Failed to load product");
@@ -50,6 +53,35 @@ const ProductDetail = () => {
       checkWishlist();
     }
   }, [id]);
+
+  const addToRecentlyViewed = (product) => {
+    try {
+      const stored = localStorage.getItem('recentlyViewed');
+      let items = stored ? JSON.parse(stored) : [];
+
+      // Remove if already exists
+      items = items.filter(item => item._id !== product._id);
+
+      // Add to beginning with timestamp
+      items.unshift({
+        _id: product._id,
+        title: product.title,
+        price: product.price,
+        images: product.images,
+        imageUrl: product.imageUrl,
+        description: product.description,
+        store: product.store,
+        viewedAt: new Date().toISOString()
+      });
+
+      // Keep only last 20 items
+      items = items.slice(0, 20);
+
+      localStorage.setItem('recentlyViewed', JSON.stringify(items));
+    } catch (err) {
+      console.error('Failed to save to recently viewed', err);
+    }
+  };
 
   const checkWishlist = async () => {
     const token = localStorage.getItem("token");
@@ -357,6 +389,11 @@ const ProductDetail = () => {
           </div>
         </div>
 
+        {/* Reviews Section */}
+        <div className="mt-12 border-t pt-8">
+          <ReviewsSection productId={id} />
+        </div>
+
         {/* Mobile sticky actions */}
         <div className="fixed left-0 right-0 bottom-0 sm:hidden bg-white/95 border-t py-3 px-4 flex items-center gap-3 justify-between">
           <div>
@@ -369,6 +406,241 @@ const ProductDetail = () => {
           </div>
         </div>
       </div>
+    </div>
+  );
+};
+
+// Reviews Section Component
+const ReviewsSection = ({ productId }) => {
+  const [reviews, setReviews] = useState([]);
+  const [myReview, setMyReview] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [reviewText, setReviewText] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const { isAuthenticated, isBuyer, user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchReviews();
+    if (isAuthenticated && isBuyer) {
+      fetchMyReview();
+    }
+  }, [productId, isAuthenticated, isBuyer]);
+
+  const fetchReviews = async () => {
+    try {
+      const response = await apiClient.get(`/api/reviews/listing/${productId}`);
+      setReviews(response.data || []);
+    } catch (err) {
+      console.error('Error fetching reviews:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMyReview = async () => {
+    try {
+      const response = await apiClient.get(`/api/reviews/listing/${productId}/my-review`);
+      if (response.data) {
+        setMyReview(response.data);
+        setRating(response.data.rating);
+        setReviewText(response.data.text || '');
+      }
+    } catch (err) {
+      console.error('Error fetching my review:', err);
+    }
+  };
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    if (!isAuthenticated || !isBuyer) {
+      alert('Please login as a buyer to submit a review');
+      navigate('/login');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await apiClient.post('/api/reviews', {
+        listing_id: productId,
+        rating,
+        text: reviewText,
+        verified_purchase: false
+      });
+      await fetchReviews();
+      await fetchMyReview();
+      setShowReviewForm(false);
+      alert('Review submitted successfully!');
+    } catch (err) {
+      console.error('Error submitting review:', err);
+      alert(err?.response?.data?.msg || 'Failed to submit review');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteReview = async () => {
+    if (!window.confirm('Are you sure you want to delete your review?')) return;
+    try {
+      await apiClient.delete(`/api/reviews/${myReview._id}`);
+      setMyReview(null);
+      setReviewText('');
+      setRating(5);
+      await fetchReviews();
+      alert('Review deleted successfully!');
+    } catch (err) {
+      console.error('Error deleting review:', err);
+      alert('Failed to delete review');
+    }
+  };
+
+  if (loading) {
+    return <div className="text-center py-8 text-gray-600">Loading reviews...</div>;
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">Customer Reviews</h2>
+        {isAuthenticated && isBuyer && !myReview && (
+          <button
+            onClick={() => setShowReviewForm(!showReviewForm)}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          >
+            Write a Review
+          </button>
+        )}
+      </div>
+
+      {/* Review Form */}
+      {showReviewForm && !myReview && (
+        <div className="mb-8 bg-gray-50 rounded-lg p-6">
+          <h3 className="text-lg font-semibold mb-4">Write Your Review</h3>
+          <form onSubmit={handleSubmitReview}>
+            <div className="mb-4">
+              <label className="block text-gray-700 mb-2">Rating</label>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRating(star)}
+                    className={`text-3xl ${star <= rating ? 'text-yellow-500' : 'text-gray-300'}`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700 mb-2">Your Review</label>
+              <textarea
+                value={reviewText}
+                onChange={(e) => setReviewText(e.target.value)}
+                rows="4"
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Share your experience with this product..."
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {submitting ? 'Submitting...' : 'Submit Review'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowReviewForm(false);
+                  setReviewText('');
+                  setRating(5);
+                }}
+                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* My Review */}
+      {myReview && (
+        <div className="mb-8 bg-indigo-50 rounded-lg p-6 border border-indigo-200">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h3 className="font-semibold text-gray-900">Your Review</h3>
+              <div className="flex items-center gap-2 mt-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <span key={star} className={`text-lg ${star <= myReview.rating ? 'text-yellow-500' : 'text-gray-300'}`}>
+                    ★
+                  </span>
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={handleDeleteReview}
+              className="text-red-600 hover:text-red-800 text-sm"
+            >
+              Delete
+            </button>
+          </div>
+          {myReview.text && <p className="text-gray-700">{myReview.text}</p>}
+          <p className="text-sm text-gray-500 mt-2">
+            {new Date(myReview.createdAt).toLocaleDateString()}
+          </p>
+        </div>
+      )}
+
+      {/* Reviews List */}
+      {reviews.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          No reviews yet. Be the first to review this product!
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {reviews.map((review) => (
+            <div key={review._id} className="bg-white border rounded-lg p-6">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-semibold text-gray-900">
+                      {review.user_id?.name || 'Anonymous'}
+                    </span>
+                    {review.verified_purchase && (
+                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                        Verified Purchase
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <span key={star} className={`text-lg ${star <= review.rating ? 'text-yellow-500' : 'text-gray-300'}`}>
+                        ★
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <span className="text-sm text-gray-500">
+                  {new Date(review.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+              {review.text && <p className="text-gray-700">{review.text}</p>}
+              {review.images && review.images.length > 0 && (
+                <div className="flex gap-2 mt-4">
+                  {review.images.map((img, idx) => (
+                    <img key={idx} src={img} alt={`Review ${idx + 1}`} className="w-20 h-20 object-cover rounded" />
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

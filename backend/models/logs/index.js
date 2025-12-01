@@ -19,6 +19,22 @@ async function getLogModels() {
 
   modelsPromise = (async () => {
     const conn = await connectLogDB();
+    
+    // If connection failed, return null models (graceful degradation)
+    if (!conn) {
+      console.warn("⚠️  Log models not available - connection failed");
+      return {
+        BaseEvent: null,
+        AdminEvent: null,
+        ArtistEvent: null,
+        BuyerEvent: null,
+        BusinessEvent: null,
+        FinancialEvent: null,
+        InteractionEvent: null,
+        SecurityEvent: null,
+        SystemEvent: null,
+      };
+    }
 
     const BaseEvent = conn.model("BaseEvent", BaseEventSchema, "base_events");
     const AdminEvent = conn.model("AdminEvent", AdminEventSchema, "admin_events");

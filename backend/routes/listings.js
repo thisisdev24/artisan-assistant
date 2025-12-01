@@ -276,4 +276,76 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Update listing (for sellers to edit their products)
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'invalid_id', message: 'Invalid listing ID' });
+    }
+
+    const listing = await Listing.findById(id);
+    if (!listing) {
+      return res.status(404).json({ error: 'not_found', message: 'Listing not found' });
+    }
+
+    // Allow updating these fields
+    const allowedFields = [
+      'title', 'description', 'price', 'main_category', 'categories',
+      'features', 'stock', 'stock_available', 'dimensions', 'details'
+    ];
+
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        listing[field] = req.body[field];
+      }
+    }
+
+    // Handle price as number
+    if (req.body.price !== undefined) {
+      const numericPrice = parseFloat(req.body.price);
+      if (Number.isNaN(numericPrice)) {
+        return res.status(400).json({ error: 'validation', message: 'Price must be a number' });
+      }
+      listing.price = numericPrice;
+    }
+
+    // Handle features as array
+    if (req.body.features !== undefined) {
+      if (typeof req.body.features === 'string') {
+        try {
+          listing.features = JSON.parse(req.body.features);
+        } catch (e) {
+          listing.features = Array.isArray(req.body.features) ? req.body.features : [];
+        }
+      } else {
+        listing.features = Array.isArray(req.body.features) ? req.body.features : [];
+      }
+    }
+
+    // Handle categories as array
+    if (req.body.categories !== undefined) {
+      if (typeof req.body.categories === 'string') {
+        try {
+          listing.categories = JSON.parse(req.body.categories);
+        } catch (e) {
+          listing.categories = Array.isArray(req.body.categories) ? req.body.categories : [];
+        }
+      } else {
+        listing.categories = Array.isArray(req.body.categories) ? req.body.categories : [];
+      }
+    }
+
+    await listing.save();
+
+    return res.json(listing);
+  } catch (err) {
+    console.error('Error updating listing:', err);
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ error: 'validation', message: err.message });
+    }
+    return res.status(500).json({ error: 'internal', message: err.message });
+  }
+});
+
 module.exports = router;

@@ -53,7 +53,11 @@ async function flush() {
             try {
                 model = await resolveModelForEvent(doc);
             } catch (err) {
-                model = { modelName: "SystemEvent", insertMany: async () => { } }; // fallback
+                model = { modelName: "NoOpModel", insertMany: async () => { } }; // fallback
+            }
+            // Skip if model is null or no-op
+            if (!model || model.modelName === "NoOpModel") {
+                continue; // Skip logging if DB is not available
             }
             const name = model.modelName || "UnknownModel";
             if (!buckets.has(name)) buckets.set(name, { Model: model, docs: [] });
@@ -68,6 +72,10 @@ async function flush() {
                 const pair = entries[idx++];
                 if (!pair) break;
                 const { Model, docs } = pair;
+                // Skip if Model is null or no-op
+                if (!Model || Model.modelName === "NoOpModel" || !docs.length) {
+                    continue;
+                }
                 let attempt = 0;
                 while (attempt <= MAX_RETRIES) {
                     try {

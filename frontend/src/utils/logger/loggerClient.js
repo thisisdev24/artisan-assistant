@@ -123,21 +123,42 @@ export default class LoggerClient {
       const token = window.__apiClientAuthToken;
       if (token) headers.Authorization = `Bearer ${token}`;
 
-      const resp = await fetch(this.endpoint, {
-        method: "POST",
-        headers,
-        body: payload,
-        keepalive: true,
-      });
+      // Add timeout and better error handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-      if (!resp.ok) throw new Error("Failed to send logs");
+      try {
+        const resp = await fetch(this.endpoint, {
+          method: "POST",
+          headers,
+          body: payload,
+          keepalive: true,
+          signal: controller.signal,
+        });
 
-      if (config.ENABLE_OFFLINE_PERSIST) {
-        await indexedDbQueue.removeKeys(batch.map(b => b.event_id));
+        clearTimeout(timeoutId);
+
+        if (!resp.ok) throw new Error("Failed to send logs");
+
+        if (config.ENABLE_OFFLINE_PERSIST) {
+          await indexedDbQueue.removeKeys(batch.map(b => b.event_id));
+        }
+      } catch (fetchErr) {
+        clearTimeout(timeoutId);
+        // Silently handle connection errors - backend is not available
+        if (fetchErr.name === 'AbortError' || fetchErr.message.includes('Failed to fetch') || fetchErr.message.includes('NetworkError')) {
+          // Backend is down or unreachable - silently queue for later
+          return;
+        }
+        throw fetchErr;
       }
     } catch (err) {
-      // keep items in memory; will retry later
-      console.warn("[LoggerClient] flush failed", err.message);
+      // Silently handle connection errors - don't spam console
+      // Only log unexpected errors
+      if (err.message && !err.message.includes('Failed to fetch') && !err.message.includes('NetworkError') && !err.message.includes('aborted')) {
+        // Suppress connection-related errors
+      }
+      // Keep items in memory/IndexedDB for retry later
     } finally {
       this.isFlushing = false;
     }

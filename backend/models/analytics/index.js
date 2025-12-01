@@ -14,6 +14,19 @@ async function loadAnalyticsModels() {
 
     const conn = await connectAnalyticsDB();
 
+    // If connection failed, return empty models (graceful degradation)
+    if (!conn) {
+        console.warn("⚠️  Analytics models not available - connection failed");
+        return {
+            DailyStats: null,
+            ErrorTrends: null,
+            PerformanceMetrics: null,
+            SalesSummary: null,
+            TrafficOverview: null,
+            UserActivity: null,
+        };
+    }
+
     models.DailyStats = conn.model("DailyStats", DailyStatsSchema, "daily_stats");
     models.ErrorTrends = conn.model("ErrorTrends", ErrorTrendsSchema, "error_trends");
     models.PerformanceMetrics = conn.model(

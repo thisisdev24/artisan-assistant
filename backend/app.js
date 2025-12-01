@@ -22,7 +22,7 @@ app.use(cors({
     }
     return callback(new Error('CORS policy: This origin is not allowed'));
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
     'Content-Type',
     'Authorization',
@@ -40,9 +40,30 @@ app.use(cors({
   credentials: true
 }));
 
-// Preflight
+// Preflight - Allow PATCH method
 app.options('*', cors({
-  origin: FRONTEND_ORIGIN,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (origin.startsWith('http://localhost') || origin === FRONTEND_ORIGIN) {
+      return callback(null, true);
+    }
+    return callback(new Error('CORS policy: This origin is not allowed'));
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'x-network-type',
+    'x-network-effective-type',
+    'x-network-downlink',
+    'x-network-rtt',
+    'x-network-save-data',
+    'x-device-memory',
+    'x-device-platform',
+    'x-device-hardware-concurrency',
+    'x-timezone',
+  ],
   credentials: true
 }));
 
@@ -85,6 +106,9 @@ app.use('/api/cart', cartRoutes);
 
 const adminRoutes = require('./routes/admin');
 app.use('/api/admin', adminRoutes);
+
+const reviewRoutes = require('./routes/reviews');
+app.use('/api/reviews', reviewRoutes);
 
 // other existing routes unchanged
 const generateDescRouter = require("./routes/generateDescriptionProxy");

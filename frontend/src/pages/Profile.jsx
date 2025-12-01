@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import apiClient from '../utils/apiClient';
 
@@ -7,11 +7,20 @@ import Wishlist from '../components/Wishlist/Wishlist';
 
 const Profile = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { user: authUser, logout, loading: authLoading } = useAuth();
     const [profileData, setProfileData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('personal');
     const [error, setError] = useState(null);
+
+    // Check for tab in URL params
+    useEffect(() => {
+        const tabFromUrl = searchParams.get('tab');
+        if (tabFromUrl && ['personal', 'addresses', 'orders', 'wishlist', 'reviews'].includes(tabFromUrl)) {
+            setActiveTab(tabFromUrl);
+        }
+    }, [searchParams]);
 
     useEffect(() => {
         if (!authLoading && !authUser) {
@@ -64,8 +73,9 @@ const Profile = () => {
         const tabs = [{ id: 'personal', label: 'Personal Info' }];
         if (role === 'buyer') {
             tabs.push({ id: 'addresses', label: 'Addresses' });
-            tabs.push({ id: 'orders', label: 'Recent Orders' });
+            tabs.push({ id: 'orders', label: 'My Orders' });
             tabs.push({ id: 'wishlist', label: 'Wishlist' });
+            tabs.push({ id: 'reviews', label: 'My Reviews' });
         } else if (role === 'seller') {
             tabs.push({ id: 'storefront', label: 'Storefront' });
             tabs.push({ id: 'settings', label: 'Settings' });
@@ -89,6 +99,8 @@ const Profile = () => {
                 return <OrdersSection orders={profileData.recent_orders} />;
             case 'wishlist':
                 return <Wishlist count={profileData.wishlist_count} onUpdate={handleWishlistUpdate} />;
+            case 'reviews':
+                return <MyReviewsSection />;
             case 'storefront':
                 return <StorefrontSection data={profileData.storefront} />;
             case 'settings':
@@ -126,7 +138,17 @@ const Profile = () => {
                         {getTabs().map(tab => (
                             <button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
+                                onClick={() => {
+                                    setActiveTab(tab.id);
+                                    // Update URL without navigation
+                                    const newSearchParams = new URLSearchParams(searchParams);
+                                    if (tab.id === 'personal') {
+                                        newSearchParams.delete('tab');
+                                    } else {
+                                        newSearchParams.set('tab', tab.id);
+                                    }
+                                    navigate({ search: newSearchParams.toString() }, { replace: true });
+                                }}
                                 className={`text-left px-4 py-3 rounded-lg transition-colors text-sm font-medium ${activeTab === tab.id
                                     ? 'bg-white text-primary shadow-sm'
                                     : 'text-gray-600 hover:bg-gray-200'
@@ -314,6 +336,60 @@ const SecuritySection = ({ data }) => (
         {data.last_login_ip && <InfoRow label="Last Login IP" value={data.last_login_ip} />}
     </div>
 );
+
+const MyReviewsSection = () => {
+    const [reviews, setReviews] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        // TODO: Fetch user's reviews from backend
+        // For now, show placeholder
+        setLoading(false);
+    }, []);
+
+    if (loading) {
+        return <div className="text-center py-10">Loading reviews...</div>;
+    }
+
+    if (reviews.length === 0) {
+        return (
+            <div className="text-center py-10">
+                <p className="text-gray-500 text-lg mb-4">You haven't written any reviews yet.</p>
+                <p className="text-sm text-gray-400">Reviews you write will appear here.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-4">
+            {reviews.map(review => (
+                <div key={review._id} className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between mb-2">
+                        <div>
+                            <p className="font-semibold">{review.product_title}</p>
+                            <div className="flex items-center gap-1 mt-1">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                    <svg
+                                        key={i}
+                                        className={`w-4 h-4 ${i < review.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'}`}
+                                        viewBox="0 0 20 20"
+                                        fill="currentColor"
+                                    >
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                ))}
+                            </div>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                            {new Date(review.createdAt).toLocaleDateString()}
+                        </span>
+                    </div>
+                    <p className="text-gray-700 mt-2">{review.comment}</p>
+                </div>
+            ))}
+        </div>
+    );
+};
 
 const InfoRow = ({ label, value }) => (
     <div className="pb-2 border-b border-gray-100 last:border-0">

@@ -3,6 +3,18 @@ const getLogModels = require("../../models/logs") /* expects exported function *
 
 async function resolveModelForEvent(event) {
   const models = await getLogModels();
+  
+  // If models are null (connection failed), return a no-op model
+  if (!models || !models.SystemEvent) {
+    return {
+      modelName: "NoOpModel",
+      insertMany: async () => {
+        // Silently skip logging if DB is not available
+        return [];
+      }
+    };
+  }
+  
   const cat = (event.category || "system").toLowerCase();
   const map = {
     admin: models.AdminEvent,
@@ -19,7 +31,17 @@ async function resolveModelForEvent(event) {
     job: models.BackgroundJobEvent,
     ai: models.AIEvent
   };
-  return map[cat] || models.SystemEvent;
+  const model = map[cat] || models.SystemEvent;
+  
+  // If the specific model is null, use SystemEvent or no-op
+  if (!model) {
+    return models.SystemEvent || {
+      modelName: "NoOpModel",
+      insertMany: async () => []
+    };
+  }
+  
+  return model;
 }
 
 module.exports = { resolveModelForEvent };

@@ -9,8 +9,8 @@ async function connectLogDB() {
 
   const uri = process.env.MONGO_URI_LOGS;
   if (!uri) {
-    // improved clarity but same behavior (throws)
-    throw new Error("MONGO_URI_LOGS is not set");
+    console.warn("⚠️  MONGO_URI_LOGS is not set. Logging features will be disabled.");
+    return null; // Return null instead of throwing
   }
 
   try {
@@ -24,9 +24,13 @@ async function connectLogDB() {
 
     console.log("✅Connected to artisan_logs");
   } catch (err) {
-    // new: clearer error output, without changing structure or flow
+    // Don't crash - just warn and return null
     console.error("[Log DB] Connection error:", err.message);
-    throw err; // same behavior — surface error
+    console.error("⚠️  Logging features will be disabled. To fix:");
+    console.error("   1. Check your MongoDB Atlas IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/");
+    console.error("   2. Verify MONGO_URI_LOGS in your .env file");
+    console.error("   3. Server will continue without logging features");
+    return null; // Return null instead of throwing
   }
 
   return logConnection;

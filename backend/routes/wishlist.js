@@ -7,17 +7,32 @@ const Listing = require("../models/artisan_point/artisan/Listing");
 // Get user's wishlist
 router.get("/", authenticate, async (req, res) => {
     try {
-        let wishlist = await Wishlist.findOne({ user_id: req.user.id }).populate({
+        const mongoose = require("mongoose");
+        const userId = new mongoose.Types.ObjectId(req.user.id);
+        let wishlist = await Wishlist.findOne({ user_id: userId }).populate({
             path: "listing_ids",
-            select: "title price images category store_id" // Select fields needed for display
+            select: "title price images description store average_rating rating_number createdAt"
         });
 
-        if (!wishlist) {
+        if (!wishlist || !wishlist.listing_ids || wishlist.listing_ids.length === 0) {
             return res.json([]);
         }
 
-        // Filter out nulls (in case listings were deleted)
-        const items = wishlist.listing_ids.filter(item => item !== null);
+        // Filter out nulls (in case listings were deleted) and map to clean format
+        const items = wishlist.listing_ids
+            .filter(item => item !== null)
+            .map(item => ({
+                _id: item._id,
+                title: item.title,
+                price: item.price,
+                images: item.images,
+                description: item.description,
+                store: item.store,
+                average_rating: item.average_rating || 0,
+                rating_number: item.rating_number || 0,
+                createdAt: item.createdAt
+            }));
+
         res.json(items);
     } catch (err) {
         console.error("Wishlist get error:", err);
@@ -31,15 +46,26 @@ router.post("/add", authenticate, async (req, res) => {
     if (!listingId) return res.status(400).json({ msg: "Listing ID required" });
 
     try {
-        let wishlist = await Wishlist.findOne({ user_id: req.user.id });
+        const mongoose = require("mongoose");
+        const userId = new mongoose.Types.ObjectId(req.user.id);
+        const listingObjectId = new mongoose.Types.ObjectId(listingId);
 
-        if (!wishlist) {
-            wishlist = new Wishlist({ user_id: req.user.id, listing_ids: [] });
+        // Verify listing exists
+        const listing = await Listing.findById(listingObjectId);
+        if (!listing) {
+            return res.status(404).json({ msg: "Listing not found" });
         }
 
-        // Check if already exists
-        if (!wishlist.listing_ids.includes(listingId)) {
-            wishlist.listing_ids.push(listingId);
+        let wishlist = await Wishlist.findOne({ user_id: userId });
+
+        if (!wishlist) {
+            wishlist = new Wishlist({ user_id: userId, listing_ids: [] });
+        }
+
+        // Check if already exists (convert to string for comparison)
+        const exists = wishlist.listing_ids.some(id => id.toString() === listingId);
+        if (!exists) {
+            wishlist.listing_ids.push(listingObjectId);
             await wishlist.save();
         }
 
@@ -56,7 +82,9 @@ router.post("/remove", authenticate, async (req, res) => {
     if (!listingId) return res.status(400).json({ msg: "Listing ID required" });
 
     try {
-        let wishlist = await Wishlist.findOne({ user_id: req.user.id });
+        const mongoose = require("mongoose");
+        const userId = new mongoose.Types.ObjectId(req.user.id);
+        let wishlist = await Wishlist.findOne({ user_id: userId });
 
         if (wishlist) {
             wishlist.listing_ids = wishlist.listing_ids.filter(id => id.toString() !== listingId);
