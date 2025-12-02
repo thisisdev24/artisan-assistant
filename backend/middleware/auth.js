@@ -1,3 +1,4 @@
+// backend/middleware/auth.js
 const jwt = require("jsonwebtoken");
 const User = require("../models/artisan_point/user/User");
 const Artisan = require("../models/artisan_point/artisan/Artisan");

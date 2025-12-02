@@ -1,6 +1,8 @@
+// backend/app.js
 require("dotenv").config();
 const cors = require("cors");
 const express = require("express");
+const cookieParser = require("cookie-parser");
 const logRoutes = require("./routes/logRoutes");
 const attachLogger = require("./middleware/logMiddleware");
 const analyticsRoutes = require("./routes/analyticsRoutes");
@@ -69,6 +71,15 @@ app.options('*', cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// parse cookies for refresh token handling
+app.use(cookieParser());
+
+// small helper: attach raw refresh token value from cookie to req for convenience
+app.use((req, res, next) => {
+  req.refreshTokenCookie = req.cookies?.refresh_token || null;
+  next();
+});
 
 // Response tracking middleware (keep early)
 const { responseTracker } = require('./middleware/responseTracker');

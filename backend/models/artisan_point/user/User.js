@@ -1,4 +1,4 @@
-// models/artisan/user/User.js
+// backend/models/artisan_point/user/User.js
 /**
  * User
  * Customer accounts. Stores profile, contact, and soft-delete info.

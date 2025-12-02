@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import apiClient from '../../utils/apiClient';
 import { useCart } from '../../context/CartContext';
 
-const Wishlist = ({ count, onUpdate }) => {
+const Wishlist = ({ onUpdate }) => {
     const navigate = useNavigate();
     const { addToCart } = useCart();
     const [items, setItems] = useState([]);

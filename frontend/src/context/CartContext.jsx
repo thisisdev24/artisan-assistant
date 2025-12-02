@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components */
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import apiClient from '../utils/apiClient';
 import { useAuth } from './AuthContext';
