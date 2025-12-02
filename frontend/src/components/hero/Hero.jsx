@@ -5,7 +5,7 @@ import "slick-carousel/slick/slick-theme.css";
 
 import imgage1 from '../../assets/hero/fabrics.avif';
 import image2 from '../../assets/hero/glassworks.avif';
-import image3 from '../../assets/hero/lether.avif';
+import image3 from '../../assets/hero/leather.webp';
 import image4 from '../../assets/hero/potmaking.avif';
 import image5 from '../../assets/hero/woodcraft.avif';
 
@@ -57,17 +57,19 @@ const Hero = ({ handleOrderPopup }) => {
     };
 
     return (
-        <div className="relative overflow-hidden min-h-[550px] sm:min-h-[650px] bg-gray-100 flex justify-center items-center dark:text-white duration-200 ">
+        <div className="relative overflow-hidden h-screen sm:h-screen bg-orange flex justify-center items-center dark:text-white duration-200">
             {/* background pattern */}
-            <div className="h-[700px] w-[700px] bg-primary/40 absolute -top-1/2 right-0 rounded-3xl rotate-45 -z-10"></div>
+            <div className="h-full w-full bg-primary/40 absolute -top-1/2 right-0 rounded-3xl rotate-45 -z-10"></div>
+                        <div className="h-full w-full bg-primary/40 absolute -bottom-1/2 left-0 rounded-3xl rotate-45 -z-10"></div>
+
             {/* hero section */}
-            <div className="container pb-8 sm:pb-0">
+            <div className="container p-32 w-full">
                 <Slider {...settings}>
                     {imageList.map((data) => (
                         <div key={data.id}>
                             <div className="grid grid-cols-1 sm:grid-cols-2">
                                 {/* text content section */}
-                                <div className="flex flex-col justify-center gap-4 pt-12 sm:pt-0 text-center sm:text-left order-2 sm:order-1 relative z-10 ">
+                                <div className="flex flex-col justify-center w-[500px] gap-4 pt-12 sm:pt-0 items-left text-center order-2 sm:order-1 relative z-10">
                                     <h1
                                         data-aos="zoom-out"
                                         data-aos-duration="500"
@@ -80,7 +82,7 @@ const Hero = ({ handleOrderPopup }) => {
                                         data-aos="fade-up"
                                         data-aos-duration="500"
                                         data-aos-delay="100"
-                                        className="text-sm text-black"
+                                        className="text-md text-black"
                                     >
                                         {data.desc}
                                     </p>
@@ -102,12 +104,12 @@ const Hero = ({ handleOrderPopup }) => {
                                     <div
                                         data-aos="zoom-in"
                                         data-aos-once="true"
-                                        className="relative z-10"
+                                        className="relative z-10 overflow-hidden"
                                     >
                                         <img
                                             src={data.img}
                                             alt={data.title}
-                                            className="w-[300px] h-[300px] sm:h-[450px] sm:w-[450px] sm:scale-105 lg:scale-120 object-contain mx-auto"
+                                            className="rounded-md w-[300px] h-[300px] sm:h-[450px] sm:w-full object-cover mx-auto"
                                         />
                                     </div>
                                 </div>

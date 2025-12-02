@@ -1,13 +1,10 @@
-// routes/analyticsRoutes.js
-const express = require("express");
-const { triggerDailyETL, fetchAnalytics } = require("./analyticsController");
+const router = require("express").Router();
+const auth = require("../middleware/analyticsAuth");
+const ctrl = require("../controllers/analyticsController");
 
-const router = express.Router();
+router.use(auth);
 
-// POST /api/analytics/etl/daily  { date?: ISO }
-router.post("/etl/daily", triggerDailyETL);
-
-// GET /api/analytics/:type?page=1&limit=50&date=2025-11-13
-router.get("/:type", fetchAnalytics);
+router.get("/daily", ctrl.getDaily);
+router.get("/traffic", ctrl.getTraffic);
 
 module.exports = router;

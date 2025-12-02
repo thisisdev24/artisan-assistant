@@ -1,13 +1,19 @@
 require("dotenv").config();
+const mongoose = require("mongoose");
 const http = require("http");
 const os = require("os");
 const app = require("./app");
-const connect = require("./db/connectDB");
-const { createLog } = require("./routes/loggerService");
+const Listing = require("./models/artisan_point/artisan/Listing");
+const loadArtisanPointModels = require("./models/artisan_point");
+// Load analytics models on startup
+const { loadAnalyticsModels } = require("./models/analytics");
+
 
 const PORT = process.env.PORT || 5000;
+const MONGO_URI = process.env.MONGO_URI; // MAIN DB
 const listingDraftsRouter = require('./routes/listingDrafts');
 const listingsRouter = require('./routes/listings');
+const { getLogModels } = require("./models/logs");
 
 // mount draft routes BEFORE or AFTER existing routes — both fine since paths are unique
 app.use('/api/listings', listingDraftsRouter);
@@ -16,65 +22,77 @@ app.use('/api/listings', listingsRouter);
 
 async function startServer() {
   try {
-    // -------------------------
-    // Connect MAIN database
-    // -------------------------
-    await connect();
-    console.log("✅ Main MongoDB connected");
+    // ------------------------------
+    // MONGODB CONNECTION (UPDATED)
+    // ------------------------------
+    if (!MONGO_URI) {
+      console.error("❌ MONGO_URI is not set in environment variables");
+      console.error("   Please set MONGO_URI in your .env file");
+      process.exit(1);
+    }
 
-    const server = http.createServer(app);
+    mongoose.connect(MONGO_URI, {
+      dbName: "test",
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 10000, // 10 second timeout
+    })
+      .then(() => console.log("✅ MongoDB connected successfully"))
+      .catch(err => {
+        console.error("\n❌ MongoDB connection error:", err.message);
+        console.error("\n📋 To fix this issue:");
+        console.error("   1. If using MongoDB Atlas:");
+        console.error("      → Go to: https://cloud.mongodb.com/");
+        console.error("      → Navigate to: Network Access → IP Access List");
+        console.error("      → Click 'Add IP Address'");
+        console.error("      → Add your current IP or use '0.0.0.0/0' (allows all IPs - for dev only)");
+        console.error("   2. Verify MONGO_URI in your .env file is correct");
+        console.error("   3. Check your MongoDB connection string format:");
+        console.error("      → mongodb+srv://username:password@cluster.mongodb.net/dbname");
+        console.error("   4. For local MongoDB, use: mongodb://localhost:27017/artisan-assistant");
+        console.error("\n💡 Tip: You can find your current IP at: https://whatismyipaddress.com/\n");
+        process.exit(1); // Main DB is required, so exit
+      });
+
+    // ------------------------------
+    // LOG DB CONNECTION (UPDATED) - Optional
+    // ------------------------------
+    try {
+      await getLogModels();
+    } catch (err) {
+      console.warn("⚠️  Log DB connection failed, continuing without logging features");
+    }
+
+    // ------------------------------
+    // ANALYTICS DB CONNECTION (UPDATED) - Optional
+    // ------------------------------
+    try {
+      const analyticsModels = await loadAnalyticsModels();
+      
+      // Only load cron jobs if analytics DB is connected and models are available
+      if (analyticsModels && analyticsModels.DailyStats) {
+        try {
+          require("./cron/dailyAnalytics.cron");
+          require("./cron/hourlyAnalytics.cron");
+          require("./cron/weeklyAnalytics.cron");
+          console.log("✅ Analytics cron jobs loaded");
+        } catch (cronErr) {
+          console.warn("⚠️  Analytics cron jobs not loaded:", cronErr.message);
+        }
+      } else {
+        console.warn("⚠️  Analytics models not available, skipping cron jobs");
+      }
+    } catch (err) {
+      console.warn("⚠️  Analytics DB connection failed, continuing without analytics features");
+    }
 
     // -------------------------
     // Start Server
     // -------------------------
+    const server = http.createServer(app);
     server.listen(PORT, async () => {
       console.log(`⚡ Server running on port ${PORT}`);
-    // server.js
-    const { initAnalyticsService } = require("./routes/analyticsService");
-    (async () => {
-      try {
-        await initAnalyticsService();
-        console.log("Analytics DB initialized on startup");
-      } catch (err) {
-        console.error("Analytics DB initialization failed:", err.message);
-      }
-    })();
 
-      // Log startup event
-      try {
-        await createLog("system", {
-          event_type: "SERVER_START",
-          category: "infrastructure",
-          action: `Server started on port ${PORT}`,
-          status: "success",
-          severity: "info",
-          system_context: {
-            host: os.hostname(),
-            platform: os.platform(),
-            node_version: process.version,
-          }
-        });
-      } catch (err) {
-        console.error("❗ Startup log failed:", err.message);
-      }
-    });
-
-    // -------------------------
-    // Graceful Shutdown
-    // -------------------------
-    process.on("SIGINT", async () => {
-      console.log("🔻 SIGINT received, shutting down gracefully...");
-
-      try {
-        await createLog("system", {
-          event_type: "SERVER_SHUTDOWN",
-          category: "infrastructure",
-          action: "Server shutting down (SIGINT)",
-          status: "success",
-        });
-      } catch (_) {}
-
-      process.exit(0);
     });
 
   } catch (err) {

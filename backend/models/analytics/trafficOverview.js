@@ -1,9 +1,8 @@
-// models/analytics/trafficOverview.js
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
 const SourceSchema = new Schema({
-  source: String, // direct, search, referral, social
+  source: String,
   medium: String,
   campaign_id: String,
   sessions: Number,

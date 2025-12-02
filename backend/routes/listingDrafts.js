@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const Listing = require('../models/Listing');
+const Listing = require('../models/artisan_point/artisan/Listing');
 const upload = require('../middleware/upload'); // reuse your multer-like middleware
 const { createThumbnailBuffer, createLargeThumbnailBuffer, createHighResThumbnailBuffer } = require('../utils/image');
 const { uploadBuffer, getSignedReadUrl } = require('../utils/gcs');
@@ -135,7 +135,7 @@ router.patch('/:id/publish', async (req, res) => {
       update.dimensions = {
         height: dimensions.height !== undefined ? Number(dimensions.height) : undefined,
         length: dimensions.length !== undefined ? Number(dimensions.length) : undefined,
-        width:  dimensions.width !== undefined ? Number(dimensions.width) : undefined,
+        width: dimensions.width !== undefined ? Number(dimensions.width) : undefined,
         weight: dimensions.weight !== undefined ? Number(dimensions.weight) : undefined,
       };
     }

@@ -65,7 +65,7 @@ const ProductDetailsForm = () => {
       );
 
       alert('Product published successfully!');
-      navigate(`/listings/${id}`);
+      navigate(`/product/${id}`);
     } catch (err) {
       console.error('Publish error:', err?.response?.data || err.message);
       alert(err?.response?.data?.message || 'Failed to publish. See console for details.');
@@ -92,7 +92,7 @@ const ProductDetailsForm = () => {
           {/* Stock Information */}
           <div className="mb-6">
             <h3 className="text-xl font-semibold text-gray-800 mb-4">Stock Information</h3>
-            
+
             <div className="mb-4">
               <label className="block text-gray-700 mb-2">Stock Count</label>
               <input
@@ -121,7 +121,7 @@ const ProductDetailsForm = () => {
           {/* Product Dimensions */}
           <div className="mb-6">
             <h3 className="text-xl font-semibold text-gray-800 mb-4">Product Dimensions</h3>
-            
+
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-gray-700 mb-2">Height (cm)</label>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import apiClient from "../utils/apiClient"; // Use apiClient for auth requests
 
 const LIMIT = 32;
 
@@ -10,6 +11,7 @@ const ShowListingPublic = () => {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [wishlistIds, setWishlistIds] = useState(new Set());
   const navigate = useNavigate();
 
   const fetchProducts = async (pageNum = 1) => {
@@ -36,7 +38,51 @@ const ShowListingPublic = () => {
 
   useEffect(() => {
     fetchProducts(1);
+    fetchWishlist();
   }, []);
+
+  const fetchWishlist = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    try {
+      const res = await apiClient.get("/api/wishlist");
+      const ids = new Set(res.data.map(item => item._id));
+      setWishlistIds(ids);
+    } catch (err) {
+      console.error("Failed to fetch wishlist", err);
+    }
+  };
+
+  const toggleWishlist = async (e, product) => {
+    e.stopPropagation(); // Prevent card click
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Please login to use wishlist");
+      return;
+    }
+
+    const isInWishlist = wishlistIds.has(product._id);
+    try {
+      if (isInWishlist) {
+        await apiClient.post("/api/wishlist/remove", { listingId: product._id });
+        setWishlistIds(prev => {
+          const next = new Set(prev);
+          next.delete(product._id);
+          return next;
+        });
+      } else {
+        await apiClient.post("/api/wishlist/add", { listingId: product._id });
+        setWishlistIds(prev => {
+          const next = new Set(prev);
+          next.add(product._id);
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error("Wishlist toggle error", err);
+      alert("Failed to update wishlist");
+    }
+  };
 
   const handleBack = () => navigate("/");
 
@@ -85,7 +131,7 @@ const ShowListingPublic = () => {
               {products.map((product) => (
                 <div
                   key={product._id}
-                  className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 p-5 flex flex-col"
+                  className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 p-5 flex flex-col relative"
                 >
                   <img
                     src={
@@ -95,6 +141,27 @@ const ShowListingPublic = () => {
                     alt={product.title}
                     className="w-full h-56 object-cover rounded-lg mb-4"
                   />
+
+                  {/* Wishlist Heart Icon */}
+                  <button
+                    onClick={(e) => toggleWishlist(e, product)}
+                    className="absolute top-4 right-4 p-2 bg-white/80 rounded-full shadow-sm hover:bg-white transition-colors"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className={`h-6 w-6 ${wishlistIds.has(product._id) ? "text-red-500 fill-current" : "text-gray-400"}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                      />
+                    </svg>
+                  </button>
 
                   <h2 className="text-lg font-semibold text-gray-800 mb-1 line-clamp-1">
                     {product.title}
@@ -106,8 +173,8 @@ const ShowListingPublic = () => {
                         ? product.description.slice(0, 157) + "..."
                         : product.description
                       : Array.isArray(product.description) && product.description.length > 0
-                      ? product.description[0]
-                      : ""}
+                        ? product.description[0]
+                        : ""}
                   </p>
 
                   <div className="flex items-center text-yellow-500 text-sm mb-3">
@@ -119,7 +186,7 @@ const ShowListingPublic = () => {
                       ₹{product.price}
                     </span>
                     <button
-                      onClick={() => navigate(`/product/${product._id}`)}
+                      onClick={() => navigate(`/products/${product._id}`)}
                       className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
                     >
                       View

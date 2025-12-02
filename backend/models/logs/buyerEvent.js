@@ -1,92 +1,115 @@
-// buyerEvent.js
+// models/logs/buyerEvent.js
 const mongoose = require("mongoose");
-const BaseEvent = require("./baseEvent");
 const { Schema } = mongoose;
+const BaseEvent = require("./baseEvent");
 
-const CartItemSchema = new Schema({
-  listing_id: String,
-  title: String,
-  artist_id: String,
-  qty: Number,
-  unit_price: Number,
-  currency: String,
-  applied_discount: Number,
-}, { _id: false });
-
-const CartSchema = new Schema({
-  cart_id: String,
-  buyer_id: String,
-  items: [CartItemSchema],
-  subtotal: Number,
-  shipping_fee: Number,
-  tax: Number,
-  total: Number,
-  last_updated_at: Date,
-}, { _id: false });
-
-const CheckoutSchema = new Schema({
-  checkout_id: String,
-  cart_id: String,
-  buyer_id: String,
-  payment_method: String,
-  payment_gateway: String,
-  shipping_address_id: String,
-  shipping_option: String,
-  promotion_applied: String,
-  checkout_started_at: Date,
-  checkout_completed_at: Date,
-  checkout_status: String, // initiated | failed | success | abandoned
-}, { _id: false });
-
-const SearchContextSchema = new Schema({
-  query: String,
-  filters: Schema.Types.Mixed,
-  results_count: Number,
-  search_duration_ms: Number,
-  page: Number,
-}, { _id: false });
-
-const BuyerEventSchema = new Schema({
-  buyer_profile: {
-    buyer_id: String,
-    loyalty_tier: String,
-    first_seen: Date,
-    last_seen: Date,
-    email_hash: String,
+/* ---------------------- CART ITEM ---------------------- */
+const CartItemSchema = new Schema(
+  {
+    listing_id: { type: String, default: null },
+    title: { type: String, default: null },
+    artist_id: { type: String, default: null },
+    qty: { type: Number, default: null },
+    unit_price: { type: Number, default: null },
+    currency: { type: String, default: null },
+    applied_discount: { type: Number, default: null },
   },
-  cart: CartSchema,
-  checkout: CheckoutSchema,
-  order_reference: {
-    order_id: String,
-    order_total: Number,
-    payment_status: String,
-    transaction_id: String,
-  },
-  search: SearchContextSchema,
-  behavior: {
-    page_url: String,
-    referrer_url: String,
-    click_target: String,
-    scroll_depth_pct: Number,
-    dwell_time_sec: Number,
-    item_position: Number,
-  },
-  attribution: {
-    campaign_id: String,
-    source: String,
-    medium: String,
-    click_id: String,
-  },
-  risk: {
-    risk_score: Number,
-    flags: [String],
-  },
+  { _id: false }
+);
 
-}, { timestamps: true });
+/* ---------------------- CART ---------------------- */
+const CartSchema = new Schema(
+  {
+    cart_id: { type: String, default: null },
+    buyer_id: { type: String, default: null },
+    items: { type: [CartItemSchema], default: [] },
+    subtotal: { type: Number, default: null },
+    shipping_fee: { type: Number, default: null },
+    tax: { type: Number, default: null },
+    total: { type: Number, default: null },
+    last_updated_at: { type: Date, default: null },
+  },
+  { _id: false }
+);
 
+/* ---------------------- CHECKOUT ---------------------- */
+const CheckoutSchema = new Schema(
+  {
+    checkout_id: { type: String, default: null },
+    cart_id: { type: String, default: null },
+    buyer_id: { type: String, default: null },
+    payment_method: { type: String, default: null },
+    payment_gateway: { type: String, default: null },
+    shipping_address_id: { type: String, default: null },
+    shipping_option: { type: String, default: null },
+    promotion_applied: { type: String, default: null },
+    checkout_started_at: { type: Date, default: null },
+    checkout_completed_at: { type: Date, default: null },
+    checkout_status: { type: String, default: null },
+  },
+  { _id: false }
+);
+
+/* ---------------------- SEARCH CONTEXT ---------------------- */
+const SearchContextSchema = new Schema(
+  {
+    query: { type: String, default: null },
+    filters: { type: Schema.Types.Mixed, default: {} },
+    results_count: { type: Number, default: null },
+    search_duration_ms: { type: Number, default: null },
+    page: { type: Number, default: null },
+  },
+  { _id: false }
+);
+
+/* ---------------------- MAIN BUYER EVENT ---------------------- */
+const BuyerEventSchema = new Schema(
+  {
+    buyer_profile: {
+      buyer_id: { type: String, default: null },
+      loyalty_tier: { type: String, default: null },
+      first_seen: { type: Date, default: null },
+      last_seen: { type: Date, default: null },
+      email_hash: { type: String, default: null },
+    },
+
+    cart: { type: CartSchema, default: {} },
+    checkout: { type: CheckoutSchema, default: {} },
+
+    order_reference: {
+      order_id: { type: String, default: null },
+      order_total: { type: Number, default: null },
+      payment_status: { type: String, default: null },
+      transaction_id: { type: String, default: null },
+    },
+
+    search: { type: SearchContextSchema, default: {} },
+
+    behavior: {
+      page_url: { type: String, default: null },
+      referrer_url: { type: String, default: null },
+      click_target: { type: String, default: null },
+      scroll_depth_pct: { type: Number, default: null },
+      dwell_time_sec: { type: Number, default: null },
+      item_position: { type: Number, default: null },
+    },
+
+    attribution: {
+      campaign_id: { type: String, default: null },
+      source: { type: String, default: null },
+      medium: { type: String, default: null },
+      click_id: { type: String, default: null },
+    },
+
+    risk: {
+      risk_score: { type: Number, default: null },
+      flags: { type: [String], default: [] },
+    },
+  },
+  { timestamps: false }
+);
+
+/* ---------------------- MERGE BASE EVENT ---------------------- */
 BuyerEventSchema.add(BaseEvent);
-
-BuyerEventSchema.index({ "buyer_profile.buyer_id": 1 });
-BuyerEventSchema.index({ "order_reference.order_id": 1 });
 
 module.exports = BuyerEventSchema;

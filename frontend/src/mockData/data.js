@@ -14,11 +14,11 @@ export const NavbarMenu = [
     title: "Artists",
     link: "/artists",
   },
-  {
-    id: 4,
-    title: "Shorts",
-    link: "/shorts",
-  },
+  // {
+  //   id: 4,
+  //   title: "Shorts",
+  //   link: "/shorts",
+  // },
   {
     id: 5,
     title: "Contact",

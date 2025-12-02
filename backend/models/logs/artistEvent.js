@@ -1,90 +1,112 @@
-// artistEvent.js
+// models/logs/artistEvent.js
 const mongoose = require("mongoose");
-const BaseEvent = require("./baseEvent");
 const { Schema } = mongoose;
+const BaseEvent = require("./baseEvent");
 
-const MediaSchema = new Schema({
-  url: String,
-  mime_type: String,
-  width: Number,
-  height: Number,
-  hash: String,
-}, { _id: false });
-
-const ListingSchema = new Schema({
-  listing_id: String,
-  title: String,
-  description: String,
-  category: String,
-  subcategory: String,
-  tags: [String],
-  price: Number,
-  currency: String,
-  sku: String,
-  stock: Number,
-  status: String, // draft, published, paused, removed
-  media: [MediaSchema],
-  created_at: Date,
-  updated_at: Date,
-}, { _id: false });
-
-const PromotionSchema = new Schema({
-  promo_id: String,
-  type: String,
-  discount_pct: Number,
-  starts_at: Date,
-  ends_at: Date,
-  target_listings: [String],
-  budget: Number,
-  status: String,
-}, { _id: false });
-
-const SalesMetricsSchema = new Schema({
-  impressions: Number,
-  clicks: Number,
-  add_to_cart: Number,
-  purchases: Number,
-  revenue: Number,
-  conversion_rate: Number,
-}, { _id: false });
-
-const ArtistEventSchema = new Schema({
-  artist_profile: {
-    artist_id: String,
-    display_name: String,
-    verified: Boolean,
-    join_date: Date,
-    languages: [String],
+/* ---------------------- MEDIA ---------------------- */
+const MediaSchema = new Schema(
+  {
+    url: { type: String, default: null },
+    mime_type: { type: String, default: null },
+    width: { type: Number, default: null },
+    height: { type: Number, default: null },
+    hash: { type: String, default: null },
   },
-  listing: ListingSchema,
-  promotion: PromotionSchema,
-  inventory_change: {
-    change_type: String, // stock_update | price_update
-    old_stock: Number,
-    new_stock: Number,
-    old_price: Number,
-    new_price: Number,
-    reason: String,
-    effective_at: Date,
-  },
-  sales_metrics: SalesMetricsSchema,
-  moderation: {
-    takedown_id: String,
-    moderator_id: String,
-    reason: String,
-    action: String,
-    appeal_allowed: Boolean,
-  },
-  campaign: {
-    campaign_id: String,
-    utm: Schema.Types.Mixed,
-  },
+  { _id: false }
+);
 
-}, { timestamps: true });
+/* ---------------------- LISTING ---------------------- */
+const ListingSchema = new Schema(
+  {
+    listing_id: { type: String, default: null },
+    title: { type: String, default: null },
+    description: { type: String, default: null },
+    category: { type: String, default: null },
+    subcategory: { type: String, default: null },
+    tags: { type: [String], default: [] },
+    price: { type: Number, default: null },
+    currency: { type: String, default: null },
+    sku: { type: String, default: null },
+    stock: { type: Number, default: null },
+    status: { type: String, default: null },
+    media: { type: [MediaSchema], default: [] },
+    created_at: { type: Date, default: null },
+    updated_at: { type: Date, default: null },
+  },
+  { _id: false }
+);
 
+/* ---------------------- PROMOTION ---------------------- */
+const PromotionSchema = new Schema(
+  {
+    promo_id: { type: String, default: null },
+    type: { type: String, default: null },
+    discount_pct: { type: Number, default: null },
+    starts_at: { type: Date, default: null },
+    ends_at: { type: Date, default: null },
+    target_listings: { type: [String], default: [] },
+    budget: { type: Number, default: null },
+    status: { type: String, default: null },
+  },
+  { _id: false }
+);
+
+/* ---------------------- SALES METRICS ---------------------- */
+const SalesMetricsSchema = new Schema(
+  {
+    impressions: { type: Number, default: null },
+    clicks: { type: Number, default: null },
+    add_to_cart: { type: Number, default: null },
+    purchases: { type: Number, default: null },
+    revenue: { type: Number, default: null },
+    conversion_rate: { type: Number, default: null },
+  },
+  { _id: false }
+);
+
+/* ---------------------- MAIN ARTIST EVENT ---------------------- */
+const ArtistEventSchema = new Schema(
+  {
+    artist_profile: {
+      artist_id: { type: String, default: null },
+      display_name: { type: String, default: null },
+      verified: { type: Boolean, default: false },
+      join_date: { type: Date, default: null },
+      languages: { type: [String], default: [] },
+    },
+
+    listing: { type: ListingSchema, default: {} },
+    promotion: { type: PromotionSchema, default: {} },
+
+    inventory_change: {
+      change_type: { type: String, default: null },
+      old_stock: { type: Number, default: null },
+      new_stock: { type: Number, default: null },
+      old_price: { type: Number, default: null },
+      new_price: { type: Number, default: null },
+      reason: { type: String, default: null },
+      effective_at: { type: Date, default: null },
+    },
+
+    sales_metrics: { type: SalesMetricsSchema, default: {} },
+
+    moderation: {
+      takedown_id: { type: String, default: null },
+      moderator_id: { type: String, default: null },
+      reason: { type: String, default: null },
+      action: { type: String, default: null },
+      appeal_allowed: { type: Boolean, default: false },
+    },
+
+    campaign: {
+      campaign_id: { type: String, default: null },
+      utm: { type: Schema.Types.Mixed, default: {} },
+    },
+  },
+  { timestamps: false }
+);
+
+/* ---------------------- MERGE BASE EVENT ---------------------- */
 ArtistEventSchema.add(BaseEvent);
-
-ArtistEventSchema.index({ "artist_profile.artist_id": 1 });
-ArtistEventSchema.index({ "listing.listing_id": 1 });
 
 module.exports = ArtistEventSchema;
