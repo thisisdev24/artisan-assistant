@@ -30,16 +30,9 @@ const SearchResults = () => {
       if (abortRef.current) abortRef.current.abort();
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-    mountedRef.current = true;
-    fetchWishlist();
-    return () => {
-      mountedRef.current = false;
-      if (abortRef.current) abortRef.current.abort();
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
   }, []);
 
-  const fetchWishlist = async () => {
+  /*const fetchWishlist = async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
@@ -49,7 +42,7 @@ const SearchResults = () => {
     } catch (err) {
       console.error("Failed to fetch wishlist", err);
     }
-  };
+  };*/
 
   const toggleWishlist = async (e, item) => {
     e.stopPropagation();
@@ -122,6 +115,7 @@ const SearchResults = () => {
           // backend returns { results: [...] } per agreed contract
           const data = resp.data;
           const arr = data && data.results ? data.results : [];
+          console.log(arr);
           setResults(arr);
         })
         .catch((err) => {
@@ -173,8 +167,7 @@ const SearchResults = () => {
             <div key={item._id || item.listing_id || item.faiss_id || JSON.stringify(item)} className="bg-white rounded shadow p-4 relative">
               <img
                 src={
-                  item.imageUrl ||
-                  (item.images && item.images[0] && (item.images[0].thumb || item.images[0].large))
+                   item.images[0].thumb || item.images[0].thumb
                 }
                 alt={item.title || "item"}
                 className="w-full h-44 object-cover rounded mb-3"

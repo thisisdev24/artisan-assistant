@@ -220,16 +220,14 @@ router.get('/search', async (req, res) => {
       .lean();
 
     const docsById = {};
-    for (const d of docs) docsById[String(d._id)] = d;
+    for (const d of docs) {
+      docsById[String(d._id)] = d;
+    }
 
     // preserve order given by mlResults
     const enriched = mlResults.map(r => {
       const lid = String(r.listing_id);
       const doc = docsById[lid] || {};
-      let imageUrl = null;
-      if (Array.isArray(doc.images) && doc.images.length > 0) {
-        imageUrl = doc.images[0].large || doc.images[0].hi_res || doc.images[0].thumb;
-      }
 
       let desc = doc.description || r.description || '';
       if (desc.length > 200) {
@@ -241,8 +239,7 @@ router.get('/search', async (req, res) => {
         title: r.title || doc.title,
         description: desc,
         price: doc.price || r.price || 0,
-        imageUrl,
-        images: doc.images, // Return full images array
+        images: r.images, // Return full images array
         average_rating: doc.average_rating || 0,
         rating_number: doc.rating_number || 0,
         score: r.score || null
