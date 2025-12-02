@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import apiClient from '../utils/apiClient';
 
 const EditProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, isSeller } = useAuth();
+  const { isSeller } = useAuth();
   const token = localStorage.getItem('token');
 
   const [loading, setLoading] = useState(true);

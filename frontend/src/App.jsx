@@ -33,7 +33,7 @@ import Contact from "./pages/contact";
 
 function App() {
   // read store from localStorage (if available)
-  const storeFromStorage = typeof window !== "undefined" ? localStorage.getItem("store") : null;
+  //const storeFromStorage = typeof window !== "undefined" ? localStorage.getItem("store") : null;
 
   return (
     // >>> Wrap the whole app with LoggerProvider <<<

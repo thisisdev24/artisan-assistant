@@ -1,3 +1,4 @@
+// backend/routes/auth.js
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
@@ -5,8 +6,18 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/artisan_point/user/User");
 const Artisan = require("../models/artisan_point/artisan/Artisan");
 const Admin = require("../models/artisan_point/admin/Admin");
+const RefreshToken = require("../models/artisan_point/admin/RefreshToken");
+const { generateRefreshTokenValue, hmacToken, signAccessToken } = require("../utils/tokens");
 const { authenticate } = require("../middleware/auth");
+
 require("dotenv").config();
+
+const REFRESH_TTL_DAYS = parseInt(process.env.REFRESH_TOKEN_TTL_DAYS || "7", 10);
+const REAUTH_WINDOW_MINUTES = parseInt(process.env.REAUTH_WINDOW_MINUTES || "60", 10);
+
+const COOKIE_NAME = process.env.REFRESH_COOKIE_NAME || "refresh_token";
+const COOKIE_SECURE = (process.env.NODE_ENV === "production"); // secure only in prod
+const COOKIE_SAMESITE = process.env.REFRESH_COOKIE_SAMESITE || "Lax"; // Lax by default
 
 function getModelName(role) {
   if (role === "buyer") return User;
@@ -14,7 +25,25 @@ function getModelName(role) {
   return Admin;
 }
 
-// Register route
+function sendRefreshCookie(res, tokenValue, maxAgeMs) {
+  // cookie options
+  const opts = {
+    httpOnly: true,
+    secure: COOKIE_SECURE,
+    sameSite: COOKIE_SAMESITE,
+    path: "/",
+    maxAge: maxAgeMs
+  };
+  res.cookie(COOKIE_NAME, tokenValue, opts);
+}
+
+function clearRefreshCookie(res) {
+  res.clearCookie(COOKIE_NAME, { path: '/', httpOnly: true, secure: COOKIE_SECURE, sameSite: COOKIE_SAMESITE });
+}
+
+// ---------------------------
+// Register (keeps existing behavior but also issues refresh cookie)
+// ---------------------------
 router.post("/register", async (req, res) => {
   const { name, email, password } = req.body;
   try {
@@ -31,21 +60,44 @@ router.post("/register", async (req, res) => {
     if (req.body.role === "buyer") {
       user = new User({ name, email, password: hashedPassword, role: req.body.role });
       await user.save();
-      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
-      res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
     } else if (req.body.role === "seller") {
       user = new Artisan({ name, email, password: hashedPassword, role: req.body.role, store: req.body.store });
       await user.save();
-      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
-      res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role, store: user.store } });
+    } else {
+      return res.status(400).json({ msg: "Invalid role" });
     }
+
+    // create access token and refresh cookie
+    const accessToken = signAccessToken({ id: user._id }, process.env.JWT_ACCESS_TTL || "1h");
+
+    // create refresh token entry
+    const refreshValue = generateRefreshTokenValue();
+    const refreshHash = hmacToken(refreshValue);
+    const expiresAt = new Date(Date.now() + REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000);
+
+    await RefreshToken.create({
+      token_hash: refreshHash,
+      user_id: user._id,
+      expires_at: expiresAt,
+      last_reauth: new Date()
+    });
+
+    // send cookie + response
+    sendRefreshCookie(res, refreshValue, REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000);
+
+    res.json({
+      token: accessToken,
+      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+    });
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error");
   }
 });
 
-// Login route
+// ---------------------------
+// Login (issue access token + refresh cookie stored server-side)
+// ---------------------------
 router.post("/login", async (req, res) => {
   const { email, password, role } = req.body;
   console.log("Login attempt:", { email, role }); // Debug log
@@ -78,16 +130,168 @@ router.post("/login", async (req, res) => {
     user.login.login_count = (user.login.login_count || 0) + 1;
     await user.save();
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "24h" });
+    // Access token
+    const accessToken = signAccessToken({ id: user._id }, process.env.JWT_ACCESS_TTL || "1h");
 
-    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role, store: user.store } });
+    // create refresh token and persist hashed HMAC
+    const refreshValue = generateRefreshTokenValue();
+    const refreshHash = hmacToken(refreshValue);
+    const expiresAt = new Date(Date.now() + REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000);
+
+    await RefreshToken.create({
+      token_hash: refreshHash,
+      user_id: user._id,
+      expires_at: expiresAt,
+      last_reauth: new Date()
+    });
+
+    // set cookie (HttpOnly)
+    sendRefreshCookie(res, refreshValue, REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000);
+
+    res.json({
+      token: accessToken,
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, store: user.store }
+    });
   } catch (err) {
     console.error("Login Error:", err);
     res.status(500).send("Server error");
   }
 });
 
-// Verify token route
+// ---------------------------
+// Refresh endpoint (rotate refresh token, sliding expiration)
+// ---------------------------
+router.post("/refresh", async (req, res) => {
+  try {
+    const cookieValue = req.cookies?.[COOKIE_NAME] || req.refreshTokenCookie || null;
+    if (!cookieValue) return res.status(401).json({ msg: "No refresh token" });
+
+    const incomingHash = hmacToken(cookieValue);
+
+    // find token doc quickly by token_hash
+    const tokenDoc = await RefreshToken.findOne({ token_hash: incomingHash }).select('+token_hash +revoked +expires_at +user_id +last_reauth');
+    if (!tokenDoc) {
+      // Could be rotated (old token's hash replaced_by_hash) - try to detect if it was replaced (optional)
+      return res.status(401).json({ msg: "Refresh token invalid" });
+    }
+
+    // check revoked / expired
+    if (tokenDoc.revoked) return res.status(401).json({ msg: "Refresh token revoked" });
+    if (new Date() > tokenDoc.expires_at) return res.status(401).json({ msg: "Refresh token expired" });
+
+    const user = await User.findById(tokenDoc.user_id) || await Artisan.findById(tokenDoc.user_id) || await Admin.findById(tokenDoc.user_id);
+    if (!user) return res.status(401).json({ msg: "User not found for refresh token" });
+
+    // rotate: create new refresh token, mark old token revoked and set replaced_by_hash
+    const newValue = generateRefreshTokenValue();
+    const newHash = hmacToken(newValue);
+    const newExpiresAt = new Date(Date.now() + REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000);
+
+    // mark old revoked and set replaced_by_hash
+    tokenDoc.revoked = true;
+    tokenDoc.replaced_by_hash = newHash;
+    await tokenDoc.save();
+
+    // create new DB entry
+    await RefreshToken.create({
+      token_hash: newHash,
+      user_id: tokenDoc.user_id,
+      expires_at: newExpiresAt,
+      last_reauth: tokenDoc.last_reauth || null
+    });
+
+    // issue new access token + set cookie
+    const accessToken = signAccessToken({ id: user._id }, process.env.JWT_ACCESS_TTL || "1h");
+    sendRefreshCookie(res, newValue, REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000);
+
+    res.json({ token: accessToken, user: { id: user._id, name: user.name, email: user.email, role: user.role, store: user.store } });
+  } catch (err) {
+    console.error("Refresh error:", err);
+    return res.status(500).json({ msg: "refresh_failed" });
+  }
+});
+
+// ---------------------------
+// Logout (revoke refresh token)
+router.post("/logout", authenticate, async (req, res) => {
+  try {
+    const cookieValue = req.cookies?.[COOKIE_NAME] || req.refreshTokenCookie || null;
+    if (cookieValue) {
+      const incomingHash = hmacToken(cookieValue);
+      const tokenDoc = await RefreshToken.findOne({ token_hash: incomingHash }).select('+token_hash +revoked');
+      if (tokenDoc) {
+        tokenDoc.revoked = true;
+        await tokenDoc.save();
+      }
+    }
+
+    // clear cookie
+    clearRefreshCookie(res);
+
+    // update user login status if desired
+    const uid = req.user?.id;
+    if (uid) {
+      const Model = (req.user.role === 'seller') ? Artisan : (req.user.role === 'admin') ? Admin : User;
+      try {
+        const userDoc = await Model.findById(uid).select('+login');
+        if (userDoc) {
+          userDoc.login = userDoc.login || {};
+          userDoc.login.last_logout_at = new Date();
+          userDoc.login.is_logged_in = false;
+          await userDoc.save();
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Logout error:", err);
+    res.status(500).json({ msg: "logout_failed" });
+  }
+});
+
+// ---------------------------
+// Re-authenticate (sensitive action) - client sends { password }
+// On success, update last_reauth on the refresh token session so future protected routes see a recent reauth.
+router.post("/reauth", authenticate, async (req, res) => {
+  try {
+    const password = req.body.password;
+    if (!password) return res.status(400).json({ msg: "Password required" });
+
+    const uid = req.user.id;
+    // find model by role
+    let userDoc;
+    if (req.user.role === 'seller') userDoc = await Artisan.findById(uid).select('+password');
+    else if (req.user.role === 'admin') userDoc = await Admin.findById(uid).select('+password');
+    else userDoc = await User.findById(uid).select('+password');
+
+    if (!userDoc) return res.status(401).json({ msg: "User not found" });
+
+    const ok = await bcrypt.compare(password, userDoc.password);
+    if (!ok) return res.status(401).json({ msg: "Invalid password" });
+
+    // update last_reauth on current refresh token session (if cookie present)
+    const cookieValue = req.cookies?.[COOKIE_NAME] || req.refreshTokenCookie || null;
+    if (cookieValue) {
+      const incomingHash = hmacToken(cookieValue);
+      const tokenDoc = await RefreshToken.findOne({ token_hash: incomingHash }).select('+token_hash');
+      if (tokenDoc) {
+        tokenDoc.last_reauth = new Date();
+        await tokenDoc.save();
+      }
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Reauth error:", err);
+    res.status(500).json({ msg: "reauth_failed" });
+  }
+});
+
+// ---------------------------
+// Verify token route (keep but unchanged) - remains for UI checks (uses Authorization header)
 router.get("/verify", async (req, res) => {
   try {
     const token = req.header("Authorization")?.replace("Bearer ", "") ||
@@ -136,100 +340,4 @@ router.get("/verify", async (req, res) => {
   }
 });
 
-// Get full profile data (aggregated)
-router.get("/profile-full", authenticate, async (req, res) => {
-  try {
-    const { id, role } = req.user;
-    let profileData = {
-      user: req.user // Basic info from token/middleware
-    };
-
-    if (role === "buyer") {
-      // Fetch Buyer specific data
-      const [userDoc, addresses, recentOrders, wishlist] = await Promise.all([
-        User.findById(id).select("-password"),
-        require("../models/artisan_point/user/Address").find({ user_id: id }),
-        require("../models/artisan_point/user/Order").find({ user_id: id }).sort({ createdAt: -1 }).limit(5),
-        require("../models/artisan_point/user/Wishlist").findOne({ user_id: id })
-      ]);
-      profileData.details = userDoc;
-      profileData.addresses = addresses;
-      profileData.recent_orders = recentOrders;
-      profileData.wishlist_count = wishlist ? wishlist.listing_ids.length : 0;
-
-    } else if (role === "seller") {
-      // Fetch Seller specific data
-      const [
-        artisanDoc,
-        storefront,
-        settings,
-        payoutAccount,
-        documents,
-        notificationPref,
-        warehouses
-      ] = await Promise.all([
-        Artisan.findById(id).select("-password"),
-        require("../models/artisan_point/artisan/ArtisanStorefront").findOne({ artisan_id: id }),
-        require("../models/artisan_point/artisan/ArtisanSettings").findOne({ artisan_id: id }),
-        require("../models/artisan_point/artisan/ArtisanPayoutAccount").findOne({ artisan_id: id }),
-        require("../models/artisan_point/artisan/ArtisanDocument").find({ artisan_id: id }),
-        require("../models/artisan_point/artisan/ArtisanNotificationPref").findOne({ artisan_id: id }),
-        require("../models/artisan_point/artisan/ArtisanWarehouse").find({ artisan_id: id })
-      ]);
-
-      profileData.details = artisanDoc;
-      profileData.storefront = storefront;
-      profileData.settings = settings;
-      profileData.payout_account = payoutAccount; // masked is available by default
-      profileData.documents = documents;
-      profileData.notification_pref = notificationPref;
-      profileData.warehouses = warehouses;
-
-    } else if (role === "admin") {
-      // Fetch Admin specific data
-      const adminDoc = await Admin.findById(id).select("-password");
-      profileData.details = adminDoc;
-    }
-
-    res.json(profileData);
-  } catch (err) {
-    console.error("Profile fetch error:", err);
-    res.status(500).json({ msg: "Server error fetching profile" });
-  }
-});
-
 module.exports = router;
-
-
-
-
-// const express = require('express');
-// const router = express.Router();
-// const bcrypt = require('bcryptjs');
-// const jwt = require('jsonwebtoken');
-// const User = require('../models/User');
-
-// const JWT_SECRET = process.env.JWT_SECRET || 'devsecret';
-
-// router.post('/register', async (req, res) => {
-//   const { name, email, password, role } = req.body;
-//   if (!email || !password) return res.status(400).json({error:'missing'});
-//   const existing = await User.findOne({email});
-//   if (existing) return res.status(400).json({error:'email exists'});
-//   const passwordHash = await bcrypt.hash(password, 10);
-//   const user = await User.create({name, email, passwordHash, role});
-//   const token = jwt.sign({id: user._id, role: user.role}, JWT_SECRET);
-//   res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role }});
-// });
-
-// router.post('/login', async (req, res) => {
-//   const { email, password } = req.body;
-//   const user = await User.findOne({email});
-//   if (!user) return res.status(400).json({error:'invalid'});
-//   const ok = await bcrypt.compare(password, user.passwordHash);
-//   if (!ok) return res.status(400).json({error:'invalid'});
-//   const token = jwt.sign({id:user._id, role:user.role}, JWT_SECRET);
-//   res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role }});
-// });
-
-// module.exports = router;

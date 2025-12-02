@@ -419,7 +419,7 @@ const ReviewsSection = ({ productId }) => {
   const [rating, setRating] = useState(5);
   const [reviewText, setReviewText] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const { isAuthenticated, isBuyer, user } = useAuth();
+  const { isAuthenticated, isBuyer } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-// models/artisan/admin/PasswordResetToken.js
+// backend/models/artisan_point/admin/PasswordResetToken.js
 /**
  * PasswordResetToken
  * One-time use tokens for password reset and email verification. Stored hashed.

@@ -1,10 +1,12 @@
+// frontend/src/context/AuthContext.jsx
+/* eslint-disable react-refresh/only-export-components */
+
 import { createContext, useContext, useState, useEffect } from 'react';
 import apiClient from '../utils/apiClient';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    // Initialize user from localStorage immediately to prevent flash
     const [user, setUser] = useState(() => {
         try {
             const storedUser = localStorage.getItem('user');
@@ -14,73 +16,95 @@ export const AuthProvider = ({ children }) => {
         }
     });
     const [loading, setLoading] = useState(true);
+    const [reauthRequired, setReauthRequired] = useState(false);
 
-    // Check if user is authenticated on mount and verify token
     useEffect(() => {
         const checkAuth = async () => {
+            // prevent refresh spam on login page
+            if (window.location.pathname === "/login" || window.location.pathname === "/register") {
+                setLoading(false);
+                return;
+            }
+
             try {
-                const token = localStorage.getItem('token');
-                const storedUser = localStorage.getItem('user');
+                let token = localStorage.getItem('token');
 
-                // If no token, clear everything
+                // If no token, try refresh endpoint (cookie must be present)
                 if (!token) {
-                    setUser(null);
-                    localStorage.removeItem('user');
-                    localStorage.removeItem('role');
-                    setLoading(false);
-                    return;
-                }
-
-                // If we have stored user data, set it immediately (optimistic)
-                if (storedUser) {
                     try {
-                        const parsedUser = JSON.parse(storedUser);
-                        setUser(parsedUser);
-                    } catch (e) {
-                        // Invalid stored data, continue to verify
-                    }
-                }
-
-                // Verify token with backend
-                try {
-                    const response = await apiClient.get('/api/auth/verify', {
-                        headers: {
-                            Authorization: `Bearer ${token}`
+                        const resp = await apiClient.post('/api/auth/refresh', {}, { withCredentials: true });
+                        token = resp.data.token;
+                        if (token) {
+                            localStorage.setItem('token', token);
+                            setUser(resp.data.user || null);
+                            if (resp.data.user) {
+                                localStorage.setItem('user', JSON.stringify(resp.data.user));
+                                localStorage.setItem('role', resp.data.user.role);
+                            }
                         }
-                    });
-
-                    if (response.data.valid && response.data.user) {
-                        setUser(response.data.user);
-                        localStorage.setItem('user', JSON.stringify(response.data.user));
-                        localStorage.setItem('role', response.data.user.role);
-                    } else {
-                        // Token invalid, clear everything
-                        setUser(null);
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('user');
-                        localStorage.removeItem('role');
+                    } catch (refreshErr) {
+                        // no refresh -> not logged in
+                        console.log(refreshErr);
                     }
-                } catch (verifyErr) {
-                    // If verify fails (network error, etc.), but we have a token and stored user,
-                    // keep the user logged in (they might be offline or server is temporarily down)
-                    // Only clear if it's a 401 (unauthorized)
-                    if (verifyErr.response?.status === 401) {
-                        setUser(null);
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('user');
-                        localStorage.removeItem('role');
+                } else {
+                    // verify access token quickly
+                    try {
+                        const response = await apiClient.get('/api/auth/verify', {
+                            headers: { Authorization: `Bearer ${token}` }
+                        });
+                        if (response.data.valid && response.data.user) {
+                            setUser(response.data.user);
+                            localStorage.setItem('user', JSON.stringify(response.data.user));
+                            localStorage.setItem('role', response.data.user.role);
+                        } else {
+                            // verify failed -> try refresh
+                            const resp = await apiClient.post('/api/auth/refresh', {}, { withCredentials: true });
+                            const newToken = resp.data.token;
+                            if (newToken) {
+                                localStorage.setItem('token', newToken);
+                                setUser(resp.data.user || null);
+                                if (resp.data.user) {
+                                    localStorage.setItem('user', JSON.stringify(resp.data.user));
+                                    localStorage.setItem('role', resp.data.user.role);
+                                }
+                            } else {
+                                setUser(null);
+                                localStorage.removeItem('token');
+                                localStorage.removeItem('user');
+                                localStorage.removeItem('role');
+                            }
+                        }
+                    } catch (err) {
+                        // if 401 during verify, try refresh
+                        console.log(err);
+                        try {
+                            const resp = await apiClient.post('/api/auth/refresh', {}, { withCredentials: true });
+                            const newToken = resp.data.token;
+                            if (newToken) {
+                                localStorage.setItem('token', newToken);
+                                setUser(resp.data.user || null);
+                                if (resp.data.user) {
+                                    localStorage.setItem('user', JSON.stringify(resp.data.user));
+                                    localStorage.setItem('role', resp.data.user.role);
+                                }
+                            } else {
+                                setUser(null);
+                                localStorage.removeItem('token');
+                                localStorage.removeItem('user');
+                                localStorage.removeItem('role');
+                            }
+                        } catch (refreshErr) {
+                            console.log(refreshErr);
+                            setUser(null);
+                            localStorage.removeItem('token');
+                            localStorage.removeItem('user');
+                            localStorage.removeItem('role');
+                        }
                     }
-                    // Otherwise, keep the user logged in with stored data
                 }
             } catch (err) {
                 console.error('Auth check failed:', err);
-                // Only clear on critical errors
-                if (err.response?.status === 401) {
-                    setUser(null);
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('user');
-                    localStorage.removeItem('role');
-                }
+                setUser(null);
             } finally {
                 setLoading(false);
             }
@@ -96,12 +120,34 @@ export const AuthProvider = ({ children }) => {
         setUser(userData);
     };
 
-    const logout = () => {
+    const logout = async () => {
+        try {
+            // call logout endpoint to revoke refresh token
+            await apiClient.post('/api/auth/logout');
+        } catch (e) {
+            // ignore
+            console.log(e);
+        }
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('role');
         localStorage.removeItem('cart'); // Clear cart on logout
         setUser(null);
+    };
+
+    // perform reauth (password entry). returns true/false
+    const performReauth = async (password) => {
+        try {
+            const resp = await apiClient.post('/api/auth/reauth', { password });
+            if (resp.data && resp.data.ok) {
+                setReauthRequired(false);
+                return true;
+            }
+            return false;
+        } catch (err) {
+            console.log(err);
+            return false;
+        }
     };
 
     const value = {
@@ -112,7 +158,10 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated: !!user,
         isBuyer: user?.role === 'buyer',
         isSeller: user?.role === 'seller',
-        isAdmin: user?.role === 'admin'
+        isAdmin: user?.role === 'admin',
+        reauthRequired,
+        setReauthRequired,
+        performReauth
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -125,4 +174,3 @@ export const useAuth = () => {
     }
     return context;
 };
-

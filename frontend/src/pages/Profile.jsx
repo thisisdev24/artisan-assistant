@@ -338,7 +338,7 @@ const SecuritySection = ({ data }) => (
 );
 
 const MyReviewsSection = () => {
-    const [reviews, setReviews] = useState([]);
+    const reviews = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
