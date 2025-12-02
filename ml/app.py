@@ -21,7 +21,7 @@ from generate_description import generate_description as generate_desc_fn
 APP_PORT = int(os.environ.get("PORT", 8000))
 DATA_DIR = os.environ.get("DATA_DIR", "data")
 TEXT_EMBED_MODEL = os.environ.get("TEXT_EMBED_MODEL", "all-MiniLM-L6-v2")
-MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017")
+MONGO_URI = os.environ.get("MONGO_URI", "mongodb+srv://imdevkhare_db_user:Dev%401234@cluster0.vmp6708.mongodb.net/?appName=Cluster0")
 ML_DB = os.environ.get("ML_MONGO_DB", "test")
 ML_COLLECTION = os.environ.get("ML_MONGO_COLLECTION", "listings")
 DEFAULT_K = int(os.environ.get("DEFAULT_K", 10))

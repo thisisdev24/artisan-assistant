@@ -31,7 +31,7 @@ class FaissTextIndexer:
         db_name="test",
         collection_name="listings",
         data_dir="data",
-        mongo_uri="mongodb://localhost:27017"
+        mongo_uri="mongodb+srv://imdevkhare_db_user:Dev%401234@cluster0.vmp6708.mongodb.net/?appName=Cluster0"
     ):
 
         # MongoDB
@@ -217,7 +217,7 @@ class FaissTextIndexer:
             fid = self._faiss_id(doc["_id"])
             ids.append(fid)
 
-            created_at = str(self._to_ist(datetime.datetime.utcnow()))
+            created_at = str(self._to_ist(datetime.datetime.now(datetime.UTC)))
 
             meta = {
                 "listing_id": str(doc["_id"]),
@@ -293,7 +293,7 @@ class FaissTextIndexer:
 
         self.index.add_with_ids(vec, np.array([fid], dtype="int64"))
 
-        created_at = str(self._to_ist(datetime.datetime.utcnow()))
+        created_at = str(self._to_ist(datetime.datetime.now(datetime.UTC)))
 
         self.id_to_meta[str(fid)] = {
             "listing_id": str(doc["_id"]),
@@ -439,7 +439,7 @@ if __name__ == "__main__":
         db_name="test",
         collection_name="listings",
         data_dir="data",
-        mongo_uri="mongodb+srv://imdevkhare_db_user:Dev%401234@cluster0.vmp6708.mongodb.net/?appName=Cluster0"
+        mongo_uri=os.environ.get("MONGO_URI", "mongodb+srv://imdevkhare_db_user:Dev%401234@cluster0.vmp6708.mongodb.net/?appName=Cluster0")
     )
 
     indexer.rebuild_index(batch_size=64)
