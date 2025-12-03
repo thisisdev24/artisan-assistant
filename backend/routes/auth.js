@@ -399,6 +399,16 @@ router.get("/profile-full", authenticate, async (req, res) => {
       result.documents = user.documents || [];
       result.warehouses = user.warehouses || [];
       result.notification_pref = user.notification_pref || {};
+      result.seller_profile = {
+        address: user.address || null,
+        identity_card: user.identity_card || null,
+        profile_details: user.profile_details || null,
+        store_overview: {
+          description: user.store_description || '',
+          logo: user.store_logo || '',
+          banner: user.store_banner || ''
+        }
+      };
     }
 
     // Admin fields

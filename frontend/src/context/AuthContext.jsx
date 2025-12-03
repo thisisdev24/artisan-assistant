@@ -18,6 +18,49 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [reauthRequired, setReauthRequired] = useState(false);
 
+    const persistUserToStorage = (userPayload) => {
+        if (!userPayload) {
+            localStorage.removeItem('user');
+            localStorage.removeItem('role');
+            localStorage.removeItem('store');
+            return;
+        }
+        localStorage.setItem('user', JSON.stringify(userPayload));
+        localStorage.setItem('role', userPayload.role);
+        if (userPayload.store) {
+            localStorage.setItem('store', userPayload.store);
+        } else {
+            localStorage.removeItem('store');
+        }
+    };
+
+    const applyUser = (nextUser) => {
+        setUser(nextUser);
+        persistUserToStorage(nextUser);
+    };
+
+    const updateUserContext = (partialUser) => {
+        setUser(prev => {
+            const merged = { ...(prev || {}), ...partialUser };
+            persistUserToStorage(merged);
+            return merged;
+        });
+    };
+
+    const persistToken = (token) => {
+        if (token) {
+            localStorage.setItem('token', token);
+            if (typeof window !== 'undefined') {
+                window.__apiClientAuthToken = token;
+            }
+        } else {
+            localStorage.removeItem('token');
+            if (typeof window !== 'undefined') {
+                delete window.__apiClientAuthToken;
+            }
+        }
+    };
+
     useEffect(() => {
         const checkAuth = async () => {
             // prevent refresh spam on login page
@@ -28,6 +71,9 @@ export const AuthProvider = ({ children }) => {
 
             try {
                 let token = localStorage.getItem('token');
+                if (token && typeof window !== 'undefined') {
+                    window.__apiClientAuthToken = token;
+                }
 
                 // If no token, try refresh endpoint (cookie must be present)
                 if (!token) {
@@ -35,12 +81,8 @@ export const AuthProvider = ({ children }) => {
                         const resp = await apiClient.post('/api/auth/refresh', {}, { withCredentials: true });
                         token = resp.data.token;
                         if (token) {
-                            localStorage.setItem('token', token);
-                            setUser(resp.data.user || null);
-                            if (resp.data.user) {
-                                localStorage.setItem('user', JSON.stringify(resp.data.user));
-                                localStorage.setItem('role', resp.data.user.role);
-                            }
+                            persistToken(token);
+                            applyUser(resp.data.user || null);
                         }
                     } catch (refreshErr) {
                         // no refresh -> not logged in
@@ -53,25 +95,17 @@ export const AuthProvider = ({ children }) => {
                             headers: { Authorization: `Bearer ${token}` }
                         });
                         if (response.data.valid && response.data.user) {
-                            setUser(response.data.user);
-                            localStorage.setItem('user', JSON.stringify(response.data.user));
-                            localStorage.setItem('role', response.data.user.role);
+                            applyUser(response.data.user);
                         } else {
                             // verify failed -> try refresh
                             const resp = await apiClient.post('/api/auth/refresh', {}, { withCredentials: true });
                             const newToken = resp.data.token;
                             if (newToken) {
-                                localStorage.setItem('token', newToken);
-                                setUser(resp.data.user || null);
-                                if (resp.data.user) {
-                                    localStorage.setItem('user', JSON.stringify(resp.data.user));
-                                    localStorage.setItem('role', resp.data.user.role);
-                                }
+                                persistToken(newToken);
+                                applyUser(resp.data.user || null);
                             } else {
-                                setUser(null);
-                                localStorage.removeItem('token');
-                                localStorage.removeItem('user');
-                                localStorage.removeItem('role');
+                                applyUser(null);
+                                persistToken(null);
                             }
                         }
                     } catch (err) {
@@ -81,30 +115,22 @@ export const AuthProvider = ({ children }) => {
                             const resp = await apiClient.post('/api/auth/refresh', {}, { withCredentials: true });
                             const newToken = resp.data.token;
                             if (newToken) {
-                                localStorage.setItem('token', newToken);
-                                setUser(resp.data.user || null);
-                                if (resp.data.user) {
-                                    localStorage.setItem('user', JSON.stringify(resp.data.user));
-                                    localStorage.setItem('role', resp.data.user.role);
-                                }
+                                persistToken(newToken);
+                                applyUser(resp.data.user || null);
                             } else {
-                                setUser(null);
-                                localStorage.removeItem('token');
-                                localStorage.removeItem('user');
-                                localStorage.removeItem('role');
+                                applyUser(null);
+                                persistToken(null);
                             }
                         } catch (refreshErr) {
                             console.log(refreshErr);
-                            setUser(null);
-                            localStorage.removeItem('token');
-                            localStorage.removeItem('user');
-                            localStorage.removeItem('role');
+                            applyUser(null);
+                            persistToken(null);
                         }
                     }
                 }
             } catch (err) {
                 console.error('Auth check failed:', err);
-                setUser(null);
+                applyUser(null);
             } finally {
                 setLoading(false);
             }
@@ -114,10 +140,8 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const login = (token, userData) => {
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(userData));
-        localStorage.setItem('role', userData.role);
-        setUser(userData);
+        persistToken(token);
+        applyUser(userData);
     };
 
     const logout = async () => {
@@ -128,11 +152,9 @@ export const AuthProvider = ({ children }) => {
             // ignore
             console.log(e);
         }
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('role');
+        persistToken(null);
         localStorage.removeItem('cart'); // Clear cart on logout
-        setUser(null);
+        applyUser(null);
     };
 
     // perform reauth (password entry). returns true/false
@@ -161,7 +183,8 @@ export const AuthProvider = ({ children }) => {
         isAdmin: user?.role === 'admin',
         reauthRequired,
         setReauthRequired,
-        performReauth
+        performReauth,
+        updateUserContext
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

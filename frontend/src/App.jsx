@@ -24,6 +24,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import MyWishlist from './pages/MyWishlist';
 import RecentlyViewed from './pages/RecentlyViewed';
 import EditProduct from './pages/EditProduct';
+import SellerOrders from './pages/SellerOrders';
+import SellerProfile from './pages/SellerProfile';
 
 import { LoggerProvider } from './utils/logger/loggerProvider.jsx';
 // import Products from "./pages/Products";
@@ -89,6 +91,22 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['seller']}>
                 <EditProduct />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/seller/orders"
+            element={
+              <ProtectedRoute allowedRoles={['seller']}>
+                <SellerOrders />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/seller/profile"
+            element={
+              <ProtectedRoute allowedRoles={['seller']}>
+                <SellerProfile />
               </ProtectedRoute>
             }
           />

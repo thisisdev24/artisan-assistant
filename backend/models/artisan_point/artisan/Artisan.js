@@ -23,6 +23,26 @@ const ArtisanSchema = new mongoose.Schema({
     status: { type: String, enum: ['unverified', 'pending', 'verified', 'rejected'], default: 'unverified' },
     verified_at: Date
   },
+  address: {
+    line1: { type: String, default: '' },
+    line2: { type: String, default: '' },
+    city: { type: String, default: '' },
+    state: { type: String, default: '' },
+    postal_code: { type: String, default: '' },
+    country: { type: String, default: '' }
+  },
+  identity_card: {
+    type: { type: String, default: '' },
+    number: { type: String, default: '' },
+    document_url: { type: String, default: '' },
+    expires_at: { type: Date, default: null },
+    verified: { type: Boolean, default: false }
+  },
+  profile_details: {
+    bio: { type: String, default: '' },
+    years_of_experience: { type: Number, default: 0 },
+    specialties: { type: [String], default: [] }
+  },
   payout_details_masked: String,
   deleted: { type: Boolean, default: false }
 }, { timestamps: true });

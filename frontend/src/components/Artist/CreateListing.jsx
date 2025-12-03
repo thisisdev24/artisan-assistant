@@ -1,9 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from '../../context/AuthContext';
 
 const CreateListing = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const sellerStore = user?.store;
+  const sellerId = user?.id;
   const [main_category] = useState('Handmade');
   const [title, setTitle] = useState('');
   const [average_rating] = useState('');
@@ -13,12 +17,24 @@ const CreateListing = () => {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [files, setFiles] = useState([]);
-  const [store] = useState('');
+  const [store, setStore] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cachedStore = localStorage.getItem('store');
+      if (cachedStore) return cachedStore;
+    }
+    return sellerStore || '';
+  });
   const [categories] = useState([]);
   const [details] = useState('');
   const [parent_asin] = useState('');
   const [loading, setLoading] = useState(false);
   const token = localStorage.getItem('token');
+
+  useEffect(() => {
+    if (sellerStore) {
+      setStore(sellerStore);
+    }
+  }, [sellerStore]);
 
   async function handleAutoDesc() {
     try {
@@ -64,7 +80,9 @@ const CreateListing = () => {
         features: Array.isArray(features) && features.length > 0 ? JSON.stringify(features) : JSON.stringify([]),
         description: description || '',
         price,
-        store: store || '',
+        store: store || sellerStore || '',
+        artisan_id: sellerId || '',
+        seller: sellerId || '',
         categories: Array.isArray(categories) && categories.length > 0 ? JSON.stringify(categories) : JSON.stringify([]),
         details: details || '',
         parent_asin: parent_asin || ''

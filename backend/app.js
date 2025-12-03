@@ -115,6 +115,9 @@ app.use('/api/wishlist', wishlistRoutes);
 const cartRoutes = require('./routes/cart');
 app.use('/api/cart', cartRoutes);
 
+const orderRoutes = require('./routes/orders');
+app.use('/api/orders', orderRoutes);
+
 const adminRoutes = require('./routes/admin');
 app.use('/api/admin', adminRoutes);
 
