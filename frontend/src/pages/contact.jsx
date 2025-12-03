@@ -1,5 +1,7 @@
 // src/pages/ContactPage.jsx
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+
 
 // Assuming the background image is in the public folder, e.g., /contact-bg.jpg
 // You can replace '/contact-bg.jpg' with your actual image path or import it.
