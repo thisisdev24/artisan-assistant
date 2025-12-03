@@ -238,7 +238,6 @@ const OrdersSection = ({ orders }) => (
 );
 
 
-
 const StorefrontSection = ({ data }) => {
     if (!data) return <p className="text-gray-500">Storefront not configured.</p>;
     return (
