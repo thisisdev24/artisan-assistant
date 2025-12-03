@@ -172,6 +172,8 @@ router.get('/seller', async (req, res) => {
                 item => String(item.artisan_id) === sellerId
             );
 
+            const addr = order.shipping_address_snapshot || {};
+
             return {
                 _id: order._id,
                 createdAt: order.createdAt,
@@ -184,9 +186,20 @@ router.get('/seller', async (req, res) => {
                     ? {
                         id: order.user_id._id,
                         name: order.user_id.name,
-                        email: order.user_id.email
+                        email: order.user_id.email,
+                        phone: addr.phone || null
                     }
                     : null,
+                shipping_address: {
+                    name: addr.name || (order.user_id && order.user_id.name) || '',
+                    phone: addr.phone || '',
+                    line1: addr.line1 || '',
+                    line2: addr.line2 || '',
+                    city: addr.city || '',
+                    state: addr.state || '',
+                    postal_code: addr.postal_code || '',
+                    country: addr.country || ''
+                },
                 items: sellerItems.map(item => ({
                     listing_id: item.listing_id,
                     title: item.title,

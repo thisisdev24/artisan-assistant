@@ -97,6 +97,9 @@ const OrderCard = ({ order }) => {
                     {order.buyer?.email && (
                         <p className="text-sm text-gray-500">{order.buyer.email}</p>
                     )}
+                    {order.buyer?.phone && (
+                        <p className="text-sm text-gray-500">Phone: {order.buyer.phone}</p>
+                    )}
                 </div>
                 <div className="text-left md:text-right">
                     <div className="space-x-2">
@@ -107,6 +110,23 @@ const OrderCard = ({ order }) => {
                     <p className="text-sm text-gray-500 mt-2">{readableDate}</p>
                 </div>
             </div>
+
+            {order.shipping_address && (
+                <div className="mt-4 bg-gray-50 rounded-xl p-4 text-sm text-gray-700">
+                    <p className="font-semibold text-gray-800 mb-1">Ship To</p>
+                    <p>{order.shipping_address.name}</p>
+                    <p>{order.shipping_address.line1}</p>
+                    {order.shipping_address.line2 && <p>{order.shipping_address.line2}</p>}
+                    <p>
+                        {order.shipping_address.city}, {order.shipping_address.state}{' '}
+                        {order.shipping_address.postal_code}
+                    </p>
+                    <p>{order.shipping_address.country}</p>
+                    {order.shipping_address.phone && (
+                        <p className="mt-1 text-gray-600">Phone: {order.shipping_address.phone}</p>
+                    )}
+                </div>
+            )}
 
             <div className="mt-6 space-y-4">
                 {order.items.map(item => (
