@@ -94,7 +94,7 @@ const Profile = () => {
             case 'personal':
                 return <PersonalInfoSection data={profileData.details} role={role} />;
             case 'addresses':
-                return <AddressesSection addresses={profileData.addresses} />;
+                return <AddressesSection addresses={profileData.addresses} onChange={fetchProfile} />;
             case 'orders':
                 return <OrdersSection orders={profileData.recent_orders} />;
             case 'wishlist':
@@ -190,35 +190,138 @@ const PersonalInfoSection = ({ data, role }) => (
     </div>
 );
 
-const AddressesSection = ({ addresses }) => (
-    <div>
-        {addresses && addresses.length > 0 ? (
-            <div className="grid gap-4">
-                {addresses.map(addr => (
-                    <div key={addr._id} className="border p-4 rounded-lg relative">
-                        {addr.is_default && <span className="absolute top-2 right-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Default</span>}
-                        <p className="font-semibold">{addr.name}</p>
-                        <p className="text-sm text-gray-600">{addr.line1}</p>
-                        {addr.line2 && <p className="text-sm text-gray-600">{addr.line2}</p>}
-                        <p className="text-sm text-gray-600">{addr.city}, {addr.state} {addr.postal_code}</p>
-                        <p className="text-sm text-gray-600">{addr.country}</p>
-                        <p className="text-sm text-gray-600 mt-1">Phone: {addr.phone}</p>
-                    </div>
-                ))}
-            </div>
-        ) : (
-            <p className="text-gray-500">No addresses saved.</p>
-        )}
-        <button className="mt-4 text-primary text-sm font-medium hover:underline">+ Add New Address</button>
-    </div>
-);
+const AddressesSection = ({ addresses, onChange }) => {
+    const [showForm, setShowForm] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState(null);
+    const [form, setForm] = useState({
+        name: '',
+        phone: '',
+        line1: '',
+        line2: '',
+        city: '',
+        state: '',
+        postal_code: '',
+        country: 'India',
+        is_default: true
+    });
 
-const OrdersSection = ({ orders }) => (
-    <div>
-        {orders && orders.length > 0 ? (
-            <div className="space-y-4">
-                {orders.map(order => (
-                    <div key={order._id} className="border p-4 rounded-lg flex justify-between items-center">
+    const handleFieldChange = (field, value) => {
+        setForm(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setSaving(true);
+        setError(null);
+        try {
+            await apiClient.post('/api/addresses', form);
+            setShowForm(false);
+            setForm({
+                name: '',
+                phone: '',
+                line1: '',
+                line2: '',
+                city: '',
+                state: '',
+                postal_code: '',
+                country: 'India',
+                is_default: true
+            });
+            if (onChange) onChange();
+        } catch (err) {
+            console.error('Failed to save address', err);
+            setError(err?.response?.data?.msg || 'Failed to save address.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div>
+            {addresses && addresses.length > 0 ? (
+                <div className="grid gap-4">
+                    {addresses.map(addr => (
+                        <div key={addr._id} className="border p-4 rounded-lg relative">
+                            {addr.is_default && <span className="absolute top-2 right-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Default</span>}
+                            <p className="font-semibold">{addr.name}</p>
+                            <p className="text-sm text-gray-600">{addr.line1}</p>
+                            {addr.line2 && <p className="text-sm text-gray-600">{addr.line2}</p>}
+                            <p className="text-sm text-gray-600">{addr.city}, {addr.state} {addr.postal_code}</p>
+                            <p className="text-sm text-gray-600">{addr.country}</p>
+                            <p className="text-sm text-gray-600 mt-1">Phone: {addr.phone}</p>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <p className="text-gray-500">No addresses saved.</p>
+            )}
+
+            {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+
+            {!showForm ? (
+                <button
+                    onClick={() => setShowForm(true)}
+                    className="mt-4 text-primary text-sm font-medium hover:underline"
+                >
+                    + Add New Address
+                </button>
+            ) : (
+                <form onSubmit={handleSubmit} className="mt-4 grid gap-3 md:grid-cols-2 bg-gray-50 p-4 rounded-lg">
+                    <Input label="Full Name" value={form.name} onChange={e => handleFieldChange('name', e.target.value)} required />
+                    <Input label="Phone" value={form.phone} onChange={e => handleFieldChange('phone', e.target.value)} required />
+                    <Input label="Address Line 1" value={form.line1} onChange={e => handleFieldChange('line1', e.target.value)} required full />
+                    <Input label="Address Line 2" value={form.line2} onChange={e => handleFieldChange('line2', e.target.value)} full />
+                    <Input label="City" value={form.city} onChange={e => handleFieldChange('city', e.target.value)} required />
+                    <Input label="State" value={form.state} onChange={e => handleFieldChange('state', e.target.value)} required />
+                    <Input label="Postal Code" value={form.postal_code} onChange={e => handleFieldChange('postal_code', e.target.value)} required />
+                    <Input label="Country" value={form.country} onChange={e => handleFieldChange('country', e.target.value)} />
+                    <div className="col-span-2 flex items-center gap-2 mt-1">
+                        <input
+                            id="addrDefault"
+                            type="checkbox"
+                            checked={form.is_default}
+                            onChange={e => handleFieldChange('is_default', e.target.checked)}
+                        />
+                        <label htmlFor="addrDefault" className="text-sm text-gray-700">Make this my default address</label>
+                    </div>
+                    <div className="col-span-2 flex justify-end gap-3 mt-2">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setShowForm(false);
+                                setError(null);
+                            }}
+                            className="px-4 py-2 rounded-lg border text-gray-700 hover:bg-gray-100 text-sm"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="px-5 py-2 rounded-lg bg-primary text-white text-sm font-semibold disabled:opacity-60"
+                        >
+                            {saving ? 'Saving...' : 'Save Address'}
+                        </button>
+                    </div>
+                </form>
+            )}
+        </div>
+    );
+};
+
+const OrdersSection = ({ orders }) => {
+    const navigate = useNavigate();
+
+    if (!orders || orders.length === 0) {
+        return <p className="text-gray-500">No recent orders.</p>;
+    }
+
+    return (
+        <div className="space-y-4">
+            {orders.map(order => (
+                <div key={order._id} className="border p-4 rounded-lg">
+                    <div className="flex justify-between items-center">
                         <div>
                             <p className="font-medium">Order #{order._id.slice(-6)}</p>
                             <p className="text-sm text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</p>
@@ -229,14 +332,30 @@ const OrdersSection = ({ orders }) => (
                             {order.status}
                         </span>
                     </div>
-                ))}
-            </div>
-        ) : (
-            <p className="text-gray-500">No recent orders.</p>
-        )}
-    </div>
-);
 
+                    {order.items && order.items.length > 0 && (
+                        <div className="mt-3 border-t pt-3 space-y-2">
+                            {order.items.map(item => (
+                                <div key={item.listing_id} className="flex justify-between items-center text-sm">
+                                    <div>
+                                        <p className="font-semibold text-gray-800">{item.title}</p>
+                                        <p className="text-gray-500">Qty: {item.quantity}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => navigate(`/product/${item.listing_id}`, { state: { fromOrderReview: true } })}
+                                        className="px-3 py-1 rounded-lg text-xs font-semibold bg-primary text-white hover:bg-primary/90"
+                                    >
+                                        Review / View
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+};
 
 
 const StorefrontSection = ({ data }) => {
@@ -338,20 +457,41 @@ const SecuritySection = ({ data }) => (
 );
 
 const MyReviewsSection = () => {
-    const reviews = useState([]);
+    const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        // TODO: Fetch user's reviews from backend
-        // For now, show placeholder
-        setLoading(false);
+        const fetchReviews = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                const res = await apiClient.get('/api/reviews/my');
+                setReviews(res.data || []);
+            } catch (err) {
+                console.error('Failed to load reviews', err);
+                setError(err?.response?.data?.msg || 'Failed to load your reviews.');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchReviews();
     }, []);
 
     if (loading) {
         return <div className="text-center py-10">Loading reviews...</div>;
     }
 
-    if (reviews.length === 0) {
+    if (error) {
+        return (
+            <div className="text-center py-10">
+                <p className="text-red-500 mb-2">{error}</p>
+                <p className="text-sm text-gray-400">Try refreshing the page.</p>
+            </div>
+        );
+    }
+
+    if (!reviews || reviews.length === 0) {
         return (
             <div className="text-center py-10">
                 <p className="text-gray-500 text-lg mb-4">You haven't written any reviews yet.</p>
@@ -384,12 +524,27 @@ const MyReviewsSection = () => {
                             {new Date(review.createdAt).toLocaleDateString()}
                         </span>
                     </div>
-                    <p className="text-gray-700 mt-2">{review.comment}</p>
+                    <p className="text-gray-700 mt-2">{review.text}</p>
                 </div>
             ))}
         </div>
     );
 };
+
+const Input = ({ label, value, onChange, required, full }) => (
+    <div className={full ? "col-span-2" : ""}>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+            {label}
+            {required && <span className="text-red-500 ml-0.5">*</span>}
+        </label>
+        <input
+            type="text"
+            value={value}
+            onChange={onChange}
+            className="w-full border rounded-lg px-4 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/40"
+        />
+    </div>
+);
 
 const InfoRow = ({ label, value }) => (
     <div className="pb-2 border-b border-gray-100 last:border-0">

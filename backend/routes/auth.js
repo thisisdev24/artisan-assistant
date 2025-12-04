@@ -340,4 +340,88 @@ router.get("/verify", async (req, res) => {
   }
 });
 
+// ---------------------------
+// Profile-full route for buyer/seller/admin
+// ---------------------------
+
+router.get("/profile-full", authenticate, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const role = req.user.role;
+
+    let Model;
+    if (role === "buyer") Model = User;
+    else if (role === "seller") Model = Artisan;
+    else Model = Admin;
+
+    const user = await Model.findById(userId)
+      .select("-password")
+      .lean();
+
+    if (!user) return res.status(404).json({ msg: "User not found" });
+
+    // Build response based on role
+    let result = {
+      details: {
+        name: user.name,
+        email: user.email,
+        phone: user.phone || null,
+        store: user.store || null,
+        mfa_enabled: user.mfa_enabled || false,
+        last_login_at: user.login?.last_login_at || null,
+        last_login_ip: user.login?.last_login_ip || null
+      }
+    };
+
+    // Buyer fields
+    if (role === "buyer") {
+      const Address = require("../models/artisan_point/user/Address");
+      const Order = require("../models/artisan_point/user/Order");
+      const Wishlist = require("../models/artisan_point/user/Wishlist");
+
+      const addresses = await Address.find({ user_id: userId }).lean();
+      const orders = await Order.find({ user_id: userId })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean();
+      const wishlistCount = await Wishlist.countDocuments({ user_id: userId });
+
+      result.addresses = addresses;
+      result.recent_orders = orders;
+      result.wishlist_count = wishlistCount;
+    }
+
+    // Seller fields
+    if (role === "seller") {
+      result.storefront = user.storefront || null;
+      result.settings = user.settings || null;
+      result.payout_account = user.payout_account || null;
+      result.documents = user.documents || [];
+      result.warehouses = user.warehouses || [];
+      result.notification_pref = user.notification_pref || {};
+      result.seller_profile = {
+        address: user.address || null,
+        identity_card: user.identity_card || null,
+        profile_details: user.profile_details || null,
+        store_overview: {
+          description: user.store_description || '',
+          logo: user.store_logo || '',
+          banner: user.store_banner || ''
+        }
+      };
+    }
+
+    // Admin fields
+    if (role === "admin") {
+      result.details.mfa_enabled = user.mfa_enabled || false;
+    }
+
+    return res.json(result);
+
+  } catch (err) {
+    console.error("profile-full error:", err);
+    return res.status(500).json({ msg: "profile_fetch_failed" });
+  }
+});
+
 module.exports = router;

@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import apiClient from "../../utils/apiClient";
 
 /**
  * ShowListing
@@ -16,6 +18,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 const ShowListing = ({ storeName: propStoreName }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,39 +36,45 @@ const ShowListing = ({ storeName: propStoreName }) => {
     };
   }, []);
 
+  const sellerStore = user?.store || null;
+  const sellerId = user?.id || null;
+
   const effectiveStore = useMemo(() => {
     const fromState = location?.state?.storeName;
     const params = new URLSearchParams(location?.search || "");
     const fromQuery = params.get("store");
     const fromLocal = typeof window !== "undefined" ? localStorage.getItem("store") : null;
-    return propStoreName || fromState || fromQuery || fromLocal || "";
-  }, [propStoreName, location]);
+    return propStoreName || fromState || fromQuery || sellerStore || fromLocal || "";
+  }, [propStoreName, location, sellerStore]);
 
   useEffect(() => {
-    // if no effective store, set friendly message and return
-    if (!effectiveStore) {
-      setProducts([]);
-      setErrorMsg("Store name not available.");
-      setLoading(false);
-      return;
-    }
-
     const fetchProducts = async () => {
       setLoading(true);
       setErrorMsg(null);
+      const hasStoreOrId = effectiveStore || sellerId;
+      if (!hasStoreOrId) {
+        setProducts([]);
+        setErrorMsg("Store name not available.");
+        setLoading(false);
+        return;
+      }
 
       // cancel previous request
       if (abortRef.current) abortRef.current.abort();
       const controller = new AbortController();
       abortRef.current = controller;
 
-      const url = `http://localhost:5000/api/listings/retrieve?store=${encodeURIComponent(effectiveStore)}&limit=30`;
-
       try {
-        const resp = await axios.get(url, {
+        const params = {
+          limit: 30,
+        };
+        if (effectiveStore) params.store = effectiveStore;
+        if (sellerId) params.artisanId = sellerId;
+
+        const resp = await apiClient.get('/api/listings/retrieve', {
+          params,
           signal: controller.signal,
           timeout: 20000,
-          withCredentials: true,
         });
 
         if (!mountedRef.current) return;
@@ -93,7 +102,7 @@ const ShowListing = ({ storeName: propStoreName }) => {
     return () => {
       if (abortRef.current) abortRef.current.abort();
     };
-  }, [effectiveStore]);
+  }, [effectiveStore, sellerId]);
 
   const handleBack = () => navigate("/Seller");
 

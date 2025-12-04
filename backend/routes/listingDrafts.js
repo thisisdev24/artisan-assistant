@@ -21,7 +21,7 @@ router.post('/draft', async (req, res) => {
     // Accept JSON body with textual fields. Images are optional and handled separately.
     const {
       main_category, title, average_rating, rating_number, features,
-      description, price, store, categories, details, parent_asin, subtitle, seller
+      description, price, store, categories, details, parent_asin, subtitle, seller, artisan_id
     } = req.body;
 
     if (!title || price === undefined || price === null || price === '') {
@@ -33,6 +33,10 @@ router.post('/draft', async (req, res) => {
       return res.status(400).json({ error: 'validation', message: 'price must be a number' });
     }
 
+    const artisanObjectId = artisan_id && mongoose.Types.ObjectId.isValid(artisan_id)
+      ? new mongoose.Types.ObjectId(artisan_id)
+      : undefined;
+
     const list = await Listing.create({
       main_category: main_category || 'Handmade',
       title,
@@ -41,6 +45,7 @@ router.post('/draft', async (req, res) => {
       features: Array.isArray(features) ? features : (features ? JSON.parse(features) : []),
       price: numericPrice,
       store: store || null,
+      artisan_id: artisanObjectId,
       categories: Array.isArray(categories) ? categories : (categories ? JSON.parse(categories) : []),
       details: details || null,
       parent_asin: parent_asin || null,

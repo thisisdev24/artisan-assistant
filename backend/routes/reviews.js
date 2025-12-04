@@ -3,6 +3,7 @@ const router = express.Router();
 const { authenticate, requireBuyer } = require("../middleware/auth");
 const Review = require("../models/artisan_point/user/Review");
 const Listing = require("../models/artisan_point/artisan/Listing");
+const Order = require("../models/artisan_point/user/Order");
 const mongoose = require("mongoose");
 
 // Get all reviews for a listing
@@ -45,10 +46,10 @@ router.get("/listing/:listingId/my-review", authenticate, requireBuyer, async (r
   }
 });
 
-// Create or update review
+// Create or update review (only for verified buyers)
 router.post("/", authenticate, requireBuyer, async (req, res) => {
   try {
-    const { listing_id, rating, text, images, verified_purchase } = req.body;
+    const { listing_id, rating, text, images } = req.body;
 
     if (!listing_id || !rating) {
       return res.status(400).json({ msg: "Listing ID and rating are required" });
@@ -68,6 +69,16 @@ router.post("/", authenticate, requireBuyer, async (req, res) => {
       return res.status(404).json({ msg: "Listing not found" });
     }
 
+    // Check if user has at least one order containing this listing
+    const hasOrder = await Order.exists({
+      user_id: req.user.id,
+      "items.listing_id": listing_id,
+      status: { $in: ['created', 'paid', 'confirmed', 'processing', 'shipped', 'delivered'] }
+    });
+    if (!hasOrder) {
+      return res.status(403).json({ msg: "Only customers who purchased this product can review it" });
+    }
+
     // Find existing review or create new one
     let review = await Review.findOne({
       listing_id: listing_id,
@@ -79,7 +90,7 @@ router.post("/", authenticate, requireBuyer, async (req, res) => {
       review.rating = rating;
       review.text = text || review.text;
       review.images = images || review.images || [];
-      review.verified_purchase = verified_purchase !== undefined ? verified_purchase : review.verified_purchase;
+      review.verified_purchase = true;
       await review.save();
     } else {
       // Create new review
@@ -89,7 +100,7 @@ router.post("/", authenticate, requireBuyer, async (req, res) => {
         rating,
         text: text || "",
         images: images || [],
-        verified_purchase: verified_purchase || false
+        verified_purchase: true
       });
       await review.save();
     }
@@ -107,11 +118,11 @@ router.post("/", authenticate, requireBuyer, async (req, res) => {
   }
 });
 
-// Update review
+// Update review (only owner; purchase was already verified at creation)
 router.put("/:reviewId", authenticate, requireBuyer, async (req, res) => {
   try {
     const { reviewId } = req.params;
-    const { rating, text, images, verified_purchase } = req.body;
+    const { rating, text, images } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(reviewId)) {
       return res.status(400).json({ msg: "Invalid review ID" });
@@ -136,7 +147,7 @@ router.put("/:reviewId", authenticate, requireBuyer, async (req, res) => {
 
     if (text !== undefined) review.text = text;
     if (images !== undefined) review.images = images;
-    if (verified_purchase !== undefined) review.verified_purchase = verified_purchase;
+    // Keep verified_purchase true once set; do not allow downgrading via API
 
     await review.save();
 
@@ -182,11 +193,38 @@ router.delete("/:reviewId", authenticate, requireBuyer, async (req, res) => {
   }
 });
 
+// List reviews for current user (for profile "My Reviews")
+router.get("/my", authenticate, requireBuyer, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const reviews = await Review.find({ user_id: userId })
+      .sort({ createdAt: -1 })
+      .populate("listing_id", "title imageUrl images")
+      .lean();
+
+    const mapped = reviews.map(r => ({
+      _id: r._id,
+      listing_id: r.listing_id?._id || r.listing_id,
+      product_title: r.listing_id?.title || '',
+      rating: r.rating,
+      text: r.text,
+      images: r.images || [],
+      verified_purchase: r.verified_purchase,
+      createdAt: r.createdAt
+    }));
+
+    return res.json(mapped);
+  } catch (err) {
+    console.error("Get my reviews error:", err);
+    return res.status(500).json({ msg: "Server error" });
+  }
+});
+
 // Helper function to update listing ratings
 async function updateListingRatings(listingId) {
   try {
     const reviews = await Review.find({ listing_id: listingId });
-    
+
     if (reviews.length === 0) {
       await Listing.findByIdAndUpdate(listingId, {
         average_rating: 0,

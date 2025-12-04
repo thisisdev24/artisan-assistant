@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
@@ -156,11 +156,24 @@ const ProductDetail = () => {
     }
   };
 
-  const handleBuyNow = () => {
+  const handleBuyNow = async () => {
     if (!product) return;
     if (product.stock === 0) return alert("Product out of stock");
-    // navigate to checkout, or create order
-    navigate("/checkout", { state: { buyNowProduct: { id: product._id, qty } } });
+    if (!isAuthenticated || !isBuyer) {
+      alert("Please login as a buyer to place an order");
+      navigate("/login");
+      return;
+    }
+    try {
+      setAdding(true);
+      await addToCart(product, qty);
+      navigate("/checkout");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to start checkout. Please try again.");
+    } finally {
+      setAdding(false);
+    }
   };
 
   const talkToSeller = () => {
@@ -421,6 +434,8 @@ const ReviewsSection = ({ productId }) => {
   const [submitting, setSubmitting] = useState(false);
   const { isAuthenticated, isBuyer } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromOrderReview = location.state?.fromOrderReview || false;
 
   useEffect(() => {
     fetchReviews();
@@ -428,6 +443,12 @@ const ReviewsSection = ({ productId }) => {
       fetchMyReview();
     }
   }, [productId, isAuthenticated, isBuyer]);
+
+  useEffect(() => {
+    if (fromOrderReview && !myReview) {
+      setShowReviewForm(true);
+    }
+  }, [fromOrderReview, myReview]);
 
   const fetchReviews = async () => {
     try {
@@ -504,18 +525,11 @@ const ReviewsSection = ({ productId }) => {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Customer Reviews</h2>
-        {isAuthenticated && isBuyer && !myReview && (
-          <button
-            onClick={() => setShowReviewForm(!showReviewForm)}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-          >
-            Write a Review
-          </button>
-        )}
+        {/* No direct review button on product page; reviews are started from My Orders */}
       </div>
 
       {/* Review Form */}
-      {showReviewForm && !myReview && (
+      {showReviewForm && fromOrderReview && !myReview && (
         <div className="mb-8 bg-gray-50 rounded-lg p-6">
           <h3 className="text-lg font-semibold mb-4">Write Your Review</h3>
           <form onSubmit={handleSubmitReview}>
