@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import apiClient from "../utils/apiClient"; // Use apiClient for auth requests
 
+
 const LIMIT = 32;
 
 const ShowListingPublic = () => {
@@ -183,7 +184,7 @@ const ShowListingPublic = () => {
 
                   <div className="flex justify-between items-center mt-auto">
                     <span className="text-indigo-600 font-bold text-lg">
-                      ₹{product.price}
+                      ₹{Math.floor(product.price * 80)}
                     </span>
                     <button
                       onClick={() => navigate(`/products/${product._id}`)}
