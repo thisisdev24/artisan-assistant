@@ -307,7 +307,7 @@ const ProductDetail = () => {
 
               {/* Price */}
               <div className="mt-6 flex items-center gap-6">
-                <div className="text-3xl lg:text-4xl font-extrabold text-indigo-600">₹{currency(product.price)}</div>
+                <div className="text-3xl lg:text-4xl font-extrabold text-indigo-600">₹{currency(Math.floor(product.price * 80))}</div>
                 {product.compareAt && (
                   <div className="text-sm text-gray-400 line-through">₹{currency(product.compareAt)}</div>
                 )}
@@ -374,7 +374,7 @@ const ProductDetail = () => {
                     disabled={adding || product.stock === 0}
                     className={`flex-1 px-4 py-3 rounded-lg text-white font-semibold ${product.stock === 0 ? "bg-gray-300 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"}`}
                   >
-                    {adding ? "Adding..." : `Add to Cart • ₹${currency(product.price * qty)}`}
+                    {adding ? "Adding..." : `Add to Cart • ₹${currency(Math.floor(product.price * 80) * qty)}`}
                   </button>
 
                   <button
@@ -411,7 +411,7 @@ const ProductDetail = () => {
         <div className="fixed left-0 right-0 bottom-0 sm:hidden bg-white/95 border-t py-3 px-4 flex items-center gap-3 justify-between">
           <div>
             <div className="text-sm text-gray-500">Total</div>
-            <div className="font-semibold text-lg">₹{currency(product.price * qty)}</div>
+            <div className="font-semibold text-lg">₹{currency(Math.floor(product.price * 80) * qty)}</div>
           </div>
           <div className="flex gap-2 w-1/2">
             <button onClick={handleAddToCart} disabled={product.stock === 0} className="flex-1 px-3 py-3 rounded-lg bg-indigo-600 text-white">Add</button>
