@@ -1,6 +1,6 @@
 // frontend/src/components/ProtectedRoute.jsx
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { user, loading, isAuthenticated } = useAuth();
@@ -19,9 +19,9 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
     // Redirect based on role
-    if (user.role === 'seller') {
+    if (user.role === "seller") {
       return <Navigate to="/Seller" replace />;
-    } else if (user.role === 'admin') {
+    } else if (user.role === "admin") {
       return <Navigate to="/Admin" replace />;
     } else {
       return <Navigate to="/" replace />;
@@ -32,4 +32,3 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 };
 
 export default ProtectedRoute;
-

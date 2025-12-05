@@ -45,6 +45,20 @@ const listingSchema = new mongoose.Schema({
   store: String,
   categories: [String],
   details: mongoose.Schema.Types.Mixed,
+  // NEW: color detection auto-fill
+  // detected_colors: array of objects { hex: "#rrggbb", percentage: 0.45, name: "red", source_image: "https://..." }
+  detected_colors: [
+    {
+      hex: String,
+      percentage: Number,
+      name: String,
+      source_image: String
+    }
+  ],
+
+  // suggested main color (top color hex) for quick form fill
+  suggested_main_color: String,
+  
   parent_asin: String,
   faiss_vector_id: Number,
   embedding_created_at: Date,

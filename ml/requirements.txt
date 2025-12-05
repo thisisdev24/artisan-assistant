@@ -13,3 +13,10 @@ pymongo
 numpy
 pandas
 pytz
+onnxruntime
+scikit-learn
+scikit-image
+webcolors
+opencv-python-headless
+rembg
+sentencepiece

@@ -1,9 +1,11 @@
 """
-Generate product descriptions (CPU-only, sampling + selection).
+Generate product descriptions (CPU-only, sampling + selection) using Flan-T5.
 
-Defaults to google/flan-t5-base. Produces multiple sampled candidates and
-selects the best one using a simple scorer that penalizes verbatim overlap
-with the title/features and rewards reasonable length.
+This file contains the minimal HuggingFace Transformers usage required to
+perform local generation with the google/flan-t5-* family. All remote HF
+Inference Client code and related branches have been removed — the module
+only attempts local generation with Transformers + torch and otherwise falls
+back to a lightweight template.
 
 Environment variables (optional):
 - GEN_DESC_MODEL (default: "google/flan-t5-base")
@@ -11,11 +13,16 @@ Environment variables (optional):
 - GEN_DESC_TEMPERATURE (default: 0.8)
 - GEN_DESC_TOP_P (default: 0.95)
 - GEN_DESC_MAX_LINES (default: 10)
-- GEN_DESC_USE_LOCAL (default: "1")
 - GEN_DESC_FEATURE_LIMIT (default: 12)
 - GEN_DESC_MIN_CHARS (default: 60)
 - GEN_DESC_NUM_CANDIDATES (default: 3)
+
+Notes:
+- This file is CPU-first. If you install torch and transformers, it will
+  attempt local sampling with the specified Flan-T5 model.
+- All HF Inference (remote) code was removed as requested.
 """
+from dotenv import load_dotenv
 import os
 import time
 import logging
@@ -34,29 +41,23 @@ except Exception:
     T5Tokenizer = None
     T5ForConditionalGeneration = None
 
-try:
-    from huggingface_hub import InferenceClient
-except Exception:
-    InferenceClient = None
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("gen_desc")
 
+load_dotenv(dotenv_path='../backend/.env')  # This loads the .env file
+
 # config
-HF_TOKEN = os.getenv("HUGGINGFACE_API_TOKEN", None)
 DEFAULT_MODEL = os.getenv("GEN_DESC_MODEL", "google/flan-t5-base")
 MAX_TOKENS = int(os.getenv("GEN_DESC_MAX_TOKENS", "240"))
 TEMPERATURE = float(os.getenv("GEN_DESC_TEMPERATURE", "0.8"))
 TOP_P = float(os.getenv("GEN_DESC_TOP_P", "0.95"))
 MAX_LINES = int(os.getenv("GEN_DESC_MAX_LINES", "10"))
-USE_LOCAL = os.getenv("GEN_DESC_USE_LOCAL", "1") not in ("0", "false", "False", "FALSE", "")
 _FEATURE_LIMIT = int(os.getenv("GEN_DESC_FEATURE_LIMIT", "12"))
 _TOKENIZER_MAX_LENGTH = int(os.getenv("GEN_DESC_TOKENIZER_MAX_LEN", "512"))
 MIN_CHARS = int(os.getenv("GEN_DESC_MIN_CHARS", "60"))
 NUM_CANDIDATES = int(os.getenv("GEN_DESC_NUM_CANDIDATES", "3"))
 
 # lazy globals
-_client = None
 _local_tokenizer = None
 _local_model = None
 
@@ -71,25 +72,11 @@ def _words_set(text: str) -> set:
 def _normalize_text(s: str) -> str:
     return re.sub(r"\s+", " ", (s or "").strip())
 
-# ----------------------
-# HF / local init
-# ----------------------
-def _init_inference_client():
-    global _client
-    if InferenceClient is None:
-        logger.info("huggingface_hub.InferenceClient not available.")
-        _client = None
-        return
-    try:
-        _client = InferenceClient(token=HF_TOKEN)
-        logger.info("InferenceClient initialized")
-    except Exception as e:
-        logger.warning("Could not init InferenceClient: %s", e)
-        _client = None
 
 def _init_local_model(model_name: str = DEFAULT_MODEL):
     """
     Load tokenizer & model with defensive CPU-only strategy.
+    Returns (tokenizer, model) or (None, None) if not available.
     """
     global _local_tokenizer, _local_model
     if _local_model is not None and _local_tokenizer is not None:
@@ -106,30 +93,24 @@ def _init_local_model(model_name: str = DEFAULT_MODEL):
         logger.exception("Failed to load tokenizer: %s", e)
         return None, None
 
-    # Try standard CPU load (avoid explicit .to("cpu") on module that may use meta tensors)
     try:
-        logger.info("Attempting standard model load (CPU) for: %s", model_name)
+        logger.info("Loading model (CPU) for: %s", model_name)
+        # Prefer a safe CPU load; do not assume GPU availability.
         model = T5ForConditionalGeneration.from_pretrained(model_name)
+        # Move to CPU explicitly if torch and the model support it
+        try:
+            device = torch.device("cpu")
+            model.to(device)
+        except Exception:
+            # best-effort; ignore if cannot move
+            pass
         _local_tokenizer = tokenizer
         _local_model = model
-        logger.info("Local model loaded (standard).")
+        logger.info("Local model loaded.")
         return _local_tokenizer, _local_model
     except Exception as e:
-        logger.warning("Standard model load failed: %s", e)
-
-    # Try device_map={"": "cpu"} if accelerate is available
-    try:
-        logger.info("Attempting device_map={'': 'cpu'} load.")
-        model = T5ForConditionalGeneration.from_pretrained(model_name, device_map={"": "cpu"})
-        _local_tokenizer = tokenizer
-        _local_model = model
-        logger.info("Local model loaded with device_map={'': 'cpu'}.")
-        return _local_tokenizer, _local_model
-    except Exception as e:
-        logger.debug("device_map cpu load failed: %s", e)
-
-    logger.error("All local model load attempts failed for '%s'. Will not use local model.", model_name)
-    return None, None
+        logger.exception("Failed to load model: %s", e)
+        return None, None
 
 # ----------------------
 # Prompt building & sanitize
@@ -254,6 +235,7 @@ def _post_process_description(text: str, max_lines: int = MAX_LINES) -> str:
     trimmed = filtered[:max_lines]
     return "\n".join(trimmed)
 
+
 def _template_fallback(title: str, features: List[str], category: Optional[str]) -> str:
     title = (title or "").strip() or "Handcrafted product"
     category_part = f"Category: {category}. " if category else ""
@@ -281,7 +263,7 @@ def _template_fallback(title: str, features: List[str], category: Optional[str])
     return _post_process_description(out, max_lines=MAX_LINES)
 
 # ----------------------
-# Candidate generation (local sampling) and HF fallback
+# Candidate generation (local sampling)
 # ----------------------
 def _strip_echo_lines(text: str) -> str:
     if not text:
@@ -295,6 +277,7 @@ def _strip_echo_lines(text: str) -> str:
         filtered.append(ln)
     return "\n".join(filtered) if filtered else " ".join(lines)
 
+
 def _overlap_count(candidate: str, title: str, features: List[str]) -> int:
     cand_words = _words_set(candidate)
     src_words = _words_set(title) if title else set()
@@ -302,6 +285,7 @@ def _overlap_count(candidate: str, title: str, features: List[str]) -> int:
         src_words |= _words_set(f)
     src_words = set(w for w in src_words if len(w) > 2)
     return len(cand_words & src_words)
+
 
 def _select_best_candidate(candidates: List[str], title: str, features: List[str], min_chars: int = MIN_CHARS):
     scored = []
@@ -323,20 +307,29 @@ def _select_best_candidate(candidates: List[str], title: str, features: List[str
         return top[2]
     return None
 
+
 def _generate_with_local_transformers_sampling(prompt: str,
                                                model_name: str = DEFAULT_MODEL,
                                                max_tokens: int = MAX_TOKENS,
                                                temperature: float = TEMPERATURE,
                                                top_p: float = TOP_P,
                                                num_return_sequences: int = NUM_CANDIDATES):
+    """
+    Use HuggingFace Transformers locally to sample multiple candidates.
+    Raises RuntimeError if transformers/torch aren't available or model fails to load.
+    """
     if T5Tokenizer is None or T5ForConditionalGeneration is None or torch is None:
         raise RuntimeError("Local Transformers / torch not available in environment.")
     tokenizer, model = _init_local_model(model_name)
     if tokenizer is None or model is None:
         raise RuntimeError("Failed to initialize local model/tokenizer.")
+
+    # Tokenize (CPU tensors)
     inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=_TOKENIZER_MAX_LENGTH)
     input_ids = inputs.input_ids
     attention_mask = inputs.attention_mask if "attention_mask" in inputs else None
+
+    # Ensure tensors on the same device as model parameters (best-effort)
     try:
         emb = getattr(model.get_input_embeddings(), "weight", None)
         if emb is not None and hasattr(emb, "device") and emb.device.type != "meta":
@@ -365,48 +358,11 @@ def _generate_with_local_transformers_sampling(prompt: str,
 
     with torch.no_grad():
         outputs = model.generate(input_ids=input_ids, attention_mask=attention_mask, **gen_kwargs)
+
     results = []
     for i in range(outputs.shape[0]):
         results.append(tokenizer.decode(outputs[i], skip_special_tokens=True))
     return results
-
-def _call_hf_inference(prompt: str,
-                       model: str = DEFAULT_MODEL,
-                       max_tokens: int = MAX_TOKENS,
-                       temperature: float = TEMPERATURE,
-                       top_p: float = TOP_P,
-                       num_return_sequences: int = NUM_CANDIDATES,
-                       retries: int = 2,
-                       backoff: float = 1.0):
-    if USE_LOCAL:
-        try:
-            logger.debug("Attempting local sampled generation (model=%s num=%d)", model, num_return_sequences)
-            return _generate_with_local_transformers_sampling(prompt, model_name=model, max_tokens=max_tokens, temperature=temperature, top_p=top_p, num_return_sequences=num_return_sequences)
-        except Exception as e:
-            logger.warning("Local sampled generation failed: %s. Attempting InferenceClient fallback.", e)
-
-    if _client is None and InferenceClient is not None:
-        _init_inference_client()
-
-    if _client is None:
-        raise RuntimeError("No generation backend available: local failed and InferenceClient not configured.")
-
-    last_exc = None
-    for attempt in range(retries + 1):
-        try:
-            resp = _client.text_generation(prompt, model=model, max_new_tokens=max_tokens, temperature=temperature, top_p=top_p)
-            if isinstance(resp, list):
-                return [r.get("generated_text", str(r)) if isinstance(r, dict) else str(r) for r in resp]
-            if isinstance(resp, dict):
-                return [resp.get("generated_text") or resp.get("text") or str(resp)]
-            return [str(resp)]
-        except Exception as e:
-            last_exc = e
-            wait = backoff * (2 ** attempt)
-            logger.warning("HF call failed (attempt %d/%d): %s. Retrying in %.1fs", attempt + 1, retries + 1, e, wait)
-            time.sleep(wait)
-    logger.error("HF inference failed after %d attempts: %s", retries + 1, last_exc)
-    raise last_exc
 
 # ----------------------
 # Public entry
@@ -424,12 +380,12 @@ def generate_description(title: str,
     if not use_model:
         return _template_fallback(title, features_list, category)
 
-    # first pass (non-strict)
     prompt = _build_prompt(title or "", features_list, category, tone, strict=False)
     logger.debug("Prompt preview: %s", prompt[:1200])
 
     try:
-        candidates = _call_hf_inference(prompt, model=DEFAULT_MODEL, max_tokens=MAX_TOKENS, temperature=TEMPERATURE, top_p=TOP_P, num_return_sequences=NUM_CANDIDATES)
+        # Try local generation only (minimal HF usage as requested)
+        candidates = _generate_with_local_transformers_sampling(prompt, model_name=DEFAULT_MODEL, max_tokens=MAX_TOKENS, temperature=TEMPERATURE, top_p=TOP_P, num_return_sequences=NUM_CANDIDATES)
         if not isinstance(candidates, list):
             candidates = [str(candidates)]
 
@@ -443,7 +399,7 @@ def generate_description(title: str,
         # retry with strict prompt
         logger.warning("No satisfactory candidate from first pass. Retrying with stricter prompt.")
         strict_prompt = _build_prompt(title or "", features_list, category, tone, strict=True)
-        candidates2 = _call_hf_inference(strict_prompt, model=DEFAULT_MODEL, max_tokens=min(MAX_TOKENS, 320), temperature=max(0.6, TEMPERATURE - 0.1), top_p=min(0.98, TOP_P), num_return_sequences=NUM_CANDIDATES)
+        candidates2 = _generate_with_local_transformers_sampling(strict_prompt, model_name=DEFAULT_MODEL, max_tokens=min(MAX_TOKENS, 320), temperature=max(0.6, TEMPERATURE - 0.1), top_p=min(0.98, TOP_P), num_return_sequences=NUM_CANDIDATES)
         if not isinstance(candidates2, list):
             candidates2 = [str(candidates2)]
         cleaned2 = [_strip_echo_lines(c) for c in candidates2]
@@ -474,7 +430,7 @@ def generate_description(title: str,
 # ----------------------
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Generate product description (sampling + selection)")
+    parser = argparse.ArgumentParser(description="Generate product description (sampling + selection) using Flan-T5")
     parser.add_argument("--title", "-t", required=True)
     parser.add_argument("--features", "-f", help="Pipe/comma/newline separated features or JSON-like list")
     parser.add_argument("--category", "-c", help="Category")
