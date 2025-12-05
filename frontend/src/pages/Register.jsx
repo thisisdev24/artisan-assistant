@@ -38,7 +38,7 @@ const Register = () => {
       {/* <Navbar /> */}
       <div className="min-h-screen bg-gray-100 flex flex-col justify-center items-center">
         <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-lg">
-          <h2 className="text-3xl font-bold text-center text-black mb-6">Register</h2>
+          <h2 className="text-3xl font-bold text-center text-black mb-6 select-none">Register</h2>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <input
               type="text"
