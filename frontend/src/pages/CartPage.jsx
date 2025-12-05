@@ -88,7 +88,7 @@ const CartPage = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-semibold text-indigo-600">
-                        {formatCurrency(item.price * item.quantity)}
+                        {formatCurrency(Math.floor(item.price * 80) * item.quantity)}
                       </p>
                       <p className="text-sm text-gray-400">{formatCurrency(item.price)} each</p>
                     </div>
@@ -128,7 +128,7 @@ const CartPage = () => {
           <div className="space-y-3 text-sm text-gray-600">
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span>{formatCurrency(subtotal)}</span>
+              <span>{formatCurrency((Math.floor(subtotal * 80)))}</span>
             </div>
             <div className="flex justify-between">
               <span>Shipping</span>
@@ -141,7 +141,7 @@ const CartPage = () => {
           </div>
           <div className="border-t mt-4 pt-4 flex justify-between items-center">
             <span className="text-lg font-semibold text-gray-900">Total</span>
-            <span className="text-2xl font-bold text-indigo-600">{formatCurrency(subtotal)}</span>
+            <span className="text-2xl font-bold text-indigo-600">{formatCurrency((Math.floor(subtotal * 80)))}</span>
           </div>
           <button
             onClick={handleCheckout}

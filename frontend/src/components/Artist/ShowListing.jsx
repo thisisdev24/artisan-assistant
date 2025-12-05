@@ -182,7 +182,7 @@ const ShowListing = ({ storeName: propStoreName }) => {
                 </h2>
                 <p className="text-gray-600 mb-2">{shortDescription(product)}</p>
                 <p className="text-lg font-bold text-indigo-700 mb-4">
-                  ₹{product.price ?? "—"}
+                  ₹{Math.floor(product.price * 80) ?? "—"}
                 </p>
 
                 <div className="flex justify-between">
