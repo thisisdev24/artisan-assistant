@@ -16,6 +16,7 @@ Environment variables (optional):
 - GEN_DESC_MIN_CHARS (default: 60)
 - GEN_DESC_NUM_CANDIDATES (default: 3)
 """
+from dotenv import load_dotenv
 import os
 import time
 import logging
@@ -41,6 +42,8 @@ except Exception:
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("gen_desc")
+
+load_dotenv(dotenv_path='../backend/.env')  # This loads the .env file
 
 # config
 HF_TOKEN = os.getenv("HUGGINGFACE_API_TOKEN", None)

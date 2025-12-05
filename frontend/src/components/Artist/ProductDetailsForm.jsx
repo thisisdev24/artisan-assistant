@@ -1,33 +1,54 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const ProductDetailsForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
 
-  const [stock, setStock] = useState('');
+  const [stock, setStock] = useState("");
   const [stockAvailable, setStockAvailable] = useState(true);
-  const [height, setHeight] = useState('');
-  const [length, setLength] = useState('');
-  const [width, setWidth] = useState('');
-  const [weight, setWeight] = useState('');
+  const [height, setHeight] = useState("");
+  const [length, setLength] = useState("");
+  const [width, setWidth] = useState("");
+  const [weight, setWeight] = useState("");
   const [loading, setLoading] = useState(false);
   const [listing, setListing] = useState(null);
+  // color auto-fill: detected_colors from server and chosen main color
+  const [detectedColors, setDetectedColors] = useState([]); // array of {hex, percentage, name, source_image}
+  const [mainColor, setMainColor] = useState(""); // hex
 
   useEffect(() => {
     // Fetch draft listing details to show preview
     const fetchDraft = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/listings/${id}`, {
-          headers: {
-            ...(token ? { Authorization: 'Bearer ' + token } : {})
+        const res = await axios.get(
+          `http://localhost:5000/api/listings/${id}`,
+          {
+            headers: {
+              ...(token ? { Authorization: "Bearer " + token } : {}),
+            },
           }
-        });
+        );
         setListing(res.data);
+
+        // seed color suggestions if server provided them
+        if (
+          res.data &&
+          res.data.detected_colors &&
+          Array.isArray(res.data.detected_colors) &&
+          res.data.detected_colors.length > 0
+        ) {
+          setDetectedColors(res.data.detected_colors);
+          if (!mainColor && res.data.suggested_main_color) {
+            setMainColor(res.data.suggested_main_color);
+          } else if (!mainColor) {
+            setMainColor(res.data.detected_colors[0].hex);
+          }
+        }
       } catch (err) {
-        console.error('Error fetching draft:', err);
+        console.error("Error fetching draft:", err);
       }
     };
     if (id) {
@@ -44,13 +65,14 @@ const ProductDetailsForm = () => {
         height: height ? parseFloat(height) : undefined,
         length: length ? parseFloat(length) : undefined,
         width: width ? parseFloat(width) : undefined,
-        weight: weight ? parseFloat(weight) : undefined
+        weight: weight ? parseFloat(weight) : undefined,
       };
 
       const publishData = {
         stock: stock ? parseInt(stock) : 0,
         stock_available: stockAvailable,
-        dimensions
+        dimensions,
+        main_color: mainColor || undefined, // server schema can pick this up; optional
       };
 
       const res = await axios.patch(
@@ -58,17 +80,20 @@ const ProductDetailsForm = () => {
         publishData,
         {
           headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: 'Bearer ' + token } : {})
-          }
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: "Bearer " + token } : {}),
+          },
         }
       );
 
-      alert('Product published successfully!');
+      alert("Product published successfully!");
       navigate(`/product/${id}`);
     } catch (err) {
-      console.error('Publish error:', err?.response?.data || err.message);
-      alert(err?.response?.data?.message || 'Failed to publish. See console for details.');
+      console.error("Publish error:", err?.response?.data || err.message);
+      alert(
+        err?.response?.data?.message ||
+          "Failed to publish. See console for details."
+      );
     } finally {
       setLoading(false);
     }
@@ -77,21 +102,63 @@ const ProductDetailsForm = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-100 via-white to-green-50 p-6">
       <div className="w-full max-w-2xl bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl p-8 border border-green-100">
-        <h2 className="text-3xl font-bold text-center mb-6 text-green-700">Product Details</h2>
-        <p className="text-center text-gray-600 mb-6">Add additional details to complete your listing</p>
+        <h2 className="text-3xl font-bold text-center mb-6 text-green-700">
+          Product Details
+        </h2>
+        <p className="text-center text-gray-600 mb-6">
+          Add additional details to complete your listing
+        </p>
 
         {listing && (
           <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
             <h3 className="font-semibold text-blue-800 mb-2">Preview:</h3>
-            <p className="text-blue-700"><strong>Title:</strong> {listing.title}</p>
-            <p className="text-blue-700"><strong>Price:</strong> ${listing.price}</p>
+            <p className="text-blue-700">
+              <strong>Title:</strong> {listing.title}
+            </p>
+            <p className="text-blue-700">
+              <strong>Price:</strong> ${listing.price}
+            </p>
+
+            {/* Suggested colors (if any) */}
+            {detectedColors && detectedColors.length > 0 && (
+              <div className="mt-3">
+                <p className="text-sm text-gray-600 mb-2">
+                  Suggested colors (auto-detected):
+                </p>
+                <div className="flex items-center gap-2">
+                  {detectedColors.map((c, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setMainColor(c.hex)}
+                      title={`${c.name || ""} ${Math.round(
+                        (c.percentage || 0) * 100
+                      )}%`}
+                      className="w-10 h-10 rounded-md border"
+                      style={{ background: c.hex }}
+                    />
+                  ))}
+                  <div className="ml-4">
+                    <span className="text-sm text-gray-700">
+                      Chosen main color:
+                    </span>
+                    <div
+                      className="inline-block ml-2 align-middle w-8 h-8 rounded border"
+                      style={{ background: mainColor || "#ffffff" }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         <form onSubmit={handlePublish}>
           {/* Stock Information */}
           <div className="mb-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">Stock Information</h3>
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">
+              Stock Information
+            </h3>
 
             <div className="mb-4">
               <label className="block text-gray-700 mb-2">Stock Count</label>
@@ -120,7 +187,9 @@ const ProductDetailsForm = () => {
 
           {/* Product Dimensions */}
           <div className="mb-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">Product Dimensions</h3>
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">
+              Product Dimensions
+            </h3>
 
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
@@ -165,7 +234,9 @@ const ProductDetailsForm = () => {
               </div>
 
               <div>
-                <label className="block text-gray-700 mb-2">Weight (grams)</label>
+                <label className="block text-gray-700 mb-2">
+                  Weight (grams)
+                </label>
                 <input
                   type="number"
                   value={weight}
@@ -193,7 +264,7 @@ const ProductDetailsForm = () => {
               disabled={loading}
               className="flex-1 bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Publishing...' : '🚀 Publish Product'}
+              {loading ? "Publishing..." : "🚀 Publish Product"}
             </button>
           </div>
         </form>
@@ -203,4 +274,3 @@ const ProductDetailsForm = () => {
 };
 
 export default ProductDetailsForm;
-

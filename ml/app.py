@@ -1,8 +1,9 @@
 # ml/app.py
+from dotenv import load_dotenv
 import os
 import logging
 from contextlib import asynccontextmanager
-from typing import Optional
+from typing import Optional, List
 
 import numpy as np
 from fastapi import FastAPI
@@ -15,13 +16,17 @@ from faiss_index import FaissTextIndexer
 # Import the generator implemented above
 from generate_description import generate_description as generate_desc_fn
 
+# import our detector
+from color_detector import aggregate_images as detect_colors_aggregate
+
+load_dotenv(dotenv_path='../backend/.env')
+
 # ---------------------------
 # Configuration
 # ---------------------------
-APP_PORT = int(os.environ.get("PORT", 8000))
-DATA_DIR = os.environ.get("DATA_DIR", "data")
+DATA_DIR = os.environ.get("ML_DATA_DIR")
 TEXT_EMBED_MODEL = os.environ.get("TEXT_EMBED_MODEL", "all-MiniLM-L6-v2")
-MONGO_URI = os.environ.get("MONGO_URI", "mongodb+srv://imdevkhare_db_user:Dev%401234@cluster0.vmp6708.mongodb.net/?appName=Cluster0")
+MONGO_URI = os.environ.get("MONGO_URI")
 ML_DB = os.environ.get("ML_MONGO_DB", "test")
 ML_COLLECTION = os.environ.get("ML_MONGO_COLLECTION", "listings")
 DEFAULT_K = int(os.environ.get("DEFAULT_K", 10))
@@ -100,6 +105,11 @@ class GenDescReq(BaseModel):
     features: Optional[list] = None
     category: Optional[str] = None
     tone: str = "friendly and concise"
+
+class DetectColorsReq(BaseModel):
+    images: List[str]
+    top_k_per_image: int = 3
+    device: str = "cuda"  # use "cuda" if available; app will gracefully fall back
 
 # ---------------------------
 # Endpoints
@@ -180,6 +190,29 @@ def generate_description_endpoint(req: GenDescReq):
         fallback = f"{title}. Features: {', '.join(features or [])}."
         return {"description": fallback, "error": "generation_failed", "detail": str(e)}
 
+@app.post("/detect_colors")
+def detect_colors_endpoint(req: DetectColorsReq):
+    """POST with json: { images: [url1, url2, ...], top_k_per_image: 3 }"""
+    imgs = [i for i in (req.images or []) if isinstance(i, str) and i]
+    if not imgs:
+        return {"colors": []}
+    # choose device if cuda available
+    device = req.device
+    try:
+        import torch
+        if device == "cuda" and not torch.cuda.is_available():
+            device = "cpu"
+    except Exception:
+        device = "cpu"
+
+    try:
+        colors = detect_colors_aggregate(imgs, top_k_per_image=int(req.top_k_per_image or 3), device=device)
+        # return top 6 overall
+        return {"colors": colors[:6]}
+    except Exception as e:
+        LOG.exception("Color detection failed: %s", e)
+        return {"colors": [], "error": str(e)}
+
 @app.post("/rebuild_index")
 def rebuild_index():
     if indexer is None:
@@ -202,4 +235,4 @@ def rebuild_index():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=APP_PORT)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -7,6 +7,7 @@ const upload = require('../middleware/upload'); // reuse your multer-like middle
 const { createThumbnailBuffer, createLargeThumbnailBuffer, createHighResThumbnailBuffer } = require('../utils/image');
 const { uploadBuffer, getSignedReadUrl } = require('../utils/gcs');
 const path = require('path');
+const axios = require('axios');
 const crypto = require('crypto');
 
 function makeKey(filename) {
@@ -48,6 +49,7 @@ router.post('/draft', async (req, res) => {
       artisan_id: artisanObjectId,
       categories: Array.isArray(categories) ? categories : (categories ? JSON.parse(categories) : []),
       details: details || null,
+      
       parent_asin: parent_asin || null,
       seller: seller || null,
       status: 'draft'
@@ -113,6 +115,43 @@ router.post('/:id/images',
       if (!listing.imageUrl && imagesMeta.length > 0) {
         listing.imageUrl = imagesMeta[0].large || imagesMeta[0].hi_res || imagesMeta[0].thumb;
       }
+
+      await listing.save();
+
+      // --- CALL ML SERVICE to detect colors ---
+            // Build image URLs list (prefer hi_res, then large, then thumb)
+            const imageUrls = (imagesMeta || []).map(i => (i.hi_res || i.large || i.thumb)).filter(Boolean);
+      
+            let detectedColors = [];
+            let suggestedMainColor = null;
+            try {
+              const ML = process.env.ML_SERVICE_URL || 'http://localhost:8000';
+              // synchronous POST to color detection endpoint
+              const mlResp = await axios.post(`${ML}/detect_colors`, {
+                images: imageUrls,
+                top_k_per_image: 3,
+                device: (process.env.ML_PREFERRED_DEVICE || 'cpu')
+              }, { timeout: 3000000 }); // 3000s timeout (adjustable)
+      
+              if (mlResp && mlResp.data && Array.isArray(mlResp.data.colors)) {
+                detectedColors = mlResp.data.colors;
+                if (detectedColors.length > 0) {
+                  suggestedMainColor = detectedColors[0].hex;
+                }
+              }
+            } catch (mlErr) {
+              console.warn('Color detection failed or timed out', mlErr?.response?.data || mlErr.message || mlErr);
+              // continue — listing will be created without colors
+            }
+      
+            console.log("ML service detected colors (raw):", JSON.stringify(detectedColors, null, 2));
+      console.log("suggestedMainColor:", suggestedMainColor);
+
+      // push images into listing.images, set imageUrl if not set
+      listing.detected_colors = listing.detected_colors || [];
+      listing.detected_colors.push(...detectedColors);
+      
+      listing.suggested_main_color = suggestedMainColor;
 
       await listing.save();
 

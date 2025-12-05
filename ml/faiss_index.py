@@ -40,11 +40,11 @@ class FaissTextIndexer:
         self.collection = self.db[collection_name]
 
         # Paths
-        self.data_dir = data_dir
-        os.makedirs(self.data_dir, exist_ok=True)
+        self.ml_data_dir = data_dir
+        os.makedirs(self.ml_data_dir, exist_ok=True)
 
-        self.index_path = os.path.join(self.data_dir, "index.faiss")
-        self.meta_path = os.path.join(self.data_dir, "meta.json")
+        self.index_path = os.path.join(self.ml_data_dir, "index.faiss")
+        self.meta_path = os.path.join(self.ml_data_dir, "meta.json")
 
         # Transform model
         logger.info("Loading SentenceTransformer model...")
