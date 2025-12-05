@@ -19,3 +19,4 @@ scikit-image
 webcolors
 opencv-python-headless
 rembg
+sentencepiece
