@@ -106,7 +106,7 @@ const ShowListingPublic = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 px-6 py-12">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto select-none">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800">All Products</h1>
           <button

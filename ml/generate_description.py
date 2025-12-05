@@ -35,18 +35,12 @@ except Exception:
     T5Tokenizer = None
     T5ForConditionalGeneration = None
 
-try:
-    from huggingface_hub import InferenceClient
-except Exception:
-    InferenceClient = None
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("gen_desc")
 
 load_dotenv(dotenv_path='../backend/.env')  # This loads the .env file
 
 # config
-HF_TOKEN = os.getenv("HUGGINGFACE_API_TOKEN", None)
 DEFAULT_MODEL = os.getenv("GEN_DESC_MODEL", "google/flan-t5-base")
 MAX_TOKENS = int(os.getenv("GEN_DESC_MAX_TOKENS", "240"))
 TEMPERATURE = float(os.getenv("GEN_DESC_TEMPERATURE", "0.8"))
@@ -73,22 +67,6 @@ def _words_set(text: str) -> set:
 
 def _normalize_text(s: str) -> str:
     return re.sub(r"\s+", " ", (s or "").strip())
-
-# ----------------------
-# HF / local init
-# ----------------------
-def _init_inference_client():
-    global _client
-    if InferenceClient is None:
-        logger.info("huggingface_hub.InferenceClient not available.")
-        _client = None
-        return
-    try:
-        _client = InferenceClient(token=HF_TOKEN)
-        logger.info("InferenceClient initialized")
-    except Exception as e:
-        logger.warning("Could not init InferenceClient: %s", e)
-        _client = None
 
 def _init_local_model(model_name: str = DEFAULT_MODEL):
     """
