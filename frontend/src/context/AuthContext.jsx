@@ -64,8 +64,10 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const checkAuth = async () => {
             // prevent refresh spam on home, login and register pages
-            if (window.location.pathname === "/" 
-                ||window.location.pathname === "/login" 
+            if (window.location.pathname === "/ShowListingPublic"
+                ||window.location.pathname === "/contact" 
+                || window.location.pathname === "/"
+                || window.location.pathname === "/login"
                 || window.location.pathname === "/register") {
                 setLoading(false);
                 return;
