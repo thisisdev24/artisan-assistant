@@ -2,7 +2,7 @@ import Hero from '../components/hero/Hero';
 
 function Home() {
   return (
-    <div>
+    <div className='w-screen sm:w-screen min-h-screen sm:min-h-screen'>
       <Hero />
     </div>
   );
