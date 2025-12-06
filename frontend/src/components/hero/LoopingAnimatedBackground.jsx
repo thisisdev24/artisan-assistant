@@ -22,12 +22,12 @@ import { motion } from "framer-motion";
 
 export default function LoopingAnimatedBackground({
   children,
-  speed = 28,
+  speed = 20,
   mobileSpeed = 18,
-  opacity = 0.18,
+  opacity = 0.2,
   mobileOpacity = 0.12,
-  colors = ["#FDE68A", "#FCA311"],
-  density = 5,
+  colors = ["#FF9933", "#FFBF80"],
+  density = 6,
 }) {
   // Generate positions across a wide area so tiled copies loop seamlessly
   const positions = Array.from({ length: density }).map((_, i) => ({
@@ -100,7 +100,7 @@ export default function LoopingAnimatedBackground({
   });
 
   return (
-    <div className="overflow-hidden min-h-screen bg-transparent">
+    <div className="relative overflow-hidden min-h-full min-w-full sm:min-h-full sm:min-w-full bg-transparent">
       <style>{style}</style>
 
       {/* Pattern container: two identical stacked rows for a seamless vertical loop */}
