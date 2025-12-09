@@ -1,4 +1,4 @@
-fastapi
+fastapi[standard]
 uvicorn[standard]
 sentence-transformers>=2.2.2
 transformers
@@ -20,3 +20,4 @@ webcolors
 opencv-python-headless
 rembg
 sentencepiece
+open_clip_torch

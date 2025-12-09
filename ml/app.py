@@ -4,12 +4,15 @@ import os
 import logging
 from contextlib import asynccontextmanager
 from typing import Optional, List
+import base64
 
 import numpy as np
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import UploadFile, File
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
+from clip_tagging import ClipTagger
 
 from faiss_index import FaissTextIndexer
 
@@ -44,6 +47,8 @@ text_model: Optional[SentenceTransformer] = None
 indexer: Optional[FaissTextIndexer] = None
 index_ntotal: int = 0
 index_dim: Optional[int] = None
+clip_tagger: Optional[ClipTagger] = None
+clip_tagger_model_name: Optional[str] = None
 
 # ---------------------------
 # FastAPI app with lifespan
@@ -110,6 +115,19 @@ class DetectColorsReq(BaseModel):
     images: List[str]
     top_k_per_image: int = 3
     device: str = "cuda"  # use "cuda" if available; app will gracefully fall back
+
+class ZeroShotTagReq(BaseModel):
+    images: List[str]
+    top_k_per_attr: int = 3
+    device: str = "cuda"   # accept 'cuda' or 'cpu'
+    model_name: Optional[str] = None  # e.g., "ViT-L-14" to force a model
+
+class SuggestLabelsReq(BaseModel):
+    texts: List[str]
+    top_k: int = 50
+    ngram_min: int = 1
+    ngram_max: int = 2
+
 
 # ---------------------------
 # Endpoints
@@ -212,6 +230,145 @@ def detect_colors_endpoint(req: DetectColorsReq):
     except Exception as e:
         LOG.exception("Color detection failed: %s", e)
         return {"colors": [], "error": str(e)}
+
+@app.post("/zero_shot_tags")
+def zero_shot_tags(req: ZeroShotTagReq):
+    """
+    POST JSON:
+      { "images": ["url1","url2"], "top_k_per_attr": 3, "device": "cuda", "model_name": "ViT-H-14" }
+    Workflow:
+      1) Use detect_colors_aggregate for exact colors
+      2) Use CLIP zero-shot tagging (multi-crop) for materials/styles/colors/occasions
+      3) Merge color signals trusting detect_colors for exact colors + CLIP for stylistic colors
+    """
+    imgs = [i for i in (req.images or []) if isinstance(i, str) and i]
+    if not imgs:
+        return {"tags": []}
+
+    # device validation
+    device = req.device if req.device in ("cuda", "cpu") else "cpu"
+    try:
+        import torch
+        if device == "cuda" and not torch.cuda.is_available():
+            device = "cpu"
+    except Exception:
+        device = "cpu"
+
+    global clip_tagger, clip_tagger_model_name
+    model_name = req.model_name or None
+
+    # lazy init / re-init if model changed
+    try:
+        if clip_tagger is None or (model_name and model_name != clip_tagger_model_name):
+            clip_tagger = ClipTagger(model_preference=model_name, device=device)
+            clip_tagger_model_name = clip_tagger.model_name
+    except Exception as e:
+        LOG.exception("ClipTagger init failed: %s", e)
+        return {"tags": [], "error": "clip_init_failed", "detail": str(e)}
+
+    # 1) exact colors from your existing color detector
+    try:
+        exact_colors_resp = detect_colors_aggregate(imgs, top_k_per_image=3, device=device)
+        # detect_colors_aggregate returns list-structured results per image; normalize to list of color names
+    except Exception as e:
+        LOG.exception("detect_colors_aggregate failed: %s", e)
+        exact_colors_resp = [ [] for _ in imgs ]
+
+    # 2) CLIP zero-shot tagging (multi-crop)
+    try:
+        clip_results = clip_tagger.zero_shot_batch(imgs, top_k_per_attr=int(req.top_k_per_attr or 3), multi_crop=True)
+    except Exception as e:
+        LOG.exception("CLIP tagging failed: %s", e)
+        return {"tags": [], "error": "clip_tagging_failed", "detail": str(e)}
+
+    # 3) merge color signals per image
+    out = []
+    for i, img in enumerate(imgs):
+        clip_r = clip_results[i] if i < len(clip_results) else {"image": img, "materials":[], "styles":[], "colors":[], "occasions":[]}
+        exact_colors = []
+        try:
+            # The shape of exact color results depends on your color_detector implementation.
+            # If detect_colors_aggregate returns objects with 'colors' or strings, adapt accordingly.
+            ec = exact_colors_resp[i] if i < len(exact_colors_resp) else []
+            # normalize to list of color names if needed
+            if isinstance(ec, dict):
+                # try keys
+                exact_colors = ec.get("colors", []) or ec.get("dominant_colors", []) or []
+            elif isinstance(ec, list):
+                exact_colors = ec
+            # flatten non-string entries
+            exact_colors = [str(x).lower() for x in exact_colors if x]
+        except Exception:
+            exact_colors = []
+
+        # clip color preds come as list of {'label','score'}
+        clip_color_preds = clip_r.get("colors", [])
+        merged_colors = ClipTagger.merge_colors(exact_colors, clip_color_preds, threshold=0.22)
+
+        # final object: keep CLIP materials/styles/occasions; replace colors with merged list
+        final = {
+            "image": clip_r.get("image", img),
+            "materials": clip_r.get("materials", []),
+            "styles": clip_r.get("styles", []),
+            # expose both raw clip color preds and merged canonical colors
+            "clip_colors": clip_color_preds,
+            "merged_colors": merged_colors,
+            "occasions": clip_r.get("occasions", [])
+        }
+        out.append(final)
+
+    return {"tags": out}
+
+@app.post("/zero_shot_tags_upload")
+async def zero_shot_tags_upload(
+    file: UploadFile = File(...),
+    top_k_per_attr: int = 3,
+    device: str = "cuda",
+    model_name: Optional[str] = None
+):
+    contents = await file.read()
+    data_uri = f"data:{file.content_type};base64,{base64.b64encode(contents).decode('utf-8')}"
+
+    # lazy init
+    global clip_tagger, clip_tagger_model_name
+    try:
+        if clip_tagger is None or (model_name and model_name != clip_tagger_model_name):
+            clip_tagger = ClipTagger(model_preference=model_name, device=device)
+            clip_tagger_model_name = clip_tagger.model_name
+    except Exception as e:
+        LOG.exception("ClipTagger init failed: %s", e)
+        return {"tags": [], "error": "clip_init_failed", "detail": str(e)}
+
+    try:
+        # call color detector with a data URI might not be supported — skip and rely on clip + merged colors = clip colors only
+        clip_res = clip_tagger.zero_shot_tags_for_image(data_uri, top_k_per_attr=int(top_k_per_attr), multi_crop=True)
+        # return clip colors as merged (no exact detector)
+        merged_colors = ClipTagger.merge_colors([], clip_res.get("colors", []))
+        return {"tags": [{
+            "image": clip_res.get("image"),
+            "materials": clip_res.get("materials"),
+            "styles": clip_res.get("styles"),
+            "clip_colors": clip_res.get("colors"),
+            "merged_colors": merged_colors,
+            "occasions": clip_res.get("occasions")
+        }]}
+    except Exception as e:
+        LOG.exception("Upload tagging failed: %s", e)
+        return {"tags": [], "error": "tagging_failed", "detail": str(e)}
+
+@app.post("/suggest_labels")
+def suggest_labels(req: SuggestLabelsReq):
+    texts = [t for t in (req.texts or []) if isinstance(t, str) and t.strip()]
+    if not texts:
+        return {"suggestions": []}
+    try:
+        pairs = ClipTagger.suggest_labels_from_texts(texts, top_k=int(req.top_k), ngram_range=(int(req.ngram_min), int(req.ngram_max)))
+        # return as list of objects
+        out = [{"phrase": p[0], "count": int(p[1])} for p in pairs]
+        return {"suggestions": out}
+    except Exception as e:
+        LOG.exception("Label suggestion failed: %s", e)
+        return {"suggestions": [], "error": str(e)}
 
 @app.post("/rebuild_index")
 def rebuild_index():
