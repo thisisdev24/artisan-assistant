@@ -3,6 +3,9 @@ import Navbar from './components/Navbar/Navbar';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Link } from "react-router-dom";
 
+// Auto-logging - captures page views, clicks, errors, performance automatically
+import './utils/logger';
+
 // Import pages from "pages" folder
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -25,6 +28,7 @@ import MyWishlist from './pages/MyWishlist';
 import RecentlyViewed from './pages/RecentlyViewed';
 import EditProduct from './pages/EditProduct';
 import SellerOrders from './pages/SellerOrders';
+import SellerProfile from './pages/SellerProfile';
 import SellerProfile from './pages/SellerProfile';
 
 import { LoggerProvider } from './utils/logger/loggerProvider.jsx';
@@ -52,6 +56,7 @@ function App() {
             <Route path="/products/:id" element={<ProductDetail />} />
             <Route path="/ShowListingPublic" element={<ShowListingPublic />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/artists" element={<Artists />} />
             <Route path="/artists" element={<Artists />} />
 
             {/* Protected Routes */}
