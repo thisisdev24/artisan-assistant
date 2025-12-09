@@ -29,7 +29,6 @@ import RecentlyViewed from './pages/RecentlyViewed';
 import EditProduct from './pages/EditProduct';
 import SellerOrders from './pages/SellerOrders';
 import SellerProfile from './pages/SellerProfile';
-import SellerProfile from './pages/SellerProfile';
 
 import { LoggerProvider } from './utils/logger/loggerProvider.jsx';
 // import Products from "./pages/Products";
