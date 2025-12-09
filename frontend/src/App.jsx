@@ -3,6 +3,9 @@ import Navbar from './components/Navbar/Navbar';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Link } from "react-router-dom";
 
+// Auto-logging - captures page views, clicks, errors, performance automatically
+import './utils/logger';
+
 // Import pages from "pages" folder
 import Home from "./pages/Home";
 import Login from "./pages/Login";
