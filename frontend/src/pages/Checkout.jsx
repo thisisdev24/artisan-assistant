@@ -419,7 +419,7 @@ const Checkout = () => {
             <div className="flex justify-between">
               <span>Subtotal</span>
               <span>
-                {(Math.floor(subtotal * 80)).toLocaleString("en-IN", {
+                {subtotal.toLocaleString("en-IN", {
                   style: "currency",
                   currency: "INR",
                 })}
@@ -437,7 +437,7 @@ const Checkout = () => {
           <div className="border-t mt-4 pt-4 flex justify-between items-center">
             <span className="text-lg font-semibold text-gray-900">Total</span>
             <span className="text-2xl font-bold text-indigo-600">
-              {(Math.floor(subtotal * 80)).toLocaleString("en-IN", {
+              {subtotal.toLocaleString("en-IN", {
                 style: "currency",
                 currency: "INR",
               })}

@@ -52,15 +52,15 @@ const Navbar = () => {
     return (
         <>
             <nav>
-                <div className='absolute p-8 w-screen  flex justify-between items-center py-4 bg-white/10 backdrop-blur-lg border-b border-white/20 shadow-lg z-50 '>
+                <div className='fixed top-0 p-8 w-full  flex justify-between items-center py-4 bg-white/40 backdrop-blur-lg border-b border-white/20 shadow-lg z-50 '>
                     {/* logo section */}
-                    <Link to={user ? (isSeller ? "/Seller" : isAdmin ? "/Admin" : "/") : "/"} className='text-2xl flex items-center gap-2 font-bold uppercase'>
+                    <Link to={user ? (isSeller ? "/Seller" : isAdmin ? "/Admin" : "/") : "/"} className='text-2xl flex items-center gap-2 font-bold uppercase order-1'>
                         <SiSnapcraft />
                         <p>Artist</p>
                         <p className='text-secondary '>Point</p>
                     </Link>
                     {/* menu section - Role-based navigation */}
-                    <div className='hidden md:block'>
+                    <div className='hidden md:block order-2'>
                         <ul className='flex items-center gap-6 text-black'>
                             {!user ? (
                                 // Not logged in - show public menu
@@ -110,7 +110,7 @@ const Navbar = () => {
                         </ul>
                     </div>
                     {/* icons section */}
-                    <div className='flex items-center gap-4'>
+                    <div className='flex items-center gap-4 order-3'>
                         {/* icons section */}
                         <div className="flex items-center gap-4 relative">
                             {/* Search button */}
@@ -165,7 +165,7 @@ const Navbar = () => {
                             </button>
                             {/* User menu - Hamburger for buyers, icon for sellers/admins */}
                             {user ? (
-                                <div className="flex items-center gap-2 relative user-menu-container">
+                                <div className="flex items-center gap-2 relative user-menu-container order-4">
                                     {isBuyer ? (
                                         <>
                                             {/* Hamburger menu for buyers */}

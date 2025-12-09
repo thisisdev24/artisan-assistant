@@ -19,6 +19,6 @@ const VectorIndexEventSchema = new Schema({
 }, { timestamps: false });
 
 VectorIndexEventSchema.index({ "faiss.operation": 1 });
-VectorIndexEventSchema.add({ base: BaseEvent });
+VectorIndexEventSchema.add(BaseEvent);
 
 module.exports = VectorIndexEventSchema;

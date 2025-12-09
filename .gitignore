@@ -55,5 +55,3 @@ docker-compose.override.yml
 *.log
 secrets/
 data/
-
-test/

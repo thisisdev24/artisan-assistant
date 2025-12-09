@@ -114,7 +114,7 @@ async function uploadBuffer(buffer, destPath, contentType = 'image/jpeg', tryMak
 /**
  * Return a public URL (works if bucket is publicly readable).
  */
-function getPublicUrl(destPath) {
+async function getPublicUrl(destPath) {
   const p = destPath.startsWith('/') ? destPath.substring(1) : destPath;
   return `https://storage.googleapis.com/${BUCKET_NAME}/${encodeURI(p)}`;
 }
