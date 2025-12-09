@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import apiClient from "../utils/apiClient"; // Use apiClient for auth requests
-
+import Placeholder from "../assets/Placeholder.png";
 
 const LIMIT = 32;
 
@@ -136,8 +136,7 @@ const ShowListingPublic = () => {
                 >
                   <img
                     src={
-                      product.imageUrl ||
-                      (product.images && product.images[0] && (product.images[0].thumb || product.images[0].large))
+                      product.imageUrl || Placeholder
                     }
                     alt={product.title}
                     className="w-full h-56 object-cover rounded-lg mb-4"
@@ -184,7 +183,7 @@ const ShowListingPublic = () => {
 
                   <div className="flex justify-between items-center mt-auto">
                     <span className="text-indigo-600 font-bold text-lg">
-                      ₹{Math.floor(product.price * 80)}
+                      ₹{Math.round(product.price)}
                     </span>
                     <button
                       onClick={() => navigate(`/products/${product._id}`)}

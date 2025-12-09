@@ -88,7 +88,7 @@ const CartPage = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-semibold text-indigo-600">
-                        {formatCurrency(Math.floor(item.price * 80) * item.quantity)}
+                        {formatCurrency(item.price * item.quantity)}
                       </p>
                       <p className="text-sm text-gray-400">{formatCurrency(item.price)} each</p>
                     </div>

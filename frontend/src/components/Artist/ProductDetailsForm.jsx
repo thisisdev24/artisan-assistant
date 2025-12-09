@@ -126,7 +126,7 @@ const ProductDetailsForm = () => {
               <strong>Title:</strong> {listing.title}
             </p>
             <p className="text-blue-700">
-              <strong>Price:</strong> ${listing.price}
+              <strong>Price:</strong> ₹{listing.price}
             </p>
 
             {/* Suggested colors (if any) */}

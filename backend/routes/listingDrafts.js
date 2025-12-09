@@ -9,7 +9,7 @@ const {
   createLargeThumbnailBuffer,
   createHighResThumbnailBuffer,
 } = require("../utils/image");
-const { uploadBuffer, getSignedReadUrl } = require("../utils/gcs");
+const { uploadBuffer, getPublicUrl } = require("../utils/gcs");
 const path = require("path");
 const axios = require("axios");
 const crypto = require("crypto");
@@ -47,7 +47,7 @@ router.post("/draft", async (req, res) => {
         .json({ error: "validation", message: "title and price required" });
     }
 
-    const numericPrice = Math.floor(Number(price) / 80);
+    const numericPrice = Number(price);
     if (Number.isNaN(numericPrice)) {
       return res
         .status(400)
@@ -61,7 +61,7 @@ router.post("/draft", async (req, res) => {
 
     const list = await Listing.create({
       main_category: main_category || "Handmade",
-      title,
+      title: title,
       subtitle: subtitle || "",
       description: description || "",
       features: Array.isArray(features)
@@ -144,18 +144,9 @@ router.post("/:id/images", upload.array("images", 6), async (req, res) => {
       const highResThumbKey = key.replace(/(\.[^.]+)$/, "_thumb$3");
       await uploadBuffer(highResThumbnailBuf, highResThumbKey, "image/jpeg");
 
-      const thumbnailUrl = await getSignedReadUrl(
-        thumbKey,
-        24 * 60 * 60 * 1000
-      );
-      const largeThumbnailUrl = await getSignedReadUrl(
-        largeThumbKey,
-        24 * 60 * 60 * 1000
-      );
-      const highResThumbnailUrl = await getSignedReadUrl(
-        highResThumbKey,
-        24 * 60 * 60 * 1000
-      );
+      const thumbnailUrl = await getPublicUrl(thumbKey);
+      const largeThumbnailUrl = await getPublicUrl(largeThumbKey);
+      const highResThumbnailUrl = await getPublicUrl(highResThumbKey);
 
       imagesMeta.push({
         thumb: thumbnailUrl,
@@ -168,10 +159,6 @@ router.post("/:id/images", upload.array("images", 6), async (req, res) => {
     // push images into listing.images, set imageUrl if not set
     listing.images = listing.images || [];
     listing.images.push(...imagesMeta);
-    if (!listing.imageUrl && imagesMeta.length > 0) {
-      listing.imageUrl =
-        imagesMeta[0].large || imagesMeta[0].hi_res || imagesMeta[0].thumb;
-    }
 
     await listing.save();
 
