@@ -26,6 +26,7 @@ import RecentlyViewed from './pages/RecentlyViewed';
 import EditProduct from './pages/EditProduct';
 import SellerOrders from './pages/SellerOrders';
 import SellerProfile from './pages/SellerProfile';
+import SellerProfile from './pages/SellerProfile';
 
 import { LoggerProvider } from './utils/logger/loggerProvider.jsx';
 // import Products from "./pages/Products";
@@ -52,6 +53,7 @@ function App() {
             <Route path="/products/:id" element={<ProductDetail />} />
             <Route path="/ShowListingPublic" element={<ShowListingPublic />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/artists" element={<Artists />} />
             <Route path="/artists" element={<Artists />} />
 
             {/* Protected Routes */}

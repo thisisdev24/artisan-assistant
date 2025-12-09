@@ -19,6 +19,6 @@ const SearchEventSchema = new Schema({
 }, { timestamps: false });
 
 SearchEventSchema.index({ "search.query": 1 });
-SearchEventSchema.add({ base: BaseEvent });
+SearchEventSchema.add(BaseEvent);
 
 module.exports = SearchEventSchema;

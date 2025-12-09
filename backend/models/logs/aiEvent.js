@@ -16,6 +16,6 @@ const AIEventSchema = new Schema({
 }, { timestamps: false });
 
 AIEventSchema.index({ "ai.model_name": 1 });
-AIEventSchema.add({ base: BaseEvent });
+AIEventSchema.add(BaseEvent);
 
 module.exports = AIEventSchema;
