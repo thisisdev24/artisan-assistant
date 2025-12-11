@@ -23,6 +23,7 @@ import CartPage from "./pages/CartPage";
 import Checkout from "./pages/Checkout";
 import Artists from "./pages/Artists";
 import Admin from "./components/Admin/Admin";
+import AdminAnalytics from "./components/Admin/AdminAnalytics";
 import ProtectedRoute from "./components/ProtectedRoute";
 import MyWishlist from "./pages/MyWishlist";
 import RecentlyViewed from "./pages/RecentlyViewed";
@@ -153,6 +154,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <Admin />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/analytics"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AdminAnalytics />
                 </ProtectedRoute>
               }
             />

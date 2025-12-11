@@ -55,3 +55,4 @@ docker-compose.override.yml
 *.log
 secrets/
 data/
+performance_metrics/
