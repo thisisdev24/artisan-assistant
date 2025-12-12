@@ -329,7 +329,7 @@ const ProductDetail = () => {
                   ))}
                 </ul>
               )}
-
+ 
               {/* Description */}
               <div className="mt-6 text-gray-700 leading-relaxed whitespace-pre-line max-w-prose">
                 {typeof product.description === "string" ? product.description : (Array.isArray(product.description) ? product.description.join("\n\n") : "")}
