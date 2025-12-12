@@ -21,6 +21,6 @@ const EmbeddingEventSchema = new Schema({
 
 /* indexes that help debugging by entity */
 EmbeddingEventSchema.index({ "embedding.entity_type": 1, "embedding.entity_id": 1 });
-EmbeddingEventSchema.add(BaseEvent);
+EmbeddingEventSchema.add({ base: BaseEvent });
 
 module.exports = EmbeddingEventSchema;

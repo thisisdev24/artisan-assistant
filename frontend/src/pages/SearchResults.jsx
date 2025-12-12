@@ -197,7 +197,7 @@ const SearchResults = () => {
               </button>
               <h3 className="font-semibold">{item.title}</h3>
               <p className="text-sm text-gray-600 line-clamp-3">{item.description}</p>
-              <div className="mt-2 font-bold text-indigo-600">₹{Math.round(item.price * 85) ?? "—"}</div>
+              <div className="mt-2 font-bold text-indigo-600">₹{Math.floor(item.price * 80) ?? "—"}</div>
               {typeof item.score !== "undefined" && <div className="text-xs text-gray-500 mt-1">score: {item.score.toFixed(3)}</div>}
               <button
                 onClick={() => navigate(`/products/${item._id || item.listing_id}`)}

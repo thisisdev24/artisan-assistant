@@ -19,6 +19,6 @@ const BackgroundJobEventSchema = new Schema({
 }, { timestamps: false });
 
 BackgroundJobEventSchema.index({ "job.job_id": 1 });
-BackgroundJobEventSchema.add(BaseEvent);
+BackgroundJobEventSchema.add({ base: BaseEvent });
 
 module.exports = BackgroundJobEventSchema;

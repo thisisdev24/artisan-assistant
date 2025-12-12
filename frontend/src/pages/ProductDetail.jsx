@@ -121,8 +121,8 @@ const ProductDetail = () => {
     if (product.imageUrl) images.push(product.imageUrl);
     if (product.images && Array.isArray(product.images)) {
       product.images.forEach((img) => {
-        if (img.hi_res && !images.includes(img.hi_res)) images.push(img.hi_res);
-        else if (img.large && !images.includes(img.large)) images.push(img.large);
+        if (img.large && !images.includes(img.large)) images.push(img.large);
+        if (img.thumb && !images.includes(img.thumb)) images.push(img.thumb);
       });
     }
     return images;
@@ -214,7 +214,7 @@ const ProductDetail = () => {
   }
 
   const images = allImages();
-  const mainImage = selectedImage || images[0] || "./Placeholder.png";
+  const mainImage = selectedImage || images[0] || "/placeholder.svg";
 
   // rating visualization
   const avg = Number(product.average_rating || 0);

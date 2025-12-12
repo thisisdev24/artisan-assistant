@@ -18,7 +18,6 @@ const ProductDetailsForm = () => {
   // color auto-fill: detected_colors from server and chosen main color
   const [detectedColors, setDetectedColors] = useState([]); // array of {hex, percentage, name, source_image}
   const [mainColor, setMainColor] = useState(""); // hex
-  const [clipTags, setClipTags] = useState([]); // array of per-image tag objects from ML
 
   useEffect(() => {
     // Fetch draft listing details to show preview
@@ -46,15 +45,6 @@ const ProductDetailsForm = () => {
             setMainColor(res.data.suggested_main_color);
           } else if (!mainColor) {
             setMainColor(res.data.detected_colors[0].hex);
-          }
-
-          // seed clip tags if server provided them
-          if (res.data && (res.data.clip_tags || res.data.clipTags)) {
-            // backend stores as "clip_tags" (snake_case) from listingDrafts.js
-            const tags = res.data.clip_tags || res.data.clipTags;
-            if (Array.isArray(tags)) {
-              setClipTags(tags);
-            }
           }
         }
       } catch (err) {
@@ -126,7 +116,7 @@ const ProductDetailsForm = () => {
               <strong>Title:</strong> {listing.title}
             </p>
             <p className="text-blue-700">
-              <strong>Price:</strong> ₹{listing.price}
+              <strong>Price:</strong> ${listing.price}
             </p>
 
             {/* Suggested colors (if any) */}
@@ -157,125 +147,6 @@ const ProductDetailsForm = () => {
                       style={{ background: mainColor || "#ffffff" }}
                     />
                   </div>
-                </div>
-              </div>
-            )}
-
-            {/* CLIP Tag Suggestions (materials / styles / colors / occasions) */}
-            {clipTags && clipTags.length > 0 && (
-              <div className="mt-4 p-4 bg-white rounded-lg border border-blue-100">
-                <h4 className="font-semibold text-blue-800 mb-2">
-                  Auto-suggested tags (from image analysis)
-                </h4>
-                <div className="space-y-4">
-                  {clipTags.map((t, idx) => (
-                    <div key={idx} className="flex gap-4 items-start">
-                      {/* show small thumbnail or icon for the image if available */}
-                      <div className="w-16 h-16 rounded-md overflow-hidden border">
-                        <img
-                          src={t.image}
-                          alt={`img-${idx}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-
-                      <div className="flex-1">
-                        <div className="text-sm text-gray-600 mb-1">
-                          Image suggestions
-                        </div>
-
-                        {/* Materials */}
-                        {t.materials && t.materials.length > 0 && (
-                          <div className="mb-1">
-                            <div className="text-xs text-gray-500 mb-1">
-                              Materials
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {t.materials.map((m, mi) => (
-                                <button
-                                  key={mi}
-                                  type="button"
-                                  className="text-xs px-2 py-1 rounded bg-blue-50 border text-blue-700"
-                                  title={`score ${m.score.toFixed(3)}`}
-                                >
-                                  {m.label}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Styles */}
-                        {t.styles && t.styles.length > 0 && (
-                          <div className="mb-1">
-                            <div className="text-xs text-gray-500 mb-1">
-                              Styles
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {t.styles.map((s, si) => (
-                                <button
-                                  key={si}
-                                  type="button"
-                                  className="text-xs px-2 py-1 rounded bg-green-50 border text-green-700"
-                                  title={`score ${s.score.toFixed(3)}`}
-                                >
-                                  {s.label}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Merged Colors (canonical) */}
-                        {t.merged_colors && t.merged_colors.length > 0 && (
-                          <div className="mb-1">
-                            <div className="text-xs text-gray-500 mb-1">
-                              Colors
-                            </div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {t.merged_colors.map((c, ci) => (
-                                <div
-                                  key={ci}
-                                  className="flex items-center gap-2 px-2 py-1 rounded border"
-                                >
-                                  <div
-                                    className="w-6 h-6 rounded-sm border"
-                                    style={{
-                                      background: c.startsWith("#")
-                                        ? c
-                                        : undefined,
-                                    }}
-                                  />
-                                  <span className="text-xs">{c}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Occasions */}
-                        {t.occasions && t.occasions.length > 0 && (
-                          <div className="mb-1">
-                            <div className="text-xs text-gray-500 mb-1">
-                              Occasions
-                            </div>
-                            <div className="flex gap-2 flex-wrap">
-                              {t.occasions.map((o, oi) => (
-                                <button
-                                  key={oi}
-                                  type="button"
-                                  className="text-xs px-2 py-1 rounded bg-yellow-50 border text-yellow-700"
-                                  title={`score ${o.score.toFixed(3)}`}
-                                >
-                                  {o.label}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </div>
             )}

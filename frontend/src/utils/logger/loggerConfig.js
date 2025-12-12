@@ -4,5 +4,5 @@ export default {
   BATCH_SIZE: 25,
   FLUSH_INTERVAL_MS: 2000,
   ENABLE_OFFLINE_PERSIST: true,
-  INTERACTION_SAMPLE_RATE: 1.0,  // Set to 0.02 for production (2% sampling)
+  INTERACTION_SAMPLE_RATE: 0.02,
 };

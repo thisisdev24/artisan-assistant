@@ -162,11 +162,11 @@ const CreateListing = () => {
 
         <div className="mb-5">
           <label className="block text-gray-700 mb-2">Title</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value.trim())} placeholder="Enter product title" className="w-full px-4 py-2 border rounded-lg" />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Enter product title" className="w-full px-4 py-2 border rounded-lg" />
         </div>
 
         <div className="mb-5">
-          <label className="block text-gray-700 mb-2">Price (in ₹)</label>
+          <label className="block text-gray-700 mb-2">Price</label>
           <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Enter product price" className="w-full px-4 py-2 border rounded-lg" />
         </div>
         <div className="mb-5">
