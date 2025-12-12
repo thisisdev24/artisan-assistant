@@ -169,7 +169,7 @@ const MyWishlist = () => {
                                     )}
                                     <div className="flex items-center justify-between mb-4">
                                         <div>
-                                            <p className="text-2xl font-bold text-indigo-600">₹{Math.floor(item.price * 80).toLocaleString() || '0'}</p>
+                                            <p className="text-2xl font-bold text-indigo-600">₹{Math.round(item.price)?.toLocaleString() || '0'}</p>
                                             {item.store && (
                                                 <p className="text-xs text-gray-500 mt-1">by {item.store}</p>
                                             )}
