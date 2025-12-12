@@ -1,33 +1,37 @@
-import React from 'react';
-import Navbar from './components/Navbar/Navbar';
+import React from "react";
+import Navbar from "./components/Navbar/Navbar";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Link } from "react-router-dom";
+
+// Auto-logging - captures page views, clicks, errors, performance automatically
+import "./utils/logger";
 
 // Import pages from "pages" folder
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Hero from './components/hero/Hero';
-import Seller from './components/Artist/Seller'
-import CreateListing from './components/Artist/CreateListing';
-import ProductDetailsForm from './components/Artist/ProductDetailsForm';
-import ShowListing from './components/Artist/ShowListing';
-import SearchResults from './pages/SearchResults';
-import ShowListingPublic from './pages/ShowListingPublic';
+import Hero from "./components/hero/Hero";
+import Seller from "./components/Artist/Seller";
+import CreateListing from "./components/Artist/CreateListing";
+import ProductDetailsForm from "./components/Artist/ProductDetailsForm";
+import ShowListing from "./components/Artist/ShowListing";
+import SearchResults from "./pages/SearchResults";
+import ShowListingPublic from "./pages/ShowListingPublic";
 import ProductDetail from "./pages/ProductDetail";
 import Profile from "./pages/Profile";
-import CartPage from './pages/CartPage';
-import Checkout from './pages/Checkout';
+import CartPage from "./pages/CartPage";
+import Checkout from "./pages/Checkout";
 import Artists from "./pages/Artists";
-import Admin from './components/Admin/Admin';
-import ProtectedRoute from './components/ProtectedRoute';
-import MyWishlist from './pages/MyWishlist';
-import RecentlyViewed from './pages/RecentlyViewed';
-import EditProduct from './pages/EditProduct';
-import SellerOrders from './pages/SellerOrders';
-import SellerProfile from './pages/SellerProfile';
+import Admin from "./components/Admin/Admin";
+import AdminAnalytics from "./components/Admin/AdminAnalytics";
+import ProtectedRoute from "./components/ProtectedRoute";
+import MyWishlist from "./pages/MyWishlist";
+import RecentlyViewed from "./pages/RecentlyViewed";
+import EditProduct from "./pages/EditProduct";
+import SellerOrders from "./pages/SellerOrders";
+import SellerProfile from "./pages/SellerProfile";
 
-import { LoggerProvider } from './utils/logger/loggerProvider.jsx';
+import { LoggerProvider } from "./utils/logger/loggerProvider.jsx";
 // import Products from "./pages/Products";
 // import Artists from "./pages/Artists";
 // import Shorts from "./pages/Shorts";
@@ -53,12 +57,13 @@ function App() {
             <Route path="/ShowListingPublic" element={<ShowListingPublic />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/artists" element={<Artists />} />
+            <Route path="/artists" element={<Artists />} />
 
             {/* Protected Routes */}
             <Route
               path="/Seller"
               element={
-                <ProtectedRoute allowedRoles={['seller']}>
+                <ProtectedRoute allowedRoles={["seller"]}>
                   <Seller />
                 </ProtectedRoute>
               }
@@ -66,7 +71,7 @@ function App() {
             <Route
               path="/CreateListing"
               element={
-                <ProtectedRoute allowedRoles={['seller']}>
+                <ProtectedRoute allowedRoles={["seller"]}>
                   <CreateListing />
                 </ProtectedRoute>
               }
@@ -74,7 +79,7 @@ function App() {
             <Route
               path="/product-details/:id"
               element={
-                <ProtectedRoute allowedRoles={['seller']}>
+                <ProtectedRoute allowedRoles={["seller"]}>
                   <ProductDetailsForm />
                 </ProtectedRoute>
               }
@@ -82,7 +87,7 @@ function App() {
             <Route
               path="/ShowListing"
               element={
-                <ProtectedRoute allowedRoles={['seller']}>
+                <ProtectedRoute allowedRoles={["seller"]}>
                   <ShowListing />
                 </ProtectedRoute>
               }
@@ -90,7 +95,7 @@ function App() {
             <Route
               path="/seller/edit-product/:id"
               element={
-                <ProtectedRoute allowedRoles={['seller']}>
+                <ProtectedRoute allowedRoles={["seller"]}>
                   <EditProduct />
                 </ProtectedRoute>
               }
@@ -98,7 +103,7 @@ function App() {
             <Route
               path="/seller/orders"
               element={
-                <ProtectedRoute allowedRoles={['seller']}>
+                <ProtectedRoute allowedRoles={["seller"]}>
                   <SellerOrders />
                 </ProtectedRoute>
               }
@@ -106,7 +111,7 @@ function App() {
             <Route
               path="/seller/profile"
               element={
-                <ProtectedRoute allowedRoles={['seller']}>
+                <ProtectedRoute allowedRoles={["seller"]}>
                   <SellerProfile />
                 </ProtectedRoute>
               }
@@ -114,7 +119,7 @@ function App() {
             <Route
               path="/cart"
               element={
-                <ProtectedRoute allowedRoles={['buyer']}>
+                <ProtectedRoute allowedRoles={["buyer"]}>
                   <CartPage />
                 </ProtectedRoute>
               }
@@ -122,7 +127,7 @@ function App() {
             <Route
               path="/checkout"
               element={
-                <ProtectedRoute allowedRoles={['buyer']}>
+                <ProtectedRoute allowedRoles={["buyer"]}>
                   <Checkout />
                 </ProtectedRoute>
               }
@@ -130,7 +135,7 @@ function App() {
             <Route
               path="/profile"
               element={
-                <ProtectedRoute allowedRoles={['buyer']}>
+                <ProtectedRoute allowedRoles={["buyer"]}>
                   <Profile />
                 </ProtectedRoute>
               }
@@ -138,20 +143,25 @@ function App() {
             <Route
               path="/my-wishlist"
               element={
-                <ProtectedRoute allowedRoles={['buyer']}>
+                <ProtectedRoute allowedRoles={["buyer"]}>
                   <MyWishlist />
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/recently-viewed"
-              element={<RecentlyViewed />}
-            />
+            <Route path="/recently-viewed" element={<RecentlyViewed />} />
             <Route
               path="/Admin"
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={["admin"]}>
                   <Admin />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/analytics"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AdminAnalytics />
                 </ProtectedRoute>
               }
             />

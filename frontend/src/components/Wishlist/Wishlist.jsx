@@ -124,7 +124,7 @@ const Wishlist = ({ onUpdate }) => {
                         >
                             {item.title}
                         </h3>
-                        <p className="text-2xl font-bold text-indigo-600 mb-3">₹{item.price?.toLocaleString() || '0'}</p>
+                        <p className="text-2xl font-bold text-indigo-600 mb-3">₹{Math.round(item.price?.toLocaleString()) || '0'}</p>
                         <div className="flex gap-2">
                             <button
                                 onClick={() => navigate(`/product/${item._id}`)}

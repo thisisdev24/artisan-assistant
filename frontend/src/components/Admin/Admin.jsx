@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import apiClient from '../../utils/apiClient';
 
@@ -132,8 +133,8 @@ const Admin = () => {
                     <button
                         onClick={() => setActiveTab('stats')}
                         className={`px-4 py-2 font-semibold ${activeTab === 'stats'
-                                ? 'border-b-2 border-indigo-600 text-indigo-600'
-                                : 'text-gray-600 hover:text-gray-900'
+                            ? 'border-b-2 border-indigo-600 text-indigo-600'
+                            : 'text-gray-600 hover:text-gray-900'
                             }`}
                     >
                         Statistics
@@ -141,8 +142,8 @@ const Admin = () => {
                     <button
                         onClick={() => setActiveTab('users')}
                         className={`px-4 py-2 font-semibold ${activeTab === 'users'
-                                ? 'border-b-2 border-indigo-600 text-indigo-600'
-                                : 'text-gray-600 hover:text-gray-900'
+                            ? 'border-b-2 border-indigo-600 text-indigo-600'
+                            : 'text-gray-600 hover:text-gray-900'
                             }`}
                     >
                         Users
@@ -150,8 +151,8 @@ const Admin = () => {
                     <button
                         onClick={() => setActiveTab('sellers')}
                         className={`px-4 py-2 font-semibold ${activeTab === 'sellers'
-                                ? 'border-b-2 border-indigo-600 text-indigo-600'
-                                : 'text-gray-600 hover:text-gray-900'
+                            ? 'border-b-2 border-indigo-600 text-indigo-600'
+                            : 'text-gray-600 hover:text-gray-900'
                             }`}
                     >
                         Sellers
@@ -159,12 +160,18 @@ const Admin = () => {
                     <button
                         onClick={() => setActiveTab('listings')}
                         className={`px-4 py-2 font-semibold ${activeTab === 'listings'
-                                ? 'border-b-2 border-indigo-600 text-indigo-600'
-                                : 'text-gray-600 hover:text-gray-900'
+                            ? 'border-b-2 border-indigo-600 text-indigo-600'
+                            : 'text-gray-600 hover:text-gray-900'
                             }`}
                     >
                         Listings
                     </button>
+                    <Link
+                        to="/admin/analytics"
+                        className="px-4 py-2 font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg"
+                    >
+                        📊 Analytics Dashboard
+                    </Link>
                 </div>
 
                 {/* Stats Tab */}
@@ -218,9 +225,9 @@ const Admin = () => {
                                                 <td className="px-6 py-4 whitespace-nowrap">{u.email}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <span className={`px-2 py-1 text-xs rounded-full ${u.status === 'active' ? 'bg-green-100 text-green-800' :
-                                                            u.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
-                                                                u.status === 'blocked' ? 'bg-red-100 text-red-800' :
-                                                                    'bg-yellow-100 text-yellow-800'
+                                                        u.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
+                                                            u.status === 'blocked' ? 'bg-red-100 text-red-800' :
+                                                                'bg-yellow-100 text-yellow-800'
                                                         }`}>
                                                         {u.status || 'active'}
                                                     </span>
@@ -240,8 +247,8 @@ const Admin = () => {
                                                         <button
                                                             onClick={() => blockUser(u._id, u.status !== 'blocked')}
                                                             className={`text-sm px-3 py-1 rounded ${u.status === 'blocked'
-                                                                    ? 'bg-green-500 text-white hover:bg-green-600'
-                                                                    : 'bg-orange-500 text-white hover:bg-orange-600'
+                                                                ? 'bg-green-500 text-white hover:bg-green-600'
+                                                                : 'bg-orange-500 text-white hover:bg-orange-600'
                                                                 }`}
                                                         >
                                                             {u.status === 'blocked' ? 'Unblock' : 'Block'}
@@ -294,9 +301,9 @@ const Admin = () => {
                                                 <td className="px-6 py-4 whitespace-nowrap">{s.store}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <span className={`px-2 py-1 text-xs rounded-full ${s.status === 'active' ? 'bg-green-100 text-green-800' :
-                                                            s.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
-                                                                s.status === 'blocked' ? 'bg-red-100 text-red-800' :
-                                                                    'bg-yellow-100 text-yellow-800'
+                                                        s.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
+                                                            s.status === 'blocked' ? 'bg-red-100 text-red-800' :
+                                                                'bg-yellow-100 text-yellow-800'
                                                         }`}>
                                                         {s.status || 'active'}
                                                     </span>
@@ -316,8 +323,8 @@ const Admin = () => {
                                                         <button
                                                             onClick={() => blockUser(s._id, s.status !== 'blocked')}
                                                             className={`text-sm px-3 py-1 rounded ${s.status === 'blocked'
-                                                                    ? 'bg-green-500 text-white hover:bg-green-600'
-                                                                    : 'bg-orange-500 text-white hover:bg-orange-600'
+                                                                ? 'bg-green-500 text-white hover:bg-green-600'
+                                                                : 'bg-orange-500 text-white hover:bg-orange-600'
                                                                 }`}
                                                         >
                                                             {s.status === 'blocked' ? 'Unblock' : 'Block'}

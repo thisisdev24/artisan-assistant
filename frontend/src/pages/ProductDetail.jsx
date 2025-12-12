@@ -121,8 +121,8 @@ const ProductDetail = () => {
     if (product.imageUrl) images.push(product.imageUrl);
     if (product.images && Array.isArray(product.images)) {
       product.images.forEach((img) => {
-        if (img.large && !images.includes(img.large)) images.push(img.large);
-        if (img.thumb && !images.includes(img.thumb)) images.push(img.thumb);
+        if (img.hi_res && !images.includes(img.hi_res)) images.push(img.hi_res);
+        else if (img.large && !images.includes(img.large)) images.push(img.large);
       });
     }
     return images;
@@ -214,7 +214,7 @@ const ProductDetail = () => {
   }
 
   const images = allImages();
-  const mainImage = selectedImage || images[0] || "/placeholder.svg";
+  const mainImage = selectedImage || images[0] || "./Placeholder.png";
 
   // rating visualization
   const avg = Number(product.average_rating || 0);
@@ -307,7 +307,7 @@ const ProductDetail = () => {
 
               {/* Price */}
               <div className="mt-6 flex items-center gap-6">
-                <div className="text-3xl lg:text-4xl font-extrabold text-indigo-600">₹{currency(Math.floor(product.price * 80))}</div>
+                <div className="text-3xl lg:text-4xl font-extrabold text-indigo-600">₹{currency(product.price)}</div>
                 {product.compareAt && (
                   <div className="text-sm text-gray-400 line-through">₹{currency(product.compareAt)}</div>
                 )}
@@ -329,7 +329,7 @@ const ProductDetail = () => {
                   ))}
                 </ul>
               )}
- 
+
               {/* Description */}
               <div className="mt-6 text-gray-700 leading-relaxed whitespace-pre-line max-w-prose">
                 {typeof product.description === "string" ? product.description : (Array.isArray(product.description) ? product.description.join("\n\n") : "")}
@@ -374,7 +374,7 @@ const ProductDetail = () => {
                     disabled={adding || product.stock === 0}
                     className={`flex-1 px-4 py-3 rounded-lg text-white font-semibold ${product.stock === 0 ? "bg-gray-300 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"}`}
                   >
-                    {adding ? "Adding..." : `Add to Cart • ₹${currency(Math.floor(product.price * 80) * qty)}`}
+                    {adding ? "Adding..." : `Add to Cart • ₹${currency(product.price * qty)}`}
                   </button>
 
                   <button
