@@ -17,6 +17,19 @@ function makeKey(filename) {
   return `images/${id}${ext}`;
 }
 
+function toArray(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val.map(String);
+  return String(val)
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+function makeRegex(val) {
+  return new RegExp(String(val).trim(), 'i');
+}
+
 // upload route (unchanged)
 router.post('/upload',
   upload.fields([{ name: 'images', maxCount: 6 }, { name: 'videos', maxCount: 6 }]),
@@ -94,7 +107,23 @@ router.post('/upload',
 // retrieve with pagination (keeps existing behaviour)
 router.get('/retrieve', async (req, res) => {
   try {
-    const { store: storeQuery, artisanId } = req.query;
+    const {
+      store: storeQuery,
+      artisanId,
+      category,
+      categories,
+      minPrice,
+      maxPrice,
+      material,
+      color,
+      origin,
+      craftStyle,
+      availability,
+      sustainability,
+      minRating,
+      minReviews,
+      sortBy
+    } = req.query;
     const pageNum = Math.max(1, parseInt(req.query.page, 10) || 1);
     const lim = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 30));
     const skip = (pageNum - 1) * lim;
@@ -108,12 +137,102 @@ router.get('/retrieve', async (req, res) => {
       storeName = artisan.store;
     }
 
-    const filter = storeName ? { store: storeName } : {};
+    const andFilters = [];
+    if (storeName) andFilters.push({ store: storeName });
+
+    const categoryList = toArray(categories || category);
+    if (categoryList.length) {
+      andFilters.push({
+        $or: [
+          { categories: { $in: categoryList } },
+          { main_category: { $in: categoryList } }
+        ]
+      });
+    }
+
+    const priceFilter = {};
+    if (!Number.isNaN(parseFloat(minPrice))) priceFilter.$gte = parseFloat(minPrice);
+    if (!Number.isNaN(parseFloat(maxPrice))) priceFilter.$lte = parseFloat(maxPrice);
+    if (Object.keys(priceFilter).length > 0) andFilters.push({ price: priceFilter });
+
+    if (material) {
+      const regex = makeRegex(material);
+      andFilters.push({
+        $or: [
+          { 'details.material': regex },
+          { features: { $elemMatch: { $regex: regex } } }
+        ]
+      });
+    }
+
+    if (color) {
+      const regex = makeRegex(color);
+      andFilters.push({
+        $or: [
+          { 'details.color': regex },
+          { 'detected_colors.name': regex }
+        ]
+      });
+    }
+
+    if (origin) {
+      const regex = makeRegex(origin);
+      andFilters.push({
+        $or: [
+          { 'details.origin': regex },
+          { 'details.location': regex },
+          { 'details.region': regex }
+        ]
+      });
+    }
+
+    if (craftStyle) {
+      const regex = makeRegex(craftStyle);
+      andFilters.push({ 'details.craft_style': regex });
+    }
+
+    if (availability === 'in_stock') {
+      andFilters.push({
+        $or: [
+          { stock_available: true },
+          { stock: { $gt: 0 } }
+        ]
+      });
+    }
+
+    if (sustainability === 'sustainable') {
+      andFilters.push({
+        $or: [
+          { 'details.sustainable': true },
+          { 'details.sustainability': { $regex: /sustain/i } }
+        ]
+      });
+    }
+
+    if (!Number.isNaN(parseFloat(minRating))) {
+      andFilters.push({ average_rating: { $gte: parseFloat(minRating) } });
+    }
+
+    if (!Number.isNaN(parseInt(minReviews, 10))) {
+      andFilters.push({ rating_number: { $gte: parseInt(minReviews, 10) } });
+    }
+
+    const filter = andFilters.length ? { $and: andFilters } : {};
+
+    const sortMap = {
+      price_asc: { price: 1 },
+      price_desc: { price: -1 },
+      rating_desc: { average_rating: -1, rating_number: -1 },
+      popularity: { rating_number: -1, average_rating: -1 },
+      relevance: { createdAt: -1 },
+      newest: { createdAt: -1 }
+    };
+    const sortOption = sortMap[sortBy] || sortMap.newest;
 
     try {
       const [docs, total] = await Promise.all([
         Listing.find(filter)
-          .sort({ createdAt: -1 })
+          .sort(sortOption)
           .skip(skip)
           .limit(lim)
           .select('title description price images average_rating rating_number createdAt')
