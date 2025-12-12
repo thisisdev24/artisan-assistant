@@ -307,7 +307,7 @@ const ProductDetail = () => {
 
               {/* Price */}
               <div className="mt-6 flex items-center gap-6">
-                <div className="text-3xl lg:text-4xl font-extrabold text-indigo-600">₹{currency(Math.floor(product.price * 80))}</div>
+                <div className="text-3xl lg:text-4xl font-extrabold text-indigo-600">₹{currency(product.price)}</div>
                 {product.compareAt && (
                   <div className="text-sm text-gray-400 line-through">₹{currency(product.compareAt)}</div>
                 )}
@@ -374,7 +374,7 @@ const ProductDetail = () => {
                     disabled={adding || product.stock === 0}
                     className={`flex-1 px-4 py-3 rounded-lg text-white font-semibold ${product.stock === 0 ? "bg-gray-300 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"}`}
                   >
-                    {adding ? "Adding..." : `Add to Cart • ₹${currency(Math.floor(product.price * 80) * qty)}`}
+                    {adding ? "Adding..." : `Add to Cart • ₹${currency(product.price * qty)}`}
                   </button>
 
                   <button
