@@ -1,7 +1,7 @@
 # ml/color_detector.py
 """
 Robust color extraction pipeline.
-Tries SAM (if installed + GPU) for foreground masks, falls back to rembg,
+Tries rembg,
 and finally a naive no-mask approach.
 
 Returns: list of dicts: { hex: "#rrggbb", percentage: 0.35, name: "blue", source_image: "<url>" }
@@ -11,7 +11,6 @@ import os
 import math
 import requests
 from typing import List, Dict, Optional, Tuple
-
 from PIL import Image, ImageStat
 import numpy as np
 from sklearn.cluster import KMeans
@@ -22,15 +21,6 @@ try:
     TORCH_AVAILABLE = True
 except Exception:
     TORCH_AVAILABLE = False
-
-# segment-anything is optional (SAM)
-SAM_AVAILABLE = False
-try:
-    # package name may differ; we try the one generally used in python repos
-    import segment_anything as sam
-    SAM_AVAILABLE = True
-except Exception:
-    SAM_AVAILABLE = False
 
 # rembg fallback
 REMBG_AVAILABLE = False
@@ -54,45 +44,7 @@ def pil_from_bytes(b: bytes) -> Image.Image:
     img = Image.open(io.BytesIO(b)).convert("RGBA")
     return img
 
-# Helper: get mask from SAM if available
-def mask_with_sam(pil_img: Image.Image, device: str = "cpu") -> Optional[np.ndarray]:
-    if not SAM_AVAILABLE or not TORCH_AVAILABLE:
-        return None
-    try:
-        # Minimal dynamic import usage to avoid hard dependency at install time
-        from segment_anything import SamAutomaticMaskGenerator, sam_model_registry
-
-        # Paths
-        self.ml_data_dir = "data"
-        os.makedirs(self.ml_data_dir, exist_ok=True)
-
-        # choose a default model; if user has custom weights they can set env var SAM_WEIGHTS
-        self.weight_path = os.path.join(self.ml_data_dir, "sam_vit_l_0b3195.pth")
-        sam_weights = os.environ.get(self.weight_path)
-        # choose model name consistent with segment-anything wrapper
-        model_type = os.environ.get("SAM_MODEL_TYPE", "vit_l")  # vit_h is heavy (GPU preferred)
-        # load model - this will be skipped if not present or no GPU
-        if sam_weights:
-            sam_model = sam_model_registry[model_type](checkpoint=sam_weights)
-        else:
-            # attempt to use registry w/o checkpoint (may fail)
-            sam_model = sam_model_registry[model_type](checkpoint=None)
-        if device == "cuda" and torch.cuda.is_available():
-            sam_model.to(device)
-        mask_gen = SamAutomaticMaskGenerator(sam_model)
-        # convert PIL->numpy RGB
-        arr = np.array(pil_img.convert("RGB"))
-        masks = mask_gen.generate(arr)
-        if not masks:
-            return None
-        # pick the largest mask by area
-        largest = max(masks, key=lambda m: m["area"])
-        mask = largest["segmentation"].astype(np.uint8)  # boolean mask
-        return mask
-    except Exception:
-        return None
-
-# Helper: rembg based alpha mask
+# rembg based alpha mask
 def mask_with_rembg(pil_img: Image.Image) -> Optional[np.ndarray]:
     if not REMBG_AVAILABLE:
         return None
@@ -154,44 +106,167 @@ def rgb_to_hex(rgb: Tuple[int,int,int]) -> str:
 
 # Map color to closest CSS3 name using webcolors if available; else return None
 # Robust color name mapping using webcolors when available.
+
+# Try to use skimage for Lab conversion (recommended). Fall back to simple RGB if unavailable.
+_SKIMAGE_AVAILABLE = False
+try:
+    from skimage.color import rgb2lab
+    import numpy as np
+    _SKIMAGE_AVAILABLE = True
+except Exception:
+    _SKIMAGE_AVAILABLE = False
+
+# Build HEX_TO_NAMES palette robustly (prefer webcolors if present).
 try:
     import webcolors
-
-    # webcolors exposes different maps depending on version. Build a hex->name map robustly.
-    if hasattr(webcolors, "CSS3_HEX_TO_NAMES") and isinstance(webcolors.CSS3_HEX_TO_NAMES, dict):
-        HEX_TO_NAMES = {k.lower(): v for k, v in webcolors.CSS3_HEX_TO_NAMES.items()}
+    # prefer CSS3 palette if available
+    names_to_hex = getattr(webcolors, "CSS3_NAMES_TO_HEX", None)
+    if not names_to_hex:
+        # older/newer webcolors may expose different maps; try CSS3_HEX_TO_NAMES -> reverse
+        if hasattr(webcolors, "CSS3_HEX_TO_NAMES"):
+            # reverse map
+            names_to_hex = {v: k for k, v in webcolors.CSS3_HEX_TO_NAMES.items()}
+        else:
+            # fallback to webcolors' generic dict (if exists)
+            names_to_hex = {}
+    # names_to_hex maps name -> hex (e.g., 'red' -> '#ff0000')
+    if isinstance(names_to_hex, dict) and len(names_to_hex) > 0:
+        HEX_TO_NAMES: Dict[str, str] = {v.lower(): k for k, v in names_to_hex.items()}
     else:
-        # reverse CSS3_NAMES_TO_HEX into hex -> name
-        names_to_hex = getattr(webcolors, "CSS3_NAMES_TO_HEX", {})
-        HEX_TO_NAMES = {v.lower(): k for k, v in names_to_hex.items()}
-
-    def nearest_color_name(hex_color):
-        try:
-            h = hex_color.lower()
-            # exact match first
-            if h in HEX_TO_NAMES:
-                return HEX_TO_NAMES[h]
-            # compute nearest by Euclidean distance in RGB
-            rgb = tuple(int(hex_color[i:i+2], 16) for i in (1, 3, 5))
-            min_dist = None
-            closest = None
-            for hexv, name in HEX_TO_NAMES.items():
-                crgb = tuple(int(hexv[i:i+2], 16) for i in (1, 3, 5))
-                dist = (rgb[0]-crgb[0])**2 + (rgb[1]-crgb[1])**2 + (rgb[2]-crgb[2])**2
-                if min_dist is None or dist < min_dist:
-                    min_dist = dist
-                    closest = name
-            return closest
-        except Exception:
-            return None
-
+        HEX_TO_NAMES = {}
 except Exception:
-    # webcolors not available — fallback to None-namer
-    webcolors = None
-    def nearest_color_name(hex_color):
-        return None
+    HEX_TO_NAMES = {}
 
-def process_image_url(url: str, top_k: int = 3, device: str = "cpu") -> List[Dict]:
+# Fallback small palette if webcolors not available or empty
+if not HEX_TO_NAMES:
+    # a compact but useful palette of common colour names (hex lowercased)
+    _FALLBACK_PALETTE = {
+        "#000000": "black",
+        "#ffffff": "white",
+        "#808080": "gray",
+        "#c0c0c0": "silver",
+        "#800000": "maroon",
+        "#ff0000": "red",
+        "#800080": "purple",
+        "#ffa500": "orange",
+        "#ffff00": "yellow",
+        "#008000": "green",
+        "#00ff00": "lime",
+        "#008080": "teal",
+        "#000080": "navy",
+        "#0000ff": "blue",
+        "#00ffff": "cyan",
+        "#ffc0cb": "pink",
+        "#a52a2a": "brown",
+        "#f5deb3": "wheat",
+        "#2f4f4f": "darkslategray",
+        "#b8860b": "darkgoldenrod",
+    }
+    HEX_TO_NAMES = {k: v for k, v in _FALLBACK_PALETTE.items()}
+
+    # Helper: hex -> RGB tuple (0-255)
+def _hex_to_rgb_tuple(hex_color: str) -> Tuple[int,int,int]:
+    h = hex_color.lstrip("#")
+    if len(h) == 3:
+        h = ''.join([c*2 for c in h])
+    return (int(h[0:2],16), int(h[2:4],16), int(h[4:6],16))
+
+# Precompute palette arrays for fast nearest lookup
+_PALETTE_HEX: List[str] = list(HEX_TO_NAMES.keys())
+_PALETTE_NAMES: List[str] = [HEX_TO_NAMES[h] for h in _PALETTE_HEX]
+
+if _SKIMAGE_AVAILABLE:
+    # build Nx3 Lab array from palette RGB (values 0-1 -> rgb2lab expects float in [0,1])
+    import numpy as np
+    palette_rgb = np.array([_hex_to_rgb_tuple(h) for h in _PALETTE_HEX], dtype=float) / 255.0
+    try:
+        PALETTE_LAB = rgb2lab(palette_rgb.reshape(-1,1,3)).reshape(-1,3)  # shape (N,3)
+    except Exception:
+        # fallback to manual conversion if rgb2lab fails
+        PALETTE_LAB = None
+else:
+    PALETTE_LAB = None
+
+def _rgb_tuple_to_lab(rgb: Tuple[int,int,int]) -> Tuple[float,float,float]:
+    """Convert 0-255 RGB tuple to Lab using skimage if available, else approximate by scaling."""
+    if _SKIMAGE_AVAILABLE and PALETTE_LAB is not None:
+        import numpy as np
+        arr = np.array(rgb, dtype=float) / 255.0
+        lab = rgb2lab(arr.reshape(1,1,3)).reshape(3,)
+        return float(lab[0]), float(lab[1]), float(lab[2])
+    else:
+        # fallback: approximate Lab by simple transform (less accurate). Still deterministic.
+        r, g, b = rgb
+        # convert to linearized sRGB
+        def _to_lin(c):
+            c = c / 255.0
+            return (c/12.92) if c <= 0.04045 else pow((c+0.055)/1.055, 2.4)
+        R, G, B = _to_lin(r), _to_lin(g), _to_lin(b)
+        # convert to XYZ
+        X = 0.4124564*R + 0.3575761*G + 0.1804375*B
+        Y = 0.2126729*R + 0.7151522*G + 0.0721750*B
+        Z = 0.0193339*R + 0.1191920*G + 0.9503041*B
+        # reference white D65
+        Xn, Yn, Zn = 0.95047, 1.00000, 1.08883
+        def f(t):
+            return pow(t, 1/3) if t > 0.008856 else (7.787 * t + 16/116)
+        L = 116 * f(Y/Yn) - 16
+        a = 500 * (f(X/Xn) - f(Y/Yn))
+        b = 200 * (f(Y/Yn) - f(Z/Zn))
+        return L, a, b
+
+def nearest_color_name(hex_color: str) -> str:
+    """
+    Returns the perceptually nearest color name (guaranteed non-empty).
+    Uses CIE76 (Euclidean in Lab) if skimage available, else a deterministic fallback.
+    """
+    try:
+        h = hex_color.lower()
+        if not h.startswith("#"):
+            h = "#" + h
+        # exact match
+        if h in HEX_TO_NAMES:
+            return HEX_TO_NAMES[h]
+        # compute Lab for input
+        rgb = _hex_to_rgb_tuple(h)
+        lab = _rgb_tuple_to_lab(rgb)
+        # if we have precomputed palette Lab, compute distances vectorized
+        best_idx = None
+        best_dist = None
+        if PALETTE_LAB is not None:
+            # numpy vectorized distance (fast)
+            import numpy as np
+            arr_lab = PALETTE_LAB  # shape (N,3)
+            dists = np.sqrt(np.sum((arr_lab - np.array(lab).reshape(1,3))**2, axis=1))
+            idx = int(np.argmin(dists))
+            best_idx = idx
+            best_dist = float(dists[idx])
+        else:
+            # fallback loop over palette using Lab computed per-entry
+            for idx, ph in enumerate(_PALETTE_HEX):
+                prgb = _hex_to_rgb_tuple(ph)
+                plab = _rgb_tuple_to_lab(prgb)
+                dist = (lab[0]-plab[0])**2 + (lab[1]-plab[1])**2 + (lab[2]-plab[2])**2
+                if best_idx is None or dist < best_dist:
+                    best_idx = idx
+                    best_dist = dist
+            if best_dist is not None:
+                best_dist = math.sqrt(best_dist)
+        # fallback if nothing found
+        if best_idx is None:
+            # return first palette name as ultimate fallback
+            return _PALETTE_NAMES[0]
+        return _PALETTE_NAMES[best_idx]
+    except Exception:
+        # ultimate safe fallback
+        try:
+            # try webcolors' hex_to_name if available
+            import webcolors as _wc
+            return _wc.hex_to_name(hex_color)
+        except Exception:
+            return _PALETTE_NAMES[0]
+
+def process_image_url(url: str, top_k: int, device: str) -> List[Dict]:
     """Process single image URL into list of colors with percentages."""
     data = download_image(url)
     if not data:
@@ -199,16 +274,9 @@ def process_image_url(url: str, top_k: int = 3, device: str = "cpu") -> List[Dic
     pil = pil_from_bytes(data)
 
     mask = None
-    # Prefer SAM (GPU) if available and running on cuda
-    if SAM_AVAILABLE and TORCH_AVAILABLE:
-        try:
-            device_try = device
-            mask = mask_with_sam(pil, device=device_try)
-        except Exception:
-            mask = None
 
-    # fallback rembg
-    if mask is None and REMBG_AVAILABLE:
+    # rembg
+    if REMBG_AVAILABLE:
         try:
             mask = mask_with_rembg(pil)
         except Exception:

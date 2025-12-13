@@ -20,3 +20,4 @@ webcolors
 opencv-python-headless
 rembg
 sentencepiece
+open_clip_torch

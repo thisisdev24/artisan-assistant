@@ -1,6 +1,6 @@
 # ml/debug_detect.py
-from color_detector import download_image, pil_from_bytes, SAM_AVAILABLE, REMBG_AVAILABLE, TORCH_AVAILABLE
-from color_detector import mask_with_sam, mask_with_rembg, naive_mask, process_image_url, extract_colors_from_pixels
+from color_detector import download_image, pil_from_bytes, REMBG_AVAILABLE, TORCH_AVAILABLE
+from color_detector import mask_with_rembg, naive_mask, process_image_url, extract_colors_from_pixels
 import sys, io, os
 from PIL import Image
 import numpy as np
@@ -8,7 +8,6 @@ import numpy as np
 def debug_url(url, device="cpu", top_k=3):
     print("URL:", url)
     print("Device requested:", device)
-    print("SAM available:", SAM_AVAILABLE)
     print("rembg available:", REMBG_AVAILABLE)
     print("torch available:", TORCH_AVAILABLE)
     b = download_image(url)
@@ -22,17 +21,6 @@ def debug_url(url, device="cpu", top_k=3):
         print("PIL open failed:", repr(e))
         return
     print("PIL image mode/size:", pil.mode, pil.size)
-
-    # Try SAM mask (if available)
-    m_sam = None
-    if SAM_AVAILABLE and TORCH_AVAILABLE:
-        try:
-            print("Trying SAM mask (may be slow)...")
-            m_sam = mask_with_sam(pil, device=device)
-            print("SAM mask type:", type(m_sam), "sum:", None if m_sam is None else int(np.array(m_sam).sum()))
-        except Exception as e:
-            print("SAM raised:", repr(e))
-            m_sam = None
 
     # Try rembg
     m_rembg = None

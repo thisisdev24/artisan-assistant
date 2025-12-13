@@ -47,6 +47,8 @@ const listingSchema = new mongoose.Schema({
   details: mongoose.Schema.Types.Mixed,
   // NEW: color detection auto-fill
   // detected_colors: array of objects { hex: "#rrggbb", percentage: 0.45, name: "red", source_image: "https://..." }
+    // NEW: color detection auto-fill
+  // detected_colors: array of objects { hex: "#rrggbb", percentage: 0.45, name: "red", source_image: "https://..." }
   detected_colors: [
     {
       hex: String,
@@ -58,6 +60,65 @@ const listingSchema = new mongoose.Schema({
 
   // suggested main color (top color hex) for quick form fill
   suggested_main_color: String,
+
+  /**
+   * CLIP zero-shot tagging results (auto-suggested labels per image).
+   * Stored as an array with one entry per image processed.
+   *
+   * Example shape:
+   * clip_tags: [
+   *   {
+   *     image: "https://.../listing_abc_0.jpg",
+   *     materials: [{ label: "cotton", score: 0.82 }, ...],
+   *     styles: [{ label: "traditional", score: 0.61 }, ...],
+   *     clip_colors: [{ label: "pastel", score: 0.4 }, ...],
+   *     merged_colors: ["#c3b5a3", "beige", "pastel"],
+   *     occasions: [{ label: "gift", score: 0.55 }, ...]
+   *   }, ...
+   * ]
+   */
+  clip_tags: [
+    {
+      image: String,
+      materials: [
+        {
+          label: String,
+          score: Number
+        }
+      ],
+      styles: [
+        {
+          label: String,
+          score: Number
+        }
+      ],
+      clip_colors: [
+        {
+          label: String,
+          score: Number
+        }
+      ],
+      // merged_colors contains canonical color tokens / hex (array of strings)
+      merged_colors: [String],
+      occasions: [
+        {
+          label: String,
+          score: Number
+        }
+      ]
+    }
+  ],
+
+  // Optional: consolidated suggested tags for the listing (deduped, for UI quick-fill)
+  suggested_tags: {
+    materials: [String],
+    styles: [String],
+    colors: [String],     // canonical colors (hex or token)
+    occasions: [String]
+  },
+
+  // ML metadata: keep track of when the tags were last updated
+  clip_tags_updated_at: Date,
   
   parent_asin: String,
   faiss_vector_id: Number,
