@@ -31,8 +31,13 @@ class FaissTextIndexer:
         db_name="test",
         collection_name="listings",
         data_dir="data",
-        mongo_uri="mongodb+srv://imdevkhare_db_user:Dev%401234@cluster0.vmp6708.mongodb.net/?appName=Cluster0"
+        mongo_uri=None
     ):
+        # SECURITY: Get MongoDB URI from environment variable
+        if mongo_uri is None:
+            mongo_uri = os.environ.get("MONGO_URI")
+            if not mongo_uri:
+                raise ValueError("MONGO_URI environment variable is required. Set it in your .env file.")
 
         # MongoDB
         self.client = MongoClient(mongo_uri)
@@ -435,11 +440,25 @@ class FaissTextIndexer:
 #                 MANUAL REBUILD
 # ==========================================================
 if __name__ == "__main__":
+    # Load environment variables from backend/.env
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(dotenv_path='../backend/.env')
+    except ImportError:
+        print("Note: python-dotenv not installed, using system environment variables only")
+    
+    # SECURITY: MongoDB URI must be set via environment variable
+    mongo_uri = os.environ.get("MONGO_URI")
+    if not mongo_uri:
+        print("ERROR: MONGO_URI environment variable is required.")
+        print("Set it in your .env file or export it in your shell.")
+        exit(1)
+    
     indexer = FaissTextIndexer(
-        db_name="test",
-        collection_name="listings",
+        db_name=os.environ.get("ML_DB", "test"),
+        collection_name=os.environ.get("ML_COLLECTION", "listings"),
         data_dir="data",
-        mongo_uri=os.environ.get("MONGO_URI", "mongodb+srv://imdevkhare_db_user:Dev%401234@cluster0.vmp6708.mongodb.net/?appName=Cluster0")
+        mongo_uri=mongo_uri
     )
 
     indexer.rebuild_index(batch_size=64)
