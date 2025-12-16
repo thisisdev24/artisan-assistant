@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import apiClient from "../utils/apiClient"; // Use apiClient for auth requests
@@ -16,12 +22,43 @@ const defaultFilters = {
   availability: "",
   // sustainability: "",
   minRating: "",
-  minReviews: ""
+  minReviews: "",
 };
 
-const categoryOptions = ["All", "Textiles", "Home Decor", "Jewelry", "Woodwork", "Ceramics", "Paintings", "Accessories"];
-const materialOptions = ["All", "Cotton", "Silk", "Wool", "Wood", "Metal", "Clay", "Glass", "Leather", "Bamboo"];
-const colorOptions = ["All", "Natural", "Red", "Blue", "Green", "Yellow", "Brown", "Black", "White", "Multicolor"];
+const categoryOptions = [
+  "All",
+  "Textiles",
+  "Home Decor",
+  "Jewelry",
+  "Woodwork",
+  "Ceramics",
+  "Paintings",
+  "Accessories",
+];
+const materialOptions = [
+  "All",
+  "Cotton",
+  "Silk",
+  "Wool",
+  "Wood",
+  "Metal",
+  "Clay",
+  "Glass",
+  "Leather",
+  "Bamboo",
+];
+const colorOptions = [
+  "All",
+  "Natural",
+  "Red",
+  "Blue",
+  "Green",
+  "Yellow",
+  "Brown",
+  "Black",
+  "White",
+  "Multicolor",
+];
 // const craftOptions = ["All", "Handloom", "Block Print", "Embroidery", "Weaving", "Pottery", "Carving", "Painting", "Beadwork"];
 // const originOptions = ["All", "India", "Rajasthan", "Gujarat", "Odisha", "Uttar Pradesh", "Karnataka", "Kerala", "West Bengal"];
 
@@ -64,14 +101,17 @@ const ShowListingPublic = () => {
       const params = {
         page: pageNum,
         limit: LIMIT,
-        sortBy
+        sortBy,
       };
 
-      if (filters.category && filters.category !== "All") params.category = filters.category;
+      if (filters.category && filters.category !== "All")
+        params.category = filters.category;
       if (filters.minPrice) params.minPrice = filters.minPrice;
       if (filters.maxPrice) params.maxPrice = filters.maxPrice;
-      if (filters.material && filters.material !== "All") params.material = filters.material;
-      if (filters.color && filters.color !== "All") params.color = filters.color;
+      if (filters.material && filters.material !== "All")
+        params.material = filters.material;
+      if (filters.color && filters.color !== "All")
+        params.color = filters.color;
       // if (filters.origin && filters.origin !== "All") params.origin = filters.origin;
       // if (filters.craftStyle && filters.craftStyle !== "All") params.craftStyle = filters.craftStyle;
       if (filters.availability) params.availability = filters.availability;
@@ -94,21 +134,33 @@ const ShowListingPublic = () => {
       }
       setErrorMsg(null);
       try {
-        const response = await axios.get("http://localhost:5000/api/listings/retrieve", {
-          params: buildParams(pageNum)
-        });
+        const response = await axios.get(
+          "http://localhost:5000/api/listings/retrieve",
+          {
+            params: buildParams(pageNum),
+          }
+        );
 
         const data = response.data;
         const results = data.results || data;
-        const tot = data.total !== undefined ? data.total : Array.isArray(results) ? results.length : 0;
+        const tot =
+          data.total !== undefined
+            ? data.total
+            : Array.isArray(results)
+            ? results.length
+            : 0;
 
-        setProducts(prev => (append ? [...prev, ...results] : results));
+        setProducts((prev) => (append ? [...prev, ...results] : results));
         setTotal(tot);
         setPage(data.page || pageNum);
         setHasMore(results.length === LIMIT && pageNum * LIMIT < tot);
       } catch (error) {
         console.error("Error fetching products:", error);
-        setErrorMsg(error?.response?.data?.message || error.message || "Failed to load products");
+        setErrorMsg(
+          error?.response?.data?.message ||
+            error.message ||
+            "Failed to load products"
+        );
       } finally {
         setLoading(false);
       }
@@ -136,7 +188,7 @@ const ShowListingPublic = () => {
     if (!token) return;
     try {
       const res = await apiClient.get("/api/wishlist");
-      const ids = new Set(res.data.map(item => item._id));
+      const ids = new Set(res.data.map((item) => item._id));
       setWishlistIds(ids);
     } catch (err) {
       console.error("Failed to fetch wishlist", err);
@@ -154,15 +206,17 @@ const ShowListingPublic = () => {
     const isInWishlist = wishlistIds.has(product._id);
     try {
       if (isInWishlist) {
-        await apiClient.post("/api/wishlist/remove", { listingId: product._id });
-        setWishlistIds(prev => {
+        await apiClient.post("/api/wishlist/remove", {
+          listingId: product._id,
+        });
+        setWishlistIds((prev) => {
           const next = new Set(prev);
           next.delete(product._id);
           return next;
         });
       } else {
         await apiClient.post("/api/wishlist/add", { listingId: product._id });
-        setWishlistIds(prev => {
+        setWishlistIds((prev) => {
           const next = new Set(prev);
           next.add(product._id);
           return next;
@@ -175,21 +229,21 @@ const ShowListingPublic = () => {
   };
 
   const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
   // NEW: Handler for price typing (does not trigger fetch)
   const handlePriceInputChange = (e, type) => {
-    setPriceInputs(prev => ({ ...prev, [type]: e.target.value }));
+    setPriceInputs((prev) => ({ ...prev, [type]: e.target.value }));
   };
 
   // NEW: Handler for 'Enter' key on price inputs
   const handlePriceKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      setFilters(prev => ({
+    if (e.key === "Enter") {
+      setFilters((prev) => ({
         ...prev,
         minPrice: priceInputs.min,
-        maxPrice: priceInputs.max
+        maxPrice: priceInputs.max,
       }));
     }
   };
@@ -207,7 +261,10 @@ const ShowListingPublic = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 100) {
+      if (
+        window.innerHeight + document.documentElement.scrollTop >=
+        document.documentElement.offsetHeight - 100
+      ) {
         loadMore();
       }
     };
@@ -216,7 +273,7 @@ const ShowListingPublic = () => {
   }, [loadMore]);
 
   const filterIsActive = useMemo(
-    () => Object.entries(filters).some(([key, value]) => value && value !== "All"),
+    () => Object.entries(filters).some(([value]) => value && value !== "All"),
     [filters]
   );
 
@@ -233,32 +290,52 @@ const ShowListingPublic = () => {
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 relative z-20">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">All Products</h1>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
+              All Products
+            </h1>
             <p className="text-gray-600 text-sm sm:text-base mt-1">
               Browse curated crafts and refine with filters in real time.
             </p>
           </div>
           <div className="flex items-center gap-3 relative">
-
             {/* NEW: Filter Dropdown Button */}
             <div className="relative" ref={filterRef}>
               <button
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium shadow-sm transition-colors
-                  ${isFilterOpen ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+                  ${
+                    isFilterOpen
+                      ? "bg-indigo-50 border-indigo-500 text-indigo-700"
+                      : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+                  }`}
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                  />
                 </svg>
                 <span>Filters</span>
-                {filterIsActive && <span className="inline-flex h-2 w-2 rounded-full bg-indigo-500" />}
+                {filterIsActive && (
+                  <span className="inline-flex h-2 w-2 rounded-full bg-indigo-500" />
+                )}
               </button>
 
               {/* NEW: Filter Dropdown Content */}
               {isFilterOpen && (
                 <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white rounded-xl shadow-xl border border-gray-100 p-5 z-50 animate-fade-in-down">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-gray-900">Refine Results</h3>
+                    <h3 className="font-semibold text-gray-900">
+                      Refine Results
+                    </h3>
                     <button
                       onClick={resetFilters}
                       className="text-xs font-medium text-indigo-600 hover:text-indigo-700 underline"
@@ -271,26 +348,34 @@ const ShowListingPublic = () => {
                   <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
                     {/* Category */}
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Category</label>
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                        Category
+                      </label>
                       <select
                         value={filters.category || "All"}
-                        onChange={(e) => handleFilterChange("category", e.target.value)}
+                        onChange={(e) =>
+                          handleFilterChange("category", e.target.value)
+                        }
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       >
-                        {categoryOptions.map(opt => (
-                          <option key={opt} value={opt === "All" ? "" : opt}>{opt}</option>
+                        {categoryOptions.map((opt) => (
+                          <option key={opt} value={opt === "All" ? "" : opt}>
+                            {opt}
+                          </option>
                         ))}
                       </select>
                     </div>
 
                     {/* Price - NEW: Uses priceInputs and handlePriceKeyDown */}
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Price Range (₹)</label>
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                        Price Range (₹)
+                      </label>
                       <div className="flex items-center gap-2">
                         <input
                           type="number"
                           value={priceInputs.min}
-                          onChange={(e) => handlePriceInputChange(e, 'min')}
+                          onChange={(e) => handlePriceInputChange(e, "min")}
                           onKeyDown={handlePriceKeyDown}
                           placeholder="Min"
                           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -299,49 +384,67 @@ const ShowListingPublic = () => {
                         <input
                           type="number"
                           value={priceInputs.max}
-                          onChange={(e) => handlePriceInputChange(e, 'max')}
+                          onChange={(e) => handlePriceInputChange(e, "max")}
                           onKeyDown={handlePriceKeyDown}
                           placeholder="Max"
                           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         />
                       </div>
-                      <p className="text-[10px] text-gray-400 mt-1">Press Enter to apply</p>
+                      <p className="text-[10px] text-gray-400 mt-1">
+                        Press Enter to apply
+                      </p>
                     </div>
 
                     {/* Material */}
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Material</label>
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                        Material
+                      </label>
                       <select
                         value={filters.material || "All"}
-                        onChange={(e) => handleFilterChange("material", e.target.value)}
+                        onChange={(e) =>
+                          handleFilterChange("material", e.target.value)
+                        }
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       >
-                        {materialOptions.map(opt => (
-                          <option key={opt} value={opt === "All" ? "" : opt}>{opt}</option>
+                        {materialOptions.map((opt) => (
+                          <option key={opt} value={opt === "All" ? "" : opt}>
+                            {opt}
+                          </option>
                         ))}
                       </select>
                     </div>
 
                     {/* Colour */}
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Colour</label>
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                        Colour
+                      </label>
                       <select
                         value={filters.color || "All"}
-                        onChange={(e) => handleFilterChange("color", e.target.value)}
+                        onChange={(e) =>
+                          handleFilterChange("color", e.target.value)
+                        }
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       >
-                        {colorOptions.map(opt => (
-                          <option key={opt} value={opt === "All" ? "" : opt}>{opt}</option>
+                        {colorOptions.map((opt) => (
+                          <option key={opt} value={opt === "All" ? "" : opt}>
+                            {opt}
+                          </option>
                         ))}
                       </select>
                     </div>
 
                     {/* Availability */}
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Availability</label>
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                        Availability
+                      </label>
                       <select
                         value={filters.availability}
-                        onChange={(e) => handleFilterChange("availability", e.target.value)}
+                        onChange={(e) =>
+                          handleFilterChange("availability", e.target.value)
+                        }
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       >
                         <option value="">Any</option>
@@ -352,25 +455,33 @@ const ShowListingPublic = () => {
                     {/* Ratings */}
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Rating</label>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                          Min Rating
+                        </label>
                         <input
                           type="number"
                           min="0"
                           max="5"
                           step="0.1"
                           value={filters.minRating}
-                          onChange={(e) => handleFilterChange("minRating", e.target.value)}
+                          onChange={(e) =>
+                            handleFilterChange("minRating", e.target.value)
+                          }
                           placeholder="e.g. 4"
                           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Reviews</label>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                          Min Reviews
+                        </label>
                         <input
                           type="number"
                           min="0"
                           value={filters.minReviews}
-                          onChange={(e) => handleFilterChange("minReviews", e.target.value)}
+                          onChange={(e) =>
+                            handleFilterChange("minReviews", e.target.value)
+                          }
                           placeholder="e.g. 10"
                           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         />
@@ -394,150 +505,12 @@ const ShowListingPublic = () => {
                 <option value="popularity">Popularity</option>
                 <option value="rating_desc">Highest Rated</option>
               </select>
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">▾</span>
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                ▾
+              </span>
             </div>
-
-            {/* OLD FILTER BUTTON (Commented out as it was hidden on desktop anyway) */}
-            {/* <button
-              className="sm:hidden inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium shadow-sm"
-              onClick={() => setIsFilterOpen(prev => !prev)}
-            >
-              <span>Filters</span>
-              {filterIsActive && <span className="inline-flex h-2 w-2 rounded-full bg-indigo-500" />}
-            </button> */}
           </div>
         </div>
-
-        {/* 
-            OLD LAYOUT (SIDEBAR + MAIN) 
-        */}
-        {/*
-        <div className="flex flex-col lg:flex-row gap-6">
-          <aside className="lg:w-72 shrink-0">
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
-                <button
-                  onClick={resetFilters}
-                  className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
-                  disabled={!filterIsActive}
-                >
-                  Reset
-                </button>
-              </div>
-
-              <div className={`${isFilterOpen ? "block" : "hidden"} lg:block space-y-4 mt-4`}>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                  <select
-                    value={filters.category || "All"}
-                    onChange={(e) => handleFilterChange("category", e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  >
-                    {categoryOptions.map(opt => (
-                      <option key={opt} value={opt === "All" ? "" : opt}>{opt}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Min Price</label>
-                    <input
-                      type="number"
-                      value={filters.minPrice}
-                      onChange={(e) => handleFilterChange("minPrice", e.target.value)}
-                      placeholder="₹"
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Max Price</label>
-                    <input
-                      type="number"
-                      value={filters.maxPrice}
-                      onChange={(e) => handleFilterChange("maxPrice", e.target.value)}
-                      placeholder="₹"
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Material</label>
-                  <select
-                    value={filters.material || "All"}
-                    onChange={(e) => handleFilterChange("material", e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  >
-                    {materialOptions.map(opt => (
-                      <option key={opt} value={opt === "All" ? "" : opt}>{opt}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Colour</label>
-                  <select
-                    value={filters.color || "All"}
-                    onChange={(e) => handleFilterChange("color", e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  >
-                    {colorOptions.map(opt => (
-                      <option key={opt} value={opt === "All" ? "" : opt}>{opt}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Availability</label>
-                    <select
-                      value={filters.availability}
-                      onChange={(e) => handleFilterChange("availability", e.target.value)}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                      <option value="">Any</option>
-                      <option value="in_stock">In Stock</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Minimum Rating</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="5"
-                      step="0.1"
-                      value={filters.minRating}
-                      onChange={(e) => handleFilterChange("minRating", e.target.value)}
-                      placeholder="e.g. 4"
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Min Reviews</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={filters.minReviews}
-                      onChange={(e) => handleFilterChange("minReviews", e.target.value)}
-                      placeholder="e.g. 10"
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </aside>
-
-          <main className="flex-1">
-             // ... Old product mapping ...
-          </main>
-        </div>
-        */}
 
         {/* 
             NEW LAYOUT (FULL WIDTH MAIN + DROPDOWN FILTERS ABOVE)
@@ -555,7 +528,9 @@ const ShowListingPublic = () => {
             </div>
           ) : products.length === 0 ? (
             <div className="text-center text-gray-600 mt-10 sm:mt-16">
-              <p className="text-xl font-medium">No products match these filters.</p>
+              <p className="text-xl font-medium">
+                No products match these filters.
+              </p>
               <button
                 onClick={resetFilters}
                 className="mt-4 bg-gray-800 hover:bg-gray-900 text-white px-5 py-2 rounded-lg text-sm font-semibold"
@@ -566,8 +541,14 @@ const ShowListingPublic = () => {
           ) : (
             <>
               <div className="flex justify-between items-center mb-4 text-sm text-gray-600">
-                <span>Showing {products.length} of {total} items</span>
-                {filterIsActive && <span className="text-indigo-600 font-medium">Filters applied</span>}
+                <span>
+                  Showing {products.length} of {total} items
+                </span>
+                {filterIsActive && (
+                  <span className="text-indigo-600 font-medium">
+                    Filters applied
+                  </span>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -580,7 +561,9 @@ const ShowListingPublic = () => {
                     <img
                       src={
                         product.imageUrl ||
-                        (product.images && product.images[0] && (product.images[0].thumb || product.images[0].large))
+                        (product.images &&
+                          product.images[0] &&
+                          (product.images[0].thumb || product.images[0].large))
                       }
                       alt={product.title}
                       loading="lazy"
@@ -590,11 +573,19 @@ const ShowListingPublic = () => {
                     <button
                       onClick={(e) => toggleWishlist(e, product)}
                       className="absolute top-4 right-4 p-2 bg-white/90 rounded-full shadow-sm hover:bg-white transition-colors"
-                      title={wishlistIds.has(product._id) ? "Remove from Wishlist" : "Add to Wishlist"}
+                      title={
+                        wishlistIds.has(product._id)
+                          ? "Remove from Wishlist"
+                          : "Add to Wishlist"
+                      }
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className={`h-6 w-6 ${wishlistIds.has(product._id) ? "text-red-500 fill-current" : "text-gray-400"}`}
+                        className={`h-6 w-6 ${
+                          wishlistIds.has(product._id)
+                            ? "text-red-500 fill-current"
+                            : "text-gray-400"
+                        }`}
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -617,19 +608,25 @@ const ShowListingPublic = () => {
                         ? product.description.length > 160
                           ? product.description.slice(0, 157) + "..."
                           : product.description
-                        : Array.isArray(product.description) && product.description.length > 0
-                          ? product.description[0]
-                          : ""}
+                        : Array.isArray(product.description) &&
+                          product.description.length > 0
+                        ? product.description[0]
+                        : ""}
                     </p>
 
                     <div className="flex items-center text-yellow-500 text-sm mb-3">
-                      ⭐ <span className="font-semibold ml-1">{product.average_rating || 0}</span>
-                      <span className="text-gray-500 ml-2">({product.rating_number || 0} reviews)</span>
+                      ⭐{" "}
+                      <span className="font-semibold ml-1">
+                        {product.average_rating || 0}
+                      </span>
+                      <span className="text-gray-500 ml-2">
+                        ({product.rating_number || 0} reviews)
+                      </span>
                     </div>
 
                     <div className="flex justify-between items-center mt-auto">
                       <span className="text-indigo-600 font-bold text-2xl">
-                        ₹{Math.floor(product.price * 80)}
+                        ₹{Math.round(product.price)}
                       </span>
                       <span className="text-xs px-2 py-1 rounded-full bg-indigo-50 text-indigo-700 font-semibold">
                         {product.main_category || "Handcrafted"}
