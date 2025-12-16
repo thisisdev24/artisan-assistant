@@ -8,6 +8,16 @@ export const NavbarMenu = [
     id: 2,
     title: "Products",
     link: "/ShowListingPublic",
+    children: [
+      {
+        title: "Paintings",
+        link: "/search?query=paintings",
+      },
+      {
+        title: "Handicrafts",
+        link: "/search?query=handicrafts",
+      }
+    ]
   },
   {
     id: 3,

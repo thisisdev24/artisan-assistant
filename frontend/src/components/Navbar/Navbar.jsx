@@ -16,6 +16,7 @@ const Navbar = () => {
   const [searchOpen, setSearchOpen] = React.useState(false); // for showing search input
   const [searchQuery, setSearchQuery] = React.useState(""); // for input value
   const [userMenuOpen, setUserMenuOpen] = React.useState(false); // for user dropdown menu
+  const [productsOpen, setProductsOpen] = React.useState(false); // <-- new state for Products hover dropdown
   const navigate = useNavigate();
 
   const { user, logout, isBuyer, isSeller, isAdmin } = useAuth();
@@ -55,8 +56,8 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="bg-white/40 backdrop-blur-lg border-b border-white/20 shadow-lg fixed w-full z-20 top-0 start-0 border-b border-default">
-        <div className="max-w-full flex flex-wrap items-center justify-between mx-auto p-4">
+      <nav className="bg-primary/10 backdrop-blur-lg border-b border-white/20 shadow-lg fixed w-full z-20 top-0 start-0 border-b border-default">
+        <div className="max-w-full flex flex-wrap items-center justify-between mx-auto p-4 select-none">
           {/* logo section */}
           <Link
             to={user ? (isSeller ? "/Seller" : isAdmin ? "/Admin" : "/") : "/"}
@@ -64,17 +65,50 @@ const Navbar = () => {
           >
             <SiSnapcraft />
             <p>Artist</p>
-            <p className="text-secondary ">Point</p>
+            <p className="text-primary ">Point</p>
           </Link>
           {/* menu section - Role-based navigation */}
-          <div className="items-center justify-between hidden w-full md:flex md:w-auto md:order-1">
-            <ul className="flex flex-col p-4 md:p-0 mt-4 font-medium border border-default rounded-base bg-neutral-secondary-soft md:space-x-8 rtl:space-x-reverse md:flex-row md:mt-0 md:border-0 md:bg-neutral-primary">
+          <div className="items-center justify-between hidden md:flex md:w-auto md:mt-2 md:order-1">
+            <ul className="flex flex-col h-8 font-medium border border-default rounded-base bg-neutral-secondary-soft md:space-x-8 rtl:space-x-reverse md:flex-row md:mt-0 md:border-0 md:bg-neutral-primary">
               {!user ? (
                 // Not logged in - show public menu
                 NavbarMenu.map((item) => {
                   const linkClasses = isLinkActive(item.link)
-                    ? "inline-block px-3 font-semibold text-primary border-b-2 border-primary" // Active state classes
-                    : "inline-block px-3 hover:text-primary font-semibold text-gray-700"; // Inactive state classes
+                    ? "inline-block px-4 font-bold text-gray-800 border-b-2 border-primary rounded-lg" // Active state classes
+                    : "inline-block px-4 hover:text-primary text-gray-800"; // Inactive state classes
+
+                  // check if this is the Products item - show hover dropdown if so
+                  const submenu = item.children || item.submenu || item.items;
+
+                  if (item.title === "Products") {
+                    return (
+                      <li
+                        key={item.id}
+                        className="relative"
+                        onMouseEnter={() => setProductsOpen(true)}
+                        onMouseLeave={() => setProductsOpen(false)}
+                      >
+                        <a href={item.link} className={linkClasses}>
+                          {item.title}
+                        </a>
+
+                        {productsOpen && submenu && (
+                          <ul className="absolute left-0 mt-2 w-48 bg-primary/50 rounded-md shadow-lg z-50 overflow-hidden">
+                            {submenu.map((child, idx) => (
+                              <li key={idx}>
+                                <a
+                                  href={child.link || "#"}
+                                  className="block px-4 py-2 text-sm hover:bg-gray-50 border-b border-gray-800"
+                                >
+                                  {child.title}
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    );
+                  }
 
                   return (
                     <li key={item.id}>
@@ -127,6 +161,41 @@ const Navbar = () => {
               ) : (
                 // Buyer menu - show public menu
                 NavbarMenu.map((item) => {
+                  const submenu = item.children || item.submenu || item.items;
+
+                  if (item.title === "Products") {
+                    return (
+                      <li
+                        key={item.id}
+                        className="relative"
+                        onMouseEnter={() => setProductsOpen(true)}
+                        onMouseLeave={() => setProductsOpen(false)}
+                      >
+                        <a
+                          href={item.link}
+                          className="incline-block py-1 px-3 hover:text-primary font-semibold"
+                        >
+                          {item.title}{" "}
+                        </a>
+
+                        {productsOpen && submenu && (
+                          <ul className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-100 overflow-hidden">
+                            {submenu.map((child, idx) => (
+                              <li key={idx}>
+                                <a
+                                  href={child.link || "#"}
+                                  className="block px-4 py-2 text-sm hover:bg-gray-50"
+                                >
+                                  {child.title}
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    );
+                  }
+
                   return (
                     <li key={item.id}>
                       <a
@@ -144,11 +213,11 @@ const Navbar = () => {
           {/* icons section */}
           <div className="flex items-center gap-4 order-3">
             {/* icons section */}
-            <div className="flex items-center gap-4 relative">
+            <div className="flex items-center gap-4">
               {/* Search button */}
               <button
                 onMouseEnter={() => setSearchOpen(!searchOpen)}
-                className="text-2xl hover:bg-primary hover:text-white p-2 rounded-full duration-200"
+                className="text-2xl rounded-full"
               >
                 {searchOpen ? "" : <CiSearch />}
               </button>
@@ -157,7 +226,7 @@ const Navbar = () => {
               {searchOpen && (
                 <form
                   onSubmit={handleSearchSubmit}
-                  className=" top-full left-0 mt-2 bg-white border border-gray-300 rounded-full flex items-center shadow-lg overflow-hidden transition-all duration-300 w-64 relative"
+                  className="bg-white rounded-full flex items-center shadow-lg overflow-hidden transition-all duration-300"
                 >
                   <input
                     type="text"
@@ -165,12 +234,12 @@ const Navbar = () => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onMouseLeave={() => closeSearchOnMouseOut()}
-                    className="flex-grow px-4 py-2 outline-none text-gray-700"
+                    className="flex-grow px-4 py-2 outline-none text-gray-800"
                     autoFocus
                   />
                   <button
                     type="submit"
-                    className="bg-primary text-white px-4 py-2 font-semibold hover:bg-indigo-700 transition-all"
+                    className="bg-secondary text-white px-4 py-2 font-semibold hover:bg-indigo-700 transition-all"
                   >
                     Go
                   </button>
@@ -396,21 +465,6 @@ const Navbar = () => {
                       </button>
                     </>
                   )}
-                </div>
-              ) : searchOpen ? (
-                <div className="pl-18 hidden md:flex gap-2">
-                  <Link
-                    to="/login"
-                    className="text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200"
-                  >
-                    Login
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200"
-                  >
-                    Register
-                  </Link>
                 </div>
               ) : (
                 <div className="pl-32 hidden md:flex gap-2">
