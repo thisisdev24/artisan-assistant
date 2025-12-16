@@ -4,7 +4,7 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import imgage1 from "../../assets/hero/fabrics.avif";
 import image2 from "../../assets/hero/glassworks.avif";
-import image3 from "../../assets/hero/leather.webp";
+import image3 from "../../assets/hero/leather.jpg";
 import image4 from "../../assets/hero/potmaking.avif";
 import image5 from "../../assets/hero/woodcraft.avif";
 import { Link } from "react-router-dom";
@@ -42,7 +42,7 @@ const imageList = [
   },
 ];
 
-const Hero = ({ handleOrderPopup }) => {
+const Hero = () => {
   var settings = {
     dots: true,
     arrows: false,
@@ -102,20 +102,20 @@ const Hero = ({ handleOrderPopup }) => {
       density={6}
     >
       {/* hero + vertical sections container */}
-      <div className="container mx-auto px-4 sm:px-8 lg:px-16 my-16 rounded-lg">
+      <div className="container mx-auto my-12">
         {/* ===== SLIDER HERO ===== */}
-        <section className="mb-12">
+        <section className="my-16">
           <Slider {...settings}>
             {imageList.map((data) => (
-              <div key={data.id} className="rounded-xl overflow-hidden">
-                <div className="grid grid-cols-1 lg:grid-cols-2 items-center mx-28 my-12">
+              <div key={data.id} className="overflow-hidden">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-center mx-auto">
                   {/* text content */}
-                  <div className="flex flex-col items-start justify-center gap-6 max-w-[450px]">
+                  <div className="flex flex-col items-start justify-center gap-6 max-w-1/2 max-h-full ml-2">
                     <h1
                       data-aos="zoom-out"
                       data-aos-duration="500"
                       data-aos-once="true"
-                      className="text-4xl sm:text-5xl lg:text-6xl font-bold text-black leading-tight"
+                      className="text-4xl sm:text-5xl lg:text-6xl font-bold text-black leading-tight uppercase"
                     >
                       {data.title}
                     </h1>
@@ -123,7 +123,7 @@ const Hero = ({ handleOrderPopup }) => {
                       data-aos="fade-up"
                       data-aos-duration="500"
                       data-aos-delay="100"
-                      className="text-md sm:text-lg text-gray-800"
+                      className="text-md sm:text-lg lg:text-xl text-gray-800"
                     >
                       {data.desc}
                     </p>
@@ -133,15 +133,15 @@ const Hero = ({ handleOrderPopup }) => {
                       data-aos-delay="300"
                     >
                       <div className="flex gap-3">
-                        <button
-                          onClick={handleOrderPopup || (() => {})}
-                          className="text-sm sm:text-md bg-gradient-to-r from-primary to-secondary hover:scale-105 duration-200 text-black py-2 px-4 rounded-full"
+                        <Link
+                          to={`/search?query=${data.title}`}
+                          className="text-sm sm:text-md lg:text-lg bg-gradient-to-r from-primary/50 to-secondary hover:scale-105 duration-200 text-black py-2 px-4 rounded-full shadow-lg font-semibold"
                         >
                           Order Now
-                        </button>
+                        </Link>
                         <Link
-                          to="/products"
-                          className="text-sm sm:text-md py-2 px-4 rounded-full border border-black/10 bg-white/5 font-semibold"
+                          to="/ShowListingPublic"
+                          className="text-sm sm:text-md lg:text-lg py-2 px-4 rounded-full border border-black/10 bg-white/5 shadow-lg font-semibold"
                         >
                           Browse Products
                         </Link>
@@ -150,14 +150,12 @@ const Hero = ({ handleOrderPopup }) => {
                   </div>
 
                   {/* image */}
-                  <div>
-                    <div className="rounded-xl overflow-hidden w-full h-64 sm:h-96 shadow-xl border border-white/8">
-                      <img
-                        src={data.img}
-                        alt={data.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+                  <div className="rounded-xl overflow-hidden max-w-1/2 max-h-full shadow-xl border border-white/8 mr-2">
+                    <img
+                      src={data.img}
+                      alt={data.title}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                 </div>
               </div>
@@ -192,12 +190,36 @@ const Hero = ({ handleOrderPopup }) => {
             Explore Categories
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-            <CategoryCard title="Paintings" />
-            <CategoryCard title="Jewelry" />
-            <CategoryCard title="Home Decor" />
-            <CategoryCard title="Textiles" />
-            <CategoryCard title="Woodcraft" />
-            <CategoryCard title="Ceramics" />
+            <div>
+              <a href="/search?query=Paintings">
+                <CategoryCard title="Paintings" />
+              </a>
+            </div>
+            <div>
+              <a href="/search?query=Jewelry">
+                <CategoryCard title="Jewelry" />
+              </a>
+            </div>
+            <div>
+              <a href="/search?query=Home Decor">
+                <CategoryCard title="Home Decor" />
+              </a>
+            </div>
+            <div>
+              <a href="/search?query=Textiles">
+                <CategoryCard title="Textiles" />
+              </a>
+            </div>
+            <div>
+              <a href="/search?query=WoodCraft">
+                <CategoryCard title="WoodCraft" />
+              </a>
+            </div>
+            <div>
+              <a href="/search?query=Ceramics">
+                <CategoryCard title="Ceramics" />
+              </a>
+            </div>
           </div>
         </section>
 

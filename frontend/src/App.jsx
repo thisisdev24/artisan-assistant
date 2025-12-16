@@ -46,7 +46,7 @@ function App() {
     <LoggerProvider>
       <Router>
         <Navbar />
-        <div className="pt-16">
+        <div>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
