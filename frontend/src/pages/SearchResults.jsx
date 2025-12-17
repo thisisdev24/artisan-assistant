@@ -148,8 +148,8 @@ const SearchResults = () => {
   const handleBack = () => navigate("/");
 
   return (
-    <div className="p-6 min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto">
+    <div className="p-6 min-h-screen bg-secondary/10 select-none">
+      <div className="max-w-7xl lg:max-w-screen-2xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Search results for “{query}”</h1>
           <button onClick={handleBack} className="px-4 py-2 bg-gray-700 text-white rounded">Back</button>
@@ -164,13 +164,13 @@ const SearchResults = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {results.map((item) => (
-            <div key={item._id || item.listing_id || item.faiss_id || JSON.stringify(item)} className="bg-white rounded shadow p-4 relative">
+            <div key={item._id || item.listing_id || item.faiss_id || JSON.stringify(item)} className="flex flex-col bg-transparent rounded-xl hover:shadow-xl relative">
               <img
                 src={
-                  item.images[0].thumb || item.images[0].thumb
+                  item.images[0].hi_res || item.images[0].large
                 }
                 alt={item.title || "item"}
-                className="w-full h-44 object-cover rounded mb-3"
+                className="w-full h-[450px] object-fill rounded mb-3"
                 onError={(e) => { e.currentTarget.src = "/placeholder.jpg"; }}
               />
 
@@ -195,16 +195,18 @@ const SearchResults = () => {
                   />
                 </svg>
               </button>
-              <h3 className="font-semibold">{item.title}</h3>
-              <p className="text-sm text-gray-600 line-clamp-3">{item.description}</p>
-              <div className="mt-2 font-bold text-indigo-600">₹{Math.round(item.price * 85) ?? "—"}</div>
-              {typeof item.score !== "undefined" && <div className="text-xs text-gray-500 mt-1">score: {item.score.toFixed(3)}</div>}
-              <button
-                onClick={() => navigate(`/products/${item._id || item.listing_id}`)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
-              >
-                View
-              </button>
+
+              <div className="px-4 mt-4">
+                <h2 className="text-lg font-bold text-gray-900 mb-1 capitalize truncate">{item.title}</h2>
+                <div className="flex justify-start items-center gap-4 text-gray-700 text-sm lg:text-base">₹{Math.round(item.price) ?? "—"}</div>
+                {typeof item.score !== "undefined" && <div className="text-xs text-gray-500 mt-1">score: {item.score.toFixed(3)}</div>}
+                <button
+                  onClick={() => navigate(`/products/${item._id || item.listing_id}`)}
+                  className="my-4 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
+                >
+                  View
+                </button>
+              </div>
 
             </div>
           ))}

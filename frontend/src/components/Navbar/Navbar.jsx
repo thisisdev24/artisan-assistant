@@ -56,7 +56,7 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="bg-primary/20 backdrop-blur-lg border-b border-white/20 shadow-lg sticky min-w-screen z-20 top-0 start-0 border-b border-default">
+      <nav className="bg-primary/10 backdrop-blur-lg border-b border-white/20 shadow-lg sticky min-w-screen z-20 top-0 start-0 border-default">
         <div className="max-w-full flex flex-wrap items-center justify-between mx-auto p-4 select-none">
           {/* logo section */}
           <Link
@@ -74,8 +74,8 @@ const Navbar = () => {
                 // Not logged in - show public menu
                 NavbarMenu.map((item) => {
                   const linkClasses = isLinkActive(item.link)
-                    ? "inline-block px-4 font-bold text-gray-800 border-b-2 border-primary rounded-lg" // Active state classes
-                    : "inline-block px-4 hover:text-primary text-gray-800"; // Inactive state classes
+                    ? "inline-block px-4 font-bold text-black border-b-2 border-primary rounded-lg" // Active state classes
+                    : "inline-block px-4 hover:text-primary text-black"; // Inactive state classes
 
                   // check if this is the Products item - show hover dropdown if so
                   const submenu = item.children || item.submenu || item.items;
@@ -93,7 +93,7 @@ const Navbar = () => {
                         </a>
 
                         {productsOpen && submenu && (
-                          <ul className="absolute left-0 mt-2 w-48 bg-primary/50 rounded-md shadow-lg z-50 overflow-hidden">
+                          <ul className="absolute left-0 mt-2 w-48 bg-primary/60 rounded-md shadow-lg z-50 overflow-hidden">
                             {submenu.map((child, idx) => (
                               <li key={idx}>
                                 <a
@@ -239,7 +239,7 @@ const Navbar = () => {
                   />
                   <button
                     type="submit"
-                    className="bg-secondary text-white px-4 py-2 font-semibold hover:bg-indigo-700 transition-all"
+                    className="bg-primary text-white px-4 py-2 font-semibold hover:bg-indigo-700 transition-all"
                   >
                     Go
                   </button>
@@ -459,7 +459,7 @@ const Navbar = () => {
                           logout();
                           navigate("/");
                         }}
-                        className="text-sm text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-4 py-1 duration-200"
+                        className="text-sm text-black hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-4 py-1 duration-200"
                       >
                         Logout
                       </button>
@@ -470,13 +470,13 @@ const Navbar = () => {
                 <div className="pl-32 hidden md:flex gap-2">
                   <Link
                     to="/login"
-                    className="text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200"
+                    className="text-black hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200"
                   >
                     Login
                   </Link>
                   <Link
                     to="/register"
-                    className="text-primary hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200"
+                    className="text-black hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200"
                   >
                     Register
                   </Link>

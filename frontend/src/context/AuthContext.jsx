@@ -66,6 +66,7 @@ export const AuthProvider = ({ children }) => {
       // prevent refresh spam on home, login and register pages
       if (
         window.location.pathname === "/ShowListingPublic" ||
+        window.location.pathname === "/ProductDetail" ||
         window.location.pathname === "/search" ||
         window.location.pathname === "/contact" ||
         window.location.pathname === "/" ||

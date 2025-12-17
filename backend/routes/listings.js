@@ -245,18 +245,13 @@ router.get('/retrieve', async (req, res) => {
       const mapped = docs.map(doc => {
         let imageUrl = null;
         if (Array.isArray(doc.images) && doc.images.length > 0) {
-          imageUrl = doc.images[0].large || doc.images[0].hi_res;
-        }
-
-        let desc = doc.description || '';
-        if (desc.length > 200) {
-          desc = desc.replaceAll(desc.substring(200), '...');
+          imageUrl = doc.images[0].hi_res || doc.images[0].large;
         }
 
         return {
           _id: doc._id,
           title: doc.title,
-          description: desc,
+          description: doc.description,
           price: doc.price,
           average_rating: doc.average_rating,
           rating_number: doc.rating_number,
@@ -268,38 +263,6 @@ router.get('/retrieve', async (req, res) => {
       return res.json({ results: mapped, total, page: pageNum, limit: lim });
     } catch (err) {
       console.warn('Primary find() with sort failed, attempting fallback query:', err.message);
-
-      const fallbackDocs = await Listing.find(filter)
-        .limit(Math.min(lim, 50))
-        .select('title description price images average_rating rating_number createdAt')
-        .lean();
-
-      const mappedFallback = fallbackDocs.map(doc => {
-        let imageUrl = null;
-        if (Array.isArray(doc.images) && doc.images.length > 0) {
-          imageUrl = doc.images[0].large || doc.images[0].hi_res;
-        }
-
-        let desc = doc.description || '';
-        if (desc.length > 200) {
-          desc = desc.replaceAll(desc.substring(200), '...');
-        }
-
-        return {
-          _id: doc._id,
-          title: doc.title,
-          description: desc,
-          price: doc.price,
-          average_rating: doc.average_rating,
-          rating_number: doc.rating_number,
-          imageUrl,
-          createdAt: doc.createdAt
-        };
-      });
-
-      const total = await Listing.countDocuments(filter).catch(() => mappedFallback.length);
-
-      return res.json({ results: mappedFallback, total, page: pageNum, limit: lim });
     }
   } catch (err) {
     console.error('Error in /retrieve:', err);
@@ -350,15 +313,10 @@ router.get('/search', async (req, res) => {
       const lid = String(r.listing_id);
       const doc = docsById[lid] || {};
 
-      let desc = doc.description || r.description || '';
-      if (desc.length > 200) {
-        desc = desc.replaceAll(desc.substring(200), '...');
-      }
-
       return {
         _id: lid,
         title: r.title || doc.title,
-        description: desc,
+        description: r.description,
         price: doc.price || r.price || 0,
         images: r.images, // Return full images array
         average_rating: doc.average_rating || 0,
