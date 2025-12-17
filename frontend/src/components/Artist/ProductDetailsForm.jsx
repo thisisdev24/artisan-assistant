@@ -64,7 +64,7 @@ const ProductDetailsForm = () => {
     if (id) {
       fetchDraft();
     }
-  }, [id, token]);
+  }, [id, token, mainColor]);
 
   async function handlePublish(e) {
     e.preventDefault();
@@ -85,8 +85,8 @@ const ProductDetailsForm = () => {
         main_color: mainColor || undefined, // server schema can pick this up; optional
       };
 
-      const res = await axios.patch(
-        `http://localhost:5000/api/listings/${id}/publish`,
+      await axios.patch(
+        `http://localhost:5000/api/drafts/${id}/publish`,
         publishData,
         {
           headers: {

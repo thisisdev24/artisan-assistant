@@ -38,12 +38,9 @@ const CreateListing = () => {
 
   async function handleAutoDesc() {
     try {
-      const data = {
-        title: title,
-        features: features,
-        category: main_category
-      };
-      const res = await axios.post('http://localhost:5000/api/generate_description', data);
+      const res = await axios.get('http://localhost:5000/api/listings/gen_desc', {
+        params: { title, features },
+      timeout: 20000});
       if (res?.data?.description) setDescription(res.data.description);
     } catch (err) {
       console.error('Auto-generate error:', err?.response?.data || err.message);
@@ -89,7 +86,7 @@ const CreateListing = () => {
       };
 
       console.log('Creating draft with data:', draftData);
-      const draftRes = await axios.post('http://localhost:5000/api/listings/draft', draftData, {
+      const draftRes = await axios.post('http://localhost:5000/api/drafts/draft', draftData, {
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: 'Bearer ' + token } : {})
@@ -120,7 +117,7 @@ const CreateListing = () => {
       files.forEach(f => imageFormData.append('images', f));
 
       console.log('Uploading images...');
-      await axios.post(`http://localhost:5000/api/listings/${draftId}/images`, imageFormData, {
+      await axios.post(`http://localhost:5000/api/drafts/${draftId}/images`, imageFormData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           ...(token ? { Authorization: 'Bearer ' + token } : {})

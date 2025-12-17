@@ -118,7 +118,7 @@ class GenerateSearchReq(BaseModel):
 class GenDescReq(BaseModel):
     title: str
     features: Optional[list] = None
-    category: Optional[str] = None
+    category: Optional[str] = "Handmade"
     tone: str = "friendly and concise"
 
 class DetectColorsReq(BaseModel):

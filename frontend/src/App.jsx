@@ -77,6 +77,23 @@ function App() {
               }
             />
             <Route
+              path="/drafts"
+              element={
+                <ProtectedRoute allowedRoles={["seller"]}>
+                  <CreateListing/>
+                  <ProductDetailsForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/gen_desc"
+              element={
+                <ProtectedRoute allowedRoles={["seller"]}>
+                  <CreateListing/>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/product-details/:id"
               element={
                 <ProtectedRoute allowedRoles={["seller"]}>

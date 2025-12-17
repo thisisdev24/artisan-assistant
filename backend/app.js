@@ -103,6 +103,9 @@ new AutoLoggingEngine(app);
 const listings = require('./routes/listings');
 app.use('/api/listings', listings);
 
+const drafts = require('./routes/listingDrafts');
+app.use('/api/drafts', drafts);
+
 const artisanRoutes = require('./routes/artisans');
 app.use('/api/artisans', artisanRoutes);
 
@@ -126,13 +129,6 @@ app.use('/api/admin', adminRoutes);
 
 const reviewRoutes = require('./routes/reviews');
 app.use('/api/reviews', reviewRoutes);
-
-// other existing routes unchanged
-const generateDescRouter = require("./routes/generateDescriptionProxy");
-app.use("/api", generateDescRouter);
-
-const genSearchRes = require('./routes/generateSearchResults');
-app.use('/api/generate_description', genSearchRes);
 
 // enable logging middleware AFTER application routes
 app.use(attachLogger);

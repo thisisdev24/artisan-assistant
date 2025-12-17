@@ -11,6 +11,8 @@ const crypto = require('crypto');
 const axios = require('axios');
 const mongoose = require('mongoose');
 
+const ML = process.env.ML_SERVICE_URL;
+
 function makeKey(filename) {
   const ext = path.extname(filename) || '.jpg';
   const id = Date.now() + '-' + crypto.randomBytes(6).toString('hex');
@@ -318,7 +320,6 @@ router.get('/search', async (req, res) => {
     const searchQuery = (req.query.query || req.query.q || '').trim();
     if (!searchQuery) return res.status(400).json({ error: 'missing_query' });
 
-    const ML = process.env.ML_SERVICE_URL || 'http://localhost:8000';
     // call ML service
     const mlResp = await axios.post(`${ML}/generate_search_results`, { query: searchQuery, k: 50 }, { timeout: 20000 });
     const mlResults = (mlResp.data && mlResp.data.results) || [];
@@ -370,6 +371,53 @@ router.get('/search', async (req, res) => {
   } catch (err) {
     console.error('Error in /search:', err?.response?.data || err.message || err);
     return res.status(500).json({ error: 'internal', message: err.message || 'search_failed' });
+  }
+});
+
+router.get('/gen_desc', async (req, res) => {
+  try {
+    // Frontend sends title/features as query params (axios.get(..., { params: {...} }))
+    const title = (req.query.title || '').toString().trim();
+    // features may come as ?features[]=a&features[]=b or ?features=a,b or ?features=json-string
+    let features = req.query.features || [];
+    if (typeof features === 'string') {
+      // Try to parse JSON list: '["a","b"]'
+      try {
+        const parsed = JSON.parse(features);
+        if (Array.isArray(parsed)) features = parsed;
+      } catch (_) {
+        // fallback: comma separated
+        features = features.split(',').map(s => s.trim()).filter(Boolean);
+      }
+    } else if (Array.isArray(features)) {
+      features = features.map(String);
+    } else {
+      features = [];
+    }
+
+    if (!title) {
+      return res.status(400).json({ error: 'missing_parameters', message: 'title is required' });
+    }
+
+    // Ensure ML service base URL is configured
+    if (!ML) {
+      console.error('ML_SERVICE_URL is not configured. Set process.env.ML_SERVICE_URL');
+      return res.status(500).json({ error: 'ml_service_unavailable', message: 'ML service URL not configured' });
+    }
+
+    // Call ML service which returns { description: "..." }
+    const payload = { title, features };
+    const mlResp = await axios.post(`${ML.replace(/\/$/, '')}/generate_description`, payload, { timeout: 20000 });
+
+    const description = (mlResp && mlResp.data && mlResp.data.description) || '';
+
+    return res.json({ description });
+
+  } catch (err) {
+    console.error('generate_description proxy error', err?.response?.data || err.message || err);
+    // return safe fallback rather than crashing or returning nothing
+    const fallback = `${req.query.title || ''}. Features: ${(req.query.features || []).toString()}`;
+    return res.status(200).json({ description: fallback, error: 'generation_proxy_failed', detail: err?.message });
   }
 });
 
