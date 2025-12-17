@@ -38,12 +38,9 @@ const CreateListing = () => {
 
   async function handleAutoDesc() {
     try {
-      const data = {
-        title: title,
-        features: features,
-        category: main_category
-      };
-      const res = await axios.post('http://localhost:5000/api/generate_description', data);
+      const res = await axios.get('http://localhost:5000/api/listings/gen_desc', {
+        params: { title, features },
+      timeout: 20000});
       if (res?.data?.description) setDescription(res.data.description);
     } catch (err) {
       console.error('Auto-generate error:', err?.response?.data || err.message);

@@ -86,6 +86,14 @@ function App() {
               }
             />
             <Route
+              path="/gen_desc"
+              element={
+                <ProtectedRoute allowedRoles={["seller"]}>
+                  <CreateListing/>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/product-details/:id"
               element={
                 <ProtectedRoute allowedRoles={["seller"]}>
