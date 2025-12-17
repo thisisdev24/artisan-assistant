@@ -103,6 +103,9 @@ new AutoLoggingEngine(app);
 const listings = require('./routes/listings');
 app.use('/api/listings', listings);
 
+const drafts = require('./routes/listingDrafts');
+app.use('/api/drafts', drafts);
+
 const artisanRoutes = require('./routes/artisans');
 app.use('/api/artisans', artisanRoutes);
 

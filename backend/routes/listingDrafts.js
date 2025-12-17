@@ -260,15 +260,21 @@ router.patch("/:id/publish", async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id))
       return res.status(400).json({ error: "invalid_id" });
 
-    const { stock, stock_available, dimensions } = req.body;
-    const update = {};
+    const listing = await Listing.findById(id);
+    if (!listing) {
+      return res
+        .status(404)
+        .json({ error: "not_found", message: "Listing not found" });
+    }
 
-    if (stock !== undefined) update.stock = Number(stock);
+    const { stock, stock_available, dimensions } = req.body;
+
+    if (stock !== undefined) listing.stock = Number(stock);
     if (stock_available !== undefined)
-      update.stock_available = Boolean(stock_available);
+      listing.stock_available = Boolean(stock_available);
     if (dimensions) {
       // expect dimensions object { height, length, width, weight }
-      update.dimensions = {
+      listing.dimensions = {
         height:
           dimensions.height !== undefined
             ? Number(dimensions.height)
@@ -286,16 +292,11 @@ router.patch("/:id/publish", async (req, res) => {
       };
     }
 
-    update.status = "published";
+    listing.status = "published";
 
-    const updated = await Listing.findByIdAndUpdate(
-      id,
-      { $set: update },
-      { new: true }
-    ).lean();
-    if (!updated) return res.status(404).json({ error: "not_found" });
+    await listing.save();
 
-    return res.json({ message: "Published", listing: updated });
+    return res.json({ message: "Published" });
   } catch (err) {
     console.error("Error publishing listing", err);
     return res.status(500).json({ error: "internal", message: err.message });

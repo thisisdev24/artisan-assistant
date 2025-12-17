@@ -89,7 +89,7 @@ const CreateListing = () => {
       };
 
       console.log('Creating draft with data:', draftData);
-      const draftRes = await axios.post('http://localhost:5000/api/listings/draft', draftData, {
+      const draftRes = await axios.post('http://localhost:5000/api/drafts/draft', draftData, {
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: 'Bearer ' + token } : {})
@@ -120,7 +120,7 @@ const CreateListing = () => {
       files.forEach(f => imageFormData.append('images', f));
 
       console.log('Uploading images...');
-      await axios.post(`http://localhost:5000/api/listings/${draftId}/images`, imageFormData, {
+      await axios.post(`http://localhost:5000/api/drafts/${draftId}/images`, imageFormData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           ...(token ? { Authorization: 'Bearer ' + token } : {})
