@@ -98,7 +98,7 @@ const Hero = () => {
       mobileSpeed={18}
       opacity={0.2}
       mobileOpacity={0.1}
-      colors={["#FF9933", "#FFBF80"]}
+      colors={["#FF9900", "#FFD1B3"]}
       density={6}
     >
       {/* hero + vertical sections container */}

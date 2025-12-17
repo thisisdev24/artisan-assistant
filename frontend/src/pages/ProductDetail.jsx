@@ -333,23 +333,23 @@ const ProductDetail = () => {
 
               {/* Short points/features */}
               <div className="flex flex-col items-start gap-4 text-lg font-semibold">Product Features
-              {product.features && Array.isArray(product.features) && product.features.length > 0 && (
-                <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-4 text-sm lg:text-base text-gray-800 font-normal leading-6">
-                  {product.features.map((f, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="text-indigo-700">•</span>
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+                {product.features && Array.isArray(product.features) && product.features.length > 0 && (
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-4 text-sm lg:text-base text-gray-800 font-normal leading-6">
+                    {product.features.map((f, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="text-indigo-700">•</span>
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
               {/* Description */}
               <div className="mt-8 flex flex-col items-start gap-4 text-lg font-semibold">Product Description
-              <div className="text-base font-normal text-gray-800 leading-6">
-                {product.description}
-              </div>
+                <div className="text-base font-normal text-gray-800 leading-6">
+                  {product.description}
+                </div>
               </div>
 
               {/* Seller block */}

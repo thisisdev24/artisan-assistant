@@ -147,8 +147,8 @@ const ShowListingPublic = () => {
           data.total !== undefined
             ? data.total
             : Array.isArray(results)
-            ? results.length
-            : 0;
+              ? results.length
+              : 0;
 
         setProducts((prev) => (append ? [...prev, ...results] : results));
         setTotal(tot);
@@ -158,8 +158,8 @@ const ShowListingPublic = () => {
         console.error("Error fetching products:", error);
         setErrorMsg(
           error?.response?.data?.message ||
-            error.message ||
-            "Failed to load products"
+          error.message ||
+          "Failed to load products"
         );
       } finally {
         setLoading(false);
@@ -302,10 +302,9 @@ const ShowListingPublic = () => {
             <div className="relative" ref={filterRef}>
               <button
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium shadow-sm transition-colors
-                  ${
-                    isFilterOpen
-                      ? "bg-indigo-50 border-indigo-500 text-indigo-700"
-                      : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+                  ${isFilterOpen
+                    ? "bg-indigo-50 border-indigo-500 text-indigo-700"
+                    : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
                   }`}
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
               >
@@ -556,7 +555,7 @@ const ShowListingPublic = () => {
                   <div
                     key={product._id}
                     onClick={() => navigate(`/products/${product._id}`)}
-                    className="bg-transparent rounded-2xl hover:shadow-xl transition-all duration-300 flex flex-col relative cursor-pointer hover:-translate-y-1"
+                    className="bg-transparent rounded-xl hover:shadow-xl transition-all duration-300 flex flex-col relative cursor-pointer hover:-translate-y-1"
                   >
                     <img
                       src={
@@ -566,7 +565,7 @@ const ShowListingPublic = () => {
                       }
                       alt={product.title}
                       loading="lazy"
-                      className="w-full h-[450px] object-fill rounded-lg"
+                      className="w-full h-[450px] object-fill rounded-xl shadow-lg"
                     />
 
                     <button
@@ -580,11 +579,10 @@ const ShowListingPublic = () => {
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className={`h-6 w-6 ${
-                          wishlistIds.has(product._id)
-                            ? "text-red-500 fill-current"
-                            : "text-gray-400"
-                        }`}
+                        className={`h-6 w-6 ${wishlistIds.has(product._id)
+                          ? "text-red-500 fill-current"
+                          : "text-gray-400"
+                          }`}
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -597,7 +595,7 @@ const ShowListingPublic = () => {
                         />
                       </svg>
                     </button>
-                    
+
                     <div className="px-4 mt-4">
                       <h2 className="text-lg font-bold text-gray-900 mb-1 capitalize truncate">
                         {product.title}

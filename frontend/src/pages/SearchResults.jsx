@@ -197,15 +197,15 @@ const SearchResults = () => {
               </button>
 
               <div className="px-4 mt-4">
-              <h2 className="text-lg font-bold text-gray-900 mb-1 capitalize truncate">{item.title}</h2>
-              <div className="flex justify-start items-center gap-4 text-gray-700 text-sm lg:text-base">₹{Math.round(item.price) ?? "—"}</div>
-              {typeof item.score !== "undefined" && <div className="text-xs text-gray-500 mt-1">score: {item.score.toFixed(3)}</div>}
-              <button
-                onClick={() => navigate(`/products/${item._id || item.listing_id}`)}
-                className="my-4 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
-              >
-                View
-              </button>
+                <h2 className="text-lg font-bold text-gray-900 mb-1 capitalize truncate">{item.title}</h2>
+                <div className="flex justify-start items-center gap-4 text-gray-700 text-sm lg:text-base">₹{Math.round(item.price) ?? "—"}</div>
+                {typeof item.score !== "undefined" && <div className="text-xs text-gray-500 mt-1">score: {item.score.toFixed(3)}</div>}
+                <button
+                  onClick={() => navigate(`/products/${item._id || item.listing_id}`)}
+                  className="my-4 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
+                >
+                  View
+                </button>
               </div>
 
             </div>

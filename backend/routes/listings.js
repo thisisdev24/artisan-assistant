@@ -262,7 +262,7 @@ router.get('/retrieve', async (req, res) => {
 
       return res.json({ results: mapped, total, page: pageNum, limit: lim });
     } catch (err) {
-      console.warn('Primary find() with sort failed, attempting fallback query:', err.message);   
+      console.warn('Primary find() with sort failed, attempting fallback query:', err.message);
     }
   } catch (err) {
     console.error('Error in /retrieve:', err);
