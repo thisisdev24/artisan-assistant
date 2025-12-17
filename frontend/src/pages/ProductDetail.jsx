@@ -128,6 +128,18 @@ const ProductDetail = () => {
     return images;
   };
 
+  const thumbImages = () => {
+    const images = [];
+    if (!product) return images;
+    if (product.imageUrl) images.push(product.imageUrl);
+    if (product.images && Array.isArray(product.images)) {
+      product.images.forEach((img) => {
+        if (img.thumb && !images.includes(img.thumb)) images.push(img.thumb);
+      });
+    }
+    return images;
+  };
+
   const currency = (v) =>
     typeof v === "number" ? v.toLocaleString("en-IN", { maximumFractionDigits: 0 }) : v;
 
@@ -214,7 +226,8 @@ const ProductDetail = () => {
   }
 
   const images = allImages();
-  const mainImage = selectedImage || images[0] || "./Placeholder.png";
+  const mainImage = selectedImage || images[0];
+  const thumbnails = thumbImages();
 
   // rating visualization
   const avg = Number(product.average_rating || 0);
@@ -223,8 +236,8 @@ const ProductDetail = () => {
   const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-secondary/10 py-8">
+      <div className="max-w-7xl lg:max-w-screen-2xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900">
@@ -236,22 +249,22 @@ const ProductDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left: Images */}
           <div className="lg:col-span-6">
-            <div className="relative bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div className="relative bg-transparent rounded-2xl hover:shadow-xl overflow-hidden p-4">
               <img
                 src={mainImage}
                 alt={product.title}
-                className="w-full h-[520px] object-cover transition-transform duration-400 ease-out hover:scale-105"
+                className="w-full h-[600px] object-fill rounded-xl transition-transform duration-400 ease-out hover:scale-105"
               />
             </div>
 
             {/* thumbnails */}
-            {images.length > 1 && (
+            {thumbnails.length > 1 && (
               <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
-                {images.map((img, i) => (
+                {thumbnails.map((img, i) => (
                   <button
                     key={i}
-                    onClick={() => { setSelectedImage(img); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                    className={`flex-none w-20 h-20 rounded-lg overflow-hidden border-2 ${selectedImage === img ? "border-indigo-600" : "border-transparent"} shadow-sm`}
+                    onClick={() => { setSelectedImage(images[i]); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    className={`flex-none w-20 h-20 rounded-lg overflow-hidden border-2 ${selectedImage === images[i] ? "border-indigo-600" : "border-transparent"} shadow-sm`}
                     aria-label={`Select image ${i + 1}`}
                   >
                     <img src={img} alt={`${product.title} ${i + 1}`} className="w-full h-full object-cover" />
@@ -263,8 +276,8 @@ const ProductDetail = () => {
 
           {/* Right: Info */}
           <div className="lg:col-span-6">
-            <div className="bg-white rounded-2xl p-6 shadow">
-              <div className="flex items-start justify-between">
+            <div className="bg-transparent rounded-2xl shadow-lg p-4 lg:p-6">
+              <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-2xl lg:text-3xl font-extrabold text-gray-900 leading-tight">{product.title}</h1>
                   <p className="mt-2 text-sm text-gray-500 max-w-prose">{product.subtitle || ""}</p>
@@ -306,8 +319,8 @@ const ProductDetail = () => {
               </div>
 
               {/* Price */}
-              <div className="mt-6 flex items-center gap-6">
-                <div className="text-3xl lg:text-4xl font-extrabold text-indigo-600">₹{currency(product.price)}</div>
+              <div className="mt-4 mb-8 flex items-center gap-4">
+                <div className="text-3xl lg:text-4xl font-extrabold text-red-700">₹{currency(product.price)}</div>
                 {product.compareAt && (
                   <div className="text-sm text-gray-400 line-through">₹{currency(product.compareAt)}</div>
                 )}
@@ -319,24 +332,28 @@ const ProductDetail = () => {
               </div>
 
               {/* Short points/features */}
+              <div className="flex flex-col items-start gap-4 text-lg font-semibold">Product Features
               {product.features && Array.isArray(product.features) && product.features.length > 0 && (
-                <ul className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
+                <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-4 text-sm lg:text-base text-gray-800 font-normal leading-6">
                   {product.features.map((f, i) => (
                     <li key={i} className="flex items-start gap-2">
-                      <span className="mt-0.5 text-indigo-600">•</span>
+                      <span className="text-indigo-700">•</span>
                       <span>{f}</span>
                     </li>
                   ))}
                 </ul>
               )}
+              </div>
 
               {/* Description */}
-              <div className="mt-6 text-gray-700 leading-relaxed whitespace-pre-line max-w-prose">
-                {typeof product.description === "string" ? product.description : (Array.isArray(product.description) ? product.description.join("\n\n") : "")}
+              <div className="mt-8 flex flex-col items-start gap-4 text-lg font-semibold">Product Description
+              <div className="text-base font-normal text-gray-800 leading-6">
+                {product.description}
+              </div>
               </div>
 
               {/* Seller block */}
-              <div className="mt-6 flex items-center gap-4 bg-gray-50 p-4 rounded-lg">
+              <div className="mt-8 flex items-center gap-4 bg-transparent p-4 rounded-lg">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center text-white font-semibold">
                   {product.seller && typeof product.seller === "string" ? (product.seller[0] || "S").toUpperCase() : "S"}
                 </div>

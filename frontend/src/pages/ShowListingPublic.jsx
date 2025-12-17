@@ -286,18 +286,18 @@ const ShowListingPublic = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 px-4 sm:px-6 py-6 sm:py-10 font-sans">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8  z-20">
+    <div className="min-h-screen bg-gradient-to-br from-secondary/10 to-secondary/20 py-4 sm:py-8">
+      <div className="max-w-7xl lg:max-w-screen-2xl mx-auto">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-12 select-none">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
               All Products
             </h1>
-            <p className="text-gray-600 text-sm sm:text-base mt-1">
+            <p className="text-gray-700 text-sm sm:text-base mt-1">
               Browse curated crafts and refine with filters in real time.
             </p>
           </div>
-          <div className="flex items-center gap-3 relative">
+          <div className="flex items-center gap-4 relative">
             {/* NEW: Filter Dropdown Button */}
             <div className="relative" ref={filterRef}>
               <button
@@ -515,7 +515,7 @@ const ShowListingPublic = () => {
         {/* 
             NEW LAYOUT (FULL WIDTH MAIN + DROPDOWN FILTERS ABOVE)
         */}
-        <div className="w-full">
+        <div className="w-full select-none">
           {errorMsg ? (
             <div className="text-center text-red-600 mb-6">
               <p className="text-lg font-medium">{errorMsg}</p>
@@ -551,23 +551,22 @@ const ShowListingPublic = () => {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
                 {products.map((product) => (
                   <div
                     key={product._id}
                     onClick={() => navigate(`/products/${product._id}`)}
-                    className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 p-5 flex flex-col relative cursor-pointer border border-gray-200 hover:-translate-y-1"
+                    className="bg-transparent rounded-2xl hover:shadow-xl transition-all duration-300 flex flex-col relative cursor-pointer hover:-translate-y-1"
                   >
                     <img
                       src={
                         product.imageUrl ||
                         (product.images &&
-                          product.images[0] &&
-                          (product.images[0].thumb || product.images[0].large))
+                          product.images[0] && product.images[0].large)
                       }
                       alt={product.title}
                       loading="lazy"
-                      className="w-full h-52 object-cover rounded-lg mb-4 bg-gray-50"
+                      className="w-full h-[450px] object-fill rounded-lg"
                     />
 
                     <button
@@ -598,37 +597,28 @@ const ShowListingPublic = () => {
                         />
                       </svg>
                     </button>
+                    
+                    <div className="px-4 mt-4">
+                      <h2 className="text-lg font-bold text-gray-900 mb-1 capitalize truncate">
+                        {product.title}
+                      </h2>
 
-                    <h2 className="text-lg font-bold text-gray-900 mb-1 line-clamp-1 leading-tight">
-                      {product.title}
-                    </h2>
-
-                    <p className="text-gray-600 text-sm mb-3 line-clamp-2 leading-relaxed">
-                      {typeof product.description === "string"
-                        ? product.description.length > 160
-                          ? product.description.slice(0, 157) + "..."
-                          : product.description
-                        : Array.isArray(product.description) &&
-                          product.description.length > 0
-                        ? product.description[0]
-                        : ""}
-                    </p>
-
-                    <div className="flex items-center text-yellow-500 text-sm mb-3">
-                      ⭐{" "}
-                      <span className="font-semibold ml-1">
-                        {product.average_rating || 0}
-                      </span>
-                      <span className="text-gray-500 ml-2">
-                        ({product.rating_number || 0} reviews)
-                      </span>
+                      <div className="flex justify-start items-center text-gray-700 text-sm lg:text-base">
+                        ⭐{" "}
+                        <span className="font-semibold ml-1">
+                          {product.average_rating || 0}
+                        </span>
+                        <span className="ml-2">
+                          ({product.rating_number || 0} reviews)
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="flex justify-between items-center mt-auto">
-                      <span className="text-indigo-600 font-bold text-2xl">
-                        ₹{Math.round(product.price)}
+                    <div className="flex justify-between items-center px-4 py-2">
+                      <span className="text-red-700 font-semibold text-md lg:text-xl">
+                        {"₹" + Math.round(product.price)}
                       </span>
-                      <span className="text-xs px-2 py-1 rounded-full bg-indigo-50 text-indigo-700 font-semibold">
+                      <span className="text-xs lg:text-sm px-2 py-1 rounded-full bg-indigo-50 text-indigo-700 font-semibold">
                         {product.main_category || "Handcrafted"}
                       </span>
                     </div>
