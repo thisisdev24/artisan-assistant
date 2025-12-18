@@ -8,6 +8,8 @@ import React, {
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import apiClient from "../utils/apiClient"; // Use apiClient for auth requests
+// eslint-disable-next-line no-unused-vars
+import { motion } from "framer-motion";
 
 const LIMIT = 24;
 
@@ -67,6 +69,7 @@ const ShowListingPublic = () => {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [loaded, setLoaded] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const [wishlistIds, setWishlistIds] = useState(new Set());
   const [hasMore, setHasMore] = useState(true);
@@ -87,6 +90,7 @@ const ShowListingPublic = () => {
 
   // NEW: Close filter dropdown when clicking outside
   useEffect(() => {
+    setLoaded(true);
     const handleClickOutside = (event) => {
       if (filterRef.current && !filterRef.current.contains(event.target)) {
         setIsFilterOpen(false);
@@ -95,6 +99,31 @@ const ShowListingPublic = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
+  };
+
+  const heroVariants = {
+    hidden: { opacity: 0, x: -50 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.8 } },
+  };
+
+  const illustrationVariants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: { opacity: 1, scale: 1, transition: { duration: 1, delay: 0.3 } },
+  };
 
   const buildParams = useCallback(
     (pageNum = 1) => {
@@ -279,28 +308,46 @@ const ShowListingPublic = () => {
 
   if (loading && products.length === 0) {
     return (
-      <div className="flex justify-center items-center h-screen text-xl text-gray-600 font-medium">
+      <motion.div className="flex justify-center items-center h-screen text-xl text-gray-600 font-medium">
         Loading products...
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-secondary/20 to-secondary/30 py-4 sm:py-8">
+    <div className="min-h-screen bg-white py-4 sm:py-8">
       <div className="max-w-7xl lg:max-w-screen-2xl mx-auto">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-12 select-none">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
+        <motion.div
+          className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-12 select-none"
+          initial="hidden"
+          animate={loaded ? "visible" : "hidden"}
+          variants={containerVariants}
+        >
+          <motion.div>
+            <motion.h1
+              className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight"
+              variants={itemVariants}
+            >
               All Products
-            </h1>
-            <p className="text-gray-700 text-sm sm:text-base mt-1">
+            </motion.h1>
+            <motion.p
+              className="text-gray-700 text-sm sm:text-base mt-1"
+              variants={itemVariants}
+            >
               Browse curated crafts and refine with filters in real time.
-            </p>
-          </div>
-          <div className="flex items-center gap-4 relative">
-            {/* NEW: Filter Dropdown Button */}
-            <div className="relative" ref={filterRef}>
-              <button
+            </motion.p>
+          </motion.div>
+          <motion.div
+            className="flex items-center gap-4 relative"
+            variants={itemVariants}
+          >
+            {/* NEW: Filter Dropdown motion.button */}
+            <motion.div
+              className="relative"
+              ref={filterRef}
+              variants={illustrationVariants}
+            >
+              <motion.button
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium shadow-sm transition-colors
                   ${
                     isFilterOpen
@@ -327,27 +374,27 @@ const ShowListingPublic = () => {
                 {filterIsActive && (
                   <span className="inline-flex h-2 w-2 rounded-full bg-indigo-500" />
                 )}
-              </button>
+              </motion.button>
 
               {/* NEW: Filter Dropdown Content */}
               {isFilterOpen && (
-                <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white rounded-xl shadow-xl border border-gray-100 p-5 z-50 animate-fade-in-down">
-                  <div className="flex items-center justify-between mb-4">
+                <motion.div className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white rounded-xl shadow-xl border border-gray-100 p-5 z-50 animate-fade-in-down">
+                  <motion.div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold text-gray-900">
                       Refine Results
                     </h3>
-                    <button
+                    <motion.button
                       onClick={resetFilters}
                       className="text-xs font-medium text-indigo-600 hover:text-indigo-700 underline"
                       disabled={!filterIsActive}
                     >
                       Reset All
-                    </button>
-                  </div>
+                    </motion.button>
+                  </motion.div>
 
-                  <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
+                  <motion.div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
                     {/* Category */}
-                    <div>
+                    <motion.div>
                       <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                         Category
                       </label>
@@ -364,14 +411,14 @@ const ShowListingPublic = () => {
                           </option>
                         ))}
                       </select>
-                    </div>
+                    </motion.div>
 
                     {/* Price - NEW: Uses priceInputs and handlePriceKeyDown */}
-                    <div>
+                    <motion.div>
                       <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                         Price Range (₹)
                       </label>
-                      <div className="flex items-center gap-2">
+                      <motion.div className="flex items-center gap-2">
                         <input
                           type="number"
                           value={priceInputs.min}
@@ -389,14 +436,14 @@ const ShowListingPublic = () => {
                           placeholder="Max"
                           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         />
-                      </div>
+                      </motion.div>
                       <p className="text-[10px] text-gray-400 mt-1">
                         Press Enter to apply
                       </p>
-                    </div>
+                    </motion.div>
 
                     {/* Material */}
-                    <div>
+                    <motion.div>
                       <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                         Material
                       </label>
@@ -413,10 +460,10 @@ const ShowListingPublic = () => {
                           </option>
                         ))}
                       </select>
-                    </div>
+                    </motion.div>
 
                     {/* Colour */}
-                    <div>
+                    <motion.div>
                       <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                         Colour
                       </label>
@@ -433,10 +480,10 @@ const ShowListingPublic = () => {
                           </option>
                         ))}
                       </select>
-                    </div>
+                    </motion.div>
 
                     {/* Availability */}
-                    <div>
+                    <motion.div>
                       <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                         Availability
                       </label>
@@ -450,11 +497,11 @@ const ShowListingPublic = () => {
                         <option value="">Any</option>
                         <option value="in_stock">In Stock</option>
                       </select>
-                    </div>
+                    </motion.div>
 
                     {/* Ratings */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
+                    <motion.div className="grid grid-cols-2 gap-2">
+                      <motion.div>
                         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                           Min Rating
                         </label>
@@ -470,8 +517,8 @@ const ShowListingPublic = () => {
                           placeholder="e.g. 4"
                           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         />
-                      </div>
-                      <div>
+                      </motion.div>
+                      <motion.div>
                         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                           Min Reviews
                         </label>
@@ -485,15 +532,15 @@ const ShowListingPublic = () => {
                           placeholder="e.g. 10"
                           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         />
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                      </motion.div>
+                    </motion.div>
+                  </motion.div>
+                </motion.div>
               )}
-            </div>
+            </motion.div>
 
             {/* Sort By (Existing) */}
-            <div className="relative">
+            <motion.div className="relative">
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
@@ -508,39 +555,49 @@ const ShowListingPublic = () => {
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
                 ▾
               </span>
-            </div>
-          </div>
-        </div>
+            </motion.div>
+          </motion.div>
+        </motion.div>
 
         {/* 
             NEW LAYOUT (FULL WIDTH MAIN + DROPDOWN FILTERS ABOVE)
         */}
-        <div className="w-full select-none">
+        <motion.div
+          className="w-full select-none"
+          initial="hidden"
+          animate={loaded ? "visible" : "hidden"}
+          variants={containerVariants}
+        >
           {errorMsg ? (
-            <div className="text-center text-red-600 mb-6">
+            <motion.div className="text-center text-red-600 mb-6">
               <p className="text-lg font-medium">{errorMsg}</p>
-              <button
+              <motion.button
                 onClick={() => fetchProducts({ pageNum: page })}
-                className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg"
+                className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all hover:shadow-lg"
               >
                 Retry
-              </button>
-            </div>
+              </motion.button>
+            </motion.div>
           ) : products.length === 0 ? (
-            <div className="text-center text-gray-600 mt-10 sm:mt-16">
+            <motion.div className="text-center text-gray-600 mt-10 sm:mt-16">
               <p className="text-xl font-medium">
                 No products match these filters.
               </p>
-              <button
+              <motion.button
                 onClick={resetFilters}
                 className="mt-4 bg-gray-800 hover:bg-gray-900 text-white px-5 py-2 rounded-lg text-sm font-semibold"
               >
                 Clear filters
-              </button>
-            </div>
+              </motion.button>
+            </motion.div>
           ) : (
             <>
-              <div className="flex justify-between items-center mb-4 text-sm text-gray-600">
+              <motion.div
+                className="flex justify-between items-center mb-4 text-sm text-gray-600"
+                initial="hidden"
+                animate={loaded ? "visible" : "hidden"}
+                variants={containerVariants}
+              >
                 <span>
                   Showing {products.length} of {total} items
                 </span>
@@ -549,14 +606,19 @@ const ShowListingPublic = () => {
                     Filters applied
                   </span>
                 )}
-              </div>
+              </motion.div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
+              <motion.div
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-12"
+                variants={heroVariants}
+              >
                 {products.map((product) => (
-                  <div
+                  <motion.div
                     key={product._id}
                     onClick={() => navigate(`/products/${product._id}`)}
-                    className="bg-transparent rounded-xl hover:shadow-xl hover:bg-primary/20 transition-all duration-300 flex flex-col relative cursor-pointer hover:-translate-y-1"
+                    className="bg-transparent rounded-xl hover:shadow-xl hover:border-2 hover:bg-primary/20 transition-all duration-100 flex flex-col relative cursor-pointer hover:-translate-y-1"
+                    variants={illustrationVariants}
+                    whileHover={{ scale: 1.02 }}
                   >
                     <img
                       src={
@@ -567,12 +629,13 @@ const ShowListingPublic = () => {
                       }
                       alt={product.title}
                       loading="lazy"
-                      className="w-full h-[450px] object-fill rounded-xl shadow-lg mx-auto"
+                      className="w-full h-[450px] object-fill rounded-xl mx-auto hover:shadow-lg hover:border-2 duration-100"
                     />
 
-                    <button
+                    <motion.button
                       onClick={(e) => toggleWishlist(e, product)}
                       className="absolute top-4 right-4 p-2 bg-white/90 rounded-full shadow-sm hover:bg-white transition-colors"
+                      variants={illustrationVariants}
                       title={
                         wishlistIds.has(product._id)
                           ? "Remove from Wishlist"
@@ -597,12 +660,15 @@ const ShowListingPublic = () => {
                           d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                         />
                       </svg>
-                    </button>
+                    </motion.button>
 
-                    <div className="px-4 mt-4">
-                      <h2 className="text-lg font-bold text-gray-900 mb-1 capitalize truncate">
+                    <motion.div className="px-4 mt-4" variants={heroVariants}>
+                      <motion.h2
+                        className="text-lg font-bold text-gray-900 mb-1 capitalize truncate"
+                        variants={itemVariants}
+                      >
                         {product.title}
-                      </h2>
+                      </motion.h2>
 
                       <div className="flex justify-start items-center text-gray-700 text-sm lg:text-base">
                         ⭐{" "}
@@ -613,7 +679,7 @@ const ShowListingPublic = () => {
                           ({product.rating_number || 0} reviews)
                         </span>
                       </div>
-                    </div>
+                    </motion.div>
 
                     <div className="flex justify-between items-center px-4 py-2">
                       <span className="text-red-700 font-semibold text-md lg:text-xl">
@@ -623,25 +689,25 @@ const ShowListingPublic = () => {
                         {product.main_category || "Handcrafted"}
                       </span>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
-              </div>
+              </motion.div>
 
               {loading && products.length > 0 && (
-                <div className="text-center mt-8">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                <motion.div className="text-center mt-8">
+                  <motion.div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></motion.div>
                   <p className="text-gray-600 mt-2">Loading more products...</p>
-                </div>
+                </motion.div>
               )}
 
               {!hasMore && products.length > 0 && (
-                <div className="text-center mt-8 text-gray-600 font-medium">
+                <motion.div className="text-center mt-8 text-gray-600 font-medium">
                   You've reached the end of the list.
-                </div>
+                </motion.div>
               )}
             </>
           )}
-        </div>
+        </motion.div>
       </div>
     </div>
   );

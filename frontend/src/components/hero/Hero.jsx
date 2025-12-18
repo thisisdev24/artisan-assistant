@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import LoopingAnimatedBackground from "./LoopingAnimatedBackground";
 import Slider from "react-slick"; // Import Slider
 import "slick-carousel/slick/slick.css";
@@ -8,6 +9,8 @@ import image3 from "../../assets/hero/leather.jpg";
 import image4 from "../../assets/hero/potmaking.avif";
 import image5 from "../../assets/hero/woodcraft.avif";
 import { Link } from "react-router-dom";
+// eslint-disable-next-line no-unused-vars
+import { motion } from "framer-motion";
 
 const imageList = [
   {
@@ -43,6 +46,12 @@ const imageList = [
 ];
 
 const Hero = () => {
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    setLoaded(true);
+  }, []);
+
   var settings = {
     dots: true,
     arrows: false,
@@ -56,23 +65,56 @@ const Hero = () => {
     pauseOnFocus: true,
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
+  };
+
+  const heroVariants = {
+    hidden: { opacity: 0, x: -50 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.8 } },
+  };
+
+  const illustrationVariants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: { opacity: 1, scale: 1, transition: { duration: 1, delay: 0.3 } },
+  };
+
   /* Small reusable subcomponents used only inside this file */
   const Feature = ({ emoji, title, text }) => (
-    <div className="flex flex-col gap-2 p-5 rounded-xl bg-white/6 backdrop-blur-sm border-y-2 border-black">
+    <motion.div
+      className="flex flex-col gap-2 p-5 rounded-xl bg-white/6 backdrop-blur-sm border-y-2 border-black"
+      variants={itemVariants}
+      whileHover={{ scale: 1.02 }}
+    >
       <div className="text-3xl">{emoji}</div>
       <h4 className="font-semibold text-lg">{title}</h4>
       <p className="text-md text-gray-800">{text}</p>
-    </div>
+    </motion.div>
   );
 
   const CategoryCard = ({ title }) => (
-    <div className="flex flex-col items-start gap-2 p-4 rounded-lg bg-white/5 border-b-2 border-black">
+    <motion.div
+      className="flex flex-col items-start gap-2 p-4 rounded-lg bg-white/5 border-b-2 border-black"
+      variants={itemVariants}
+      whileHover={{ scale: 1.02 }}
+    >
       <div className="w-12 h-12 rounded-full bg-white/8 flex items-center justify-center text-lg">
         🎨
       </div>
       <div className="font-semibold">{title}</div>
       <div className="text-xs text-gray-700">Explore →</div>
-    </div>
+    </motion.div>
   );
 
   const Testimonial = ({ quote, author }) => (
@@ -98,66 +140,82 @@ const Hero = () => {
       mobileSpeed={18}
       opacity={0.2}
       mobileOpacity={0.1}
-      colors={["#FFAD33", "#FFD1B3"]}
+      colors={["#FFAD33", "#FFD1B3", "#FFAA80"]}
       density={6}
     >
       {/* hero + vertical sections container */}
-      <div className="container mx-auto my-12">
+      <div className="container mx-auto select-none">
         {/* ===== SLIDER HERO ===== */}
         <section className="my-16">
           <Slider {...settings}>
             {imageList.map((data) => (
               <div key={data.id} className="overflow-hidden">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-center mx-auto">
+                <motion.div
+                  className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center mx-auto my-4"
+                  initial="hidden"
+                  animate={loaded ? "visible" : "hidden"}
+                  variants={containerVariants}
+                >
                   {/* text content */}
-                  <div className="flex flex-col items-start justify-center gap-6 max-w-1/2 max-h-full ml-2">
-                    <h1
+                  <motion.div
+                    className="flex flex-col items-start justify-center gap-6 max-w-1/2 max-h-full mx-6 leading-tight"
+                    variants={heroVariants}
+                  >
+                    <motion.h1
                       data-aos="zoom-out"
                       data-aos-duration="500"
                       data-aos-once="true"
-                      className="text-4xl sm:text-5xl lg:text-6xl font-bold text-black leading-tight uppercase"
+                      className="text-4xl sm:text-5xl lg:text-6xl font-bold text-black uppercase"
+                      variants={itemVariants}
+                      whileHover={{scale: 1.1}}
                     >
                       {data.title}
-                    </h1>
-                    <p
+                    </motion.h1>
+                    <motion.p
                       data-aos="fade-up"
                       data-aos-duration="500"
                       data-aos-delay="100"
-                      className="text-md sm:text-lg lg:text-xl text-gray-800"
+                      className="text-base lg:text-lg text-gray-800"
+                      variants={itemVariants}
                     >
                       {data.desc}
-                    </p>
-                    <div
+                    </motion.p>
+                    <motion.div
                       data-aos="fade-up"
                       data-aos-duration="500"
                       data-aos-delay="300"
+                      variants={itemVariants}
                     >
-                      <div className="flex gap-3">
+                      <div className="flex gap-3 mt-2">
                         <Link
                           to={`/search?query=${data.title}`}
-                          className="text-sm sm:text-md lg:text-lg bg-gradient-to-r from-primary/50 to-secondary hover:scale-105 duration-200 text-black py-2 px-4 rounded-full shadow-lg font-semibold"
+                          className="text-sm sm:text-base bg-gradient-to-r from-primary/60 via-white/20 to-secondary/50 hover:scale-105 duration-200 text-black py-2 px-4 rounded-full shadow-xl border border-gray-600 font-semibold"
                         >
                           Order Now
                         </Link>
                         <Link
                           to="/ShowListingPublic"
-                          className="text-sm sm:text-md lg:text-lg py-2 px-4 rounded-full border border-black/10 bg-white/5 shadow-lg font-semibold"
+                          className="text-sm sm:text-base bg-gradient-to-r from-primary/60 via-white/20 to-secondary/50 hover:scale-105 duration-200 text-black py-2 px-4 rounded-full shadow-xl border border-gray-600 font-semibold"
                         >
                           Browse Products
                         </Link>
                       </div>
-                    </div>
-                  </div>
+                    </motion.div>
+                  </motion.div>
 
                   {/* image */}
-                  <div className="rounded-xl overflow-hidden max-w-1/2 max-h-full shadow-xl border border-white/8 mr-2">
+                  <motion.div
+                    className="rounded-xl overflow-hidden max-w-1/2 max-h-full mx-6"
+                    variants={illustrationVariants}
+                    whileHover={{scale: 0.9}}
+                  >
                     <img
                       src={data.img}
                       alt={data.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-fill shadow-xl mx-auto duration-100"
                     />
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
               </div>
             ))}
           </Slider>
@@ -165,7 +223,12 @@ const Hero = () => {
 
         {/* ===== FEATURES (3 inline) ===== */}
         <section className="mb-10">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+          <motion.div
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center"
+            initial="hidden"
+            animate={loaded ? "visible" : "hidden"}
+            variants={containerVariants}
+          >
             <Feature
               emoji="✨"
               title="Handmade & Original"
@@ -181,7 +244,7 @@ const Hero = () => {
               title="Reliable Delivery"
               text="Tracked shipping and smooth returns when needed."
             />
-          </div>
+          </motion.div>
         </section>
 
         {/* ===== CATEGORIES (compact grid) ===== */}
@@ -189,7 +252,12 @@ const Hero = () => {
           <h3 className="text-2xl font-semibold mb-4 text-gray-900">
             Explore Categories
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+          <motion.div
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4"
+            initial="hidden"
+            animate={loaded ? "visible" : "hidden"}
+            variants={containerVariants}
+          >
             <div>
               <a href="/search?query=Paintings">
                 <CategoryCard title="Paintings" />
@@ -220,7 +288,7 @@ const Hero = () => {
                 <CategoryCard title="Ceramics" />
               </a>
             </div>
-          </div>
+          </motion.div>
         </section>
 
         {/* ===== HOW IT WORKS (3-step vertical on mobile/horizontal on desktop) ===== */}

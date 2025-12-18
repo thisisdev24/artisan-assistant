@@ -29,8 +29,8 @@ load_dotenv(dotenv_path='../backend/.env')
 DATA_DIR = os.environ.get("ML_DATA_DIR")
 TEXT_EMBED_MODEL = os.environ.get("TEXT_EMBED_MODEL", "all-MiniLM-L6-v2")
 MONGO_URI = os.environ.get("MONGO_URI")
-ML_DB = os.environ.get("ML_MONGO_DB", "test")
-ML_COLLECTION = os.environ.get("ML_MONGO_COLLECTION", "listings")
+ML_DB = os.environ.get("ML_DB")
+ML_COLLECTION = os.environ.get("ML_COLLECTION")
 DEFAULT_K = int(os.environ.get("DEFAULT_K", 10))
 
 # ---------------------------
