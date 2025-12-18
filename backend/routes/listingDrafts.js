@@ -253,7 +253,7 @@ router.post("/:id/images", upload.array("images", 6), async (req, res) => {
   }
 });
 
-// 3) Final publish: update stock/dimensions and mark published
+// 3) Final publish: update fields and mark published
 router.patch("/:id/publish", async (req, res) => {
   try {
     const { id } = req.params;
@@ -267,7 +267,22 @@ router.patch("/:id/publish", async (req, res) => {
         .json({ error: "not_found", message: "Listing not found" });
     }
 
-    const { stock, stock_available, dimensions } = req.body;
+    const { title, price, description, features, stock, stock_available, dimensions } = req.body;
+
+    if (title.length > 1) listing.title = title; 
+
+    const numericPrice = Number(price);
+    if (Number.isNaN(numericPrice)) {
+      return res
+        .status(400)
+        .json({ error: "validation", message: "price must be a number" });
+    }
+    listing.price = numericPrice;
+
+    if (description !== undefined) listing.description = description;
+    if (Array.isArray(features)) {
+      listing.features = features;
+    }
 
     if (stock !== undefined) listing.stock = Number(stock);
     if (stock_available !== undefined)
@@ -293,6 +308,7 @@ router.patch("/:id/publish", async (req, res) => {
     }
 
     listing.status = "published";
+    listing.deleteRequested = false;
 
     await listing.save();
 

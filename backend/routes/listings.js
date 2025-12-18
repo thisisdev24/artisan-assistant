@@ -133,9 +133,15 @@ router.get("/retrieve", async (req, res) => {
       andFilters.push({ rating_number: { $gte: parseInt(minReviews, 10) } });
     }
 
-    const filter = andFilters.length
-      ? { $and: andFilters, deleteRequested: deleteRequested, status: status }
-      : { deleteRequested: deleteRequested, status: status };
+    if (deleteRequested) {
+      andFilters.push({ deleteRequested: deleteRequested });
+    }
+
+    if (status) {
+      andFilters.push({ status: status });
+    }
+
+    const filter = andFilters.length ? { $and: andFilters } : {};
 
     const sortMap = {
       price_asc: { price: 1 },

@@ -87,8 +87,8 @@ const ShowListing = ({ storeName: propStoreName }) => {
         const items = Array.isArray(data)
           ? data
           : Array.isArray(data.results)
-          ? data.results
-          : [];
+            ? data.results
+            : [];
         setProducts(items);
       } catch (err) {
         if (!mountedRef.current) return;
@@ -99,8 +99,8 @@ const ShowListing = ({ storeName: propStoreName }) => {
         console.error("Error fetching products:", err);
         setErrorMsg(
           err?.response?.data?.message ||
-            err.message ||
-            "Failed to load products"
+          err.message ||
+          "Failed to load products"
         );
         setProducts([]);
       } finally {
