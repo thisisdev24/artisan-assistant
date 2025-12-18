@@ -7,6 +7,11 @@ const ProductDetailsForm = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
+  const [title, setTitle] = useState("");
+  const [features, setFeatures] = useState([]);
+  const [featureInput, setFeatureInput] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
   const [stockAvailable, setStockAvailable] = useState(true);
   const [height, setHeight] = useState("");
@@ -66,8 +71,34 @@ const ProductDetailsForm = () => {
     }
   }, [id, token, mainColor]);
 
+  async function handleAutoDesc() {
+    try {
+      const res = await axios.get(
+        "http://localhost:5000/api/listings/gen_desc",
+        {
+          params: { title, features },
+          timeout: 20000,
+        }
+      );
+      if (res?.data?.description) setDescription(res.data.description);
+    } catch (err) {
+      console.error("Auto-generate error:", err?.response?.data || err.message);
+      alert("Auto description failed. See console for details.");
+    }
+  }
+
   async function handlePublish(e) {
     e.preventDefault();
+
+    if (!title || !price || !description) {
+      alert("Title, price and description are required.");
+      return;
+    }
+
+    if (loading) {
+      return; // Prevent double submission
+    }
+
     setLoading(true);
 
     try {
@@ -79,6 +110,13 @@ const ProductDetailsForm = () => {
       };
 
       const publishData = {
+        title,
+        features:
+          Array.isArray(features) && features.length > 0
+            ? JSON.stringify(features)
+            : JSON.stringify([]),
+        description: description,
+        price: price,
         stock: stock ? parseInt(stock) : 0,
         stock_available: stockAvailable,
         dimensions,
@@ -102,7 +140,7 @@ const ProductDetailsForm = () => {
       console.error("Publish error:", err?.response?.data || err.message);
       alert(
         err?.response?.data?.message ||
-          "Failed to publish. See console for details."
+        "Failed to publish. See console for details."
       );
     } finally {
       setLoading(false);
@@ -110,8 +148,8 @@ const ProductDetailsForm = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-100 via-white to-green-50 p-6">
-      <div className="w-full max-w-2xl bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl p-8 border border-green-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-white to-primary/10 p-6">
+      <div className="w-full max-w-2xl lg:max-w-4xl bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl p-6 border border-green-100">
         <h2 className="text-3xl font-bold text-center mb-6 text-green-700">
           Product Details
         </h2>
@@ -120,22 +158,14 @@ const ProductDetailsForm = () => {
         </p>
 
         {listing && (
-          <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <h3 className="font-semibold text-blue-800 mb-2">Preview:</h3>
-            <p className="text-blue-700">
-              <strong>Title:</strong> {listing.title}
-            </p>
-            <p className="text-blue-700">
-              <strong>Price:</strong> ₹{listing.price}
-            </p>
-
+          <div className="my-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
             {/* Suggested colors (if any) */}
             {detectedColors && detectedColors.length > 0 && (
-              <div className="mt-3">
-                <p className="text-sm text-gray-600 mb-2">
+              <div className="mb-4 text-base">
+                <p className="text-gray-700 mb-4">
                   Suggested colors (auto-detected):
                 </p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center gap-2 lg:gap-4">
                   {detectedColors.map((c, idx) => (
                     <button
                       key={idx}
@@ -144,16 +174,16 @@ const ProductDetailsForm = () => {
                       title={`${c.name || ""} ${Math.round(
                         (c.percentage || 0) * 100
                       )}%`}
-                      className="w-10 h-10 rounded-md border"
+                      className="w-20 h-20 rounded-md border"
                       style={{ background: c.hex }}
                     />
                   ))}
                   <div className="ml-4">
-                    <span className="text-sm text-gray-700">
+                    <span className="text-gray-700">
                       Chosen main color:
                     </span>
                     <div
-                      className="inline-block ml-2 align-middle w-8 h-8 rounded border"
+                      className="inline-block ml-2 align-middle w-20 h-20 rounded border"
                       style={{ background: mainColor || "#ffffff" }}
                     />
                   </div>
@@ -163,31 +193,31 @@ const ProductDetailsForm = () => {
 
             {/* CLIP Tag Suggestions (materials / styles / colors / occasions) */}
             {clipTags && clipTags.length > 0 && (
-              <div className="mt-4 p-4 bg-white rounded-lg border border-blue-100">
-                <h4 className="font-semibold text-blue-800 mb-2">
-                  Auto-suggested tags (from image analysis)
+              <div className="text-base mt-8 mb-4 rounded-lg">
+                <h4 className="text-gray-700 mb-2">
+                  Auto-suggested tags (from image analysis):
                 </h4>
                 <div className="space-y-4">
                   {clipTags.map((t, idx) => (
-                    <div key={idx} className="flex gap-4 items-start">
+                    <div key={idx} className="flex flex-row gap-6 items-start justify-between text-base text-gray-700">
                       {/* show small thumbnail or icon for the image if available */}
-                      <div className="w-16 h-16 rounded-md overflow-hidden border">
+                      <div className="w-1/2 h-1/2 rounded-md overflow-hidden border">
                         <img
                           src={t.image}
                           alt={`img-${idx}`}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-fill mx-auto"
                         />
                       </div>
 
                       <div className="flex-1">
-                        <div className="text-sm text-gray-600 mb-1">
-                          Image suggestions
+                        <div className="mb-2">
+                          Image suggestions:
                         </div>
 
                         {/* Materials */}
                         {t.materials && t.materials.length > 0 && (
                           <div className="mb-1">
-                            <div className="text-xs text-gray-500 mb-1">
+                            <div className="mb-1">
                               Materials
                             </div>
                             <div className="flex flex-wrap gap-2">
@@ -195,7 +225,7 @@ const ProductDetailsForm = () => {
                                 <button
                                   key={mi}
                                   type="button"
-                                  className="text-xs px-2 py-1 rounded bg-blue-50 border text-blue-700"
+                                  className=" px-2 py-1 rounded bg-blue-50 border text-blue-700"
                                   title={`score ${m.score.toFixed(3)}`}
                                 >
                                   {m.label}
@@ -208,7 +238,7 @@ const ProductDetailsForm = () => {
                         {/* Styles */}
                         {t.styles && t.styles.length > 0 && (
                           <div className="mb-1">
-                            <div className="text-xs text-gray-500 mb-1">
+                            <div className=" mb-1">
                               Styles
                             </div>
                             <div className="flex flex-wrap gap-2">
@@ -216,7 +246,7 @@ const ProductDetailsForm = () => {
                                 <button
                                   key={si}
                                   type="button"
-                                  className="text-xs px-2 py-1 rounded bg-green-50 border text-green-700"
+                                  className=" px-2 py-1 rounded bg-green-50 border text-green-700"
                                   title={`score ${s.score.toFixed(3)}`}
                                 >
                                   {s.label}
@@ -229,7 +259,7 @@ const ProductDetailsForm = () => {
                         {/* Merged Colors (canonical) */}
                         {t.merged_colors && t.merged_colors.length > 0 && (
                           <div className="mb-1">
-                            <div className="text-xs text-gray-500 mb-1">
+                            <div className="mb-1">
                               Colors
                             </div>
                             <div className="flex items-center gap-2 flex-wrap">
@@ -238,15 +268,7 @@ const ProductDetailsForm = () => {
                                   key={ci}
                                   className="flex items-center gap-2 px-2 py-1 rounded border"
                                 >
-                                  <div
-                                    className="w-6 h-6 rounded-sm border"
-                                    style={{
-                                      background: c.startsWith("#")
-                                        ? c
-                                        : undefined,
-                                    }}
-                                  />
-                                  <span className="text-xs">{c}</span>
+                                  <span>{c}</span>
                                 </div>
                               ))}
                             </div>
@@ -256,7 +278,7 @@ const ProductDetailsForm = () => {
                         {/* Occasions */}
                         {t.occasions && t.occasions.length > 0 && (
                           <div className="mb-1">
-                            <div className="text-xs text-gray-500 mb-1">
+                            <div className="mb-1">
                               Occasions
                             </div>
                             <div className="flex gap-2 flex-wrap">
@@ -264,7 +286,7 @@ const ProductDetailsForm = () => {
                                 <button
                                   key={oi}
                                   type="button"
-                                  className="text-xs px-2 py-1 rounded bg-yellow-50 border text-yellow-700"
+                                  className="px-2 py-1 rounded bg-yellow-50 border text-yellow-700"
                                   title={`score ${o.score.toFixed(3)}`}
                                 >
                                   {o.label}
@@ -279,6 +301,96 @@ const ProductDetailsForm = () => {
                 </div>
               </div>
             )}
+
+            <div className="mb-5">
+              <label className="block text-gray-700 mb-2">Title</label>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value.trim())}
+                placeholder="Enter product title"
+                className="w-full px-4 py-2 border rounded-lg"
+              />
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-gray-700 mb-2">Price (in ₹)</label>
+              <input
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="Enter product price"
+                className="w-full px-4 py-2 border rounded-lg"
+              />
+            </div>
+            <div className="mb-5">
+              <label className="block text-gray-700 mb-2">Features</label>
+
+              {/* Input + Add button */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={featureInput}
+                  onChange={(e) => setFeatureInput(e.target.value)}
+                  placeholder="Enter a feature"
+                  className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const trimmed = featureInput.trim();
+                    if (trimmed !== "" && !features.includes(trimmed)) {
+                      setFeatures([...features, trimmed]);
+                      setFeatureInput("");
+                    }
+                  }}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
+                >
+                  Add
+                </button>
+              </div>
+
+              {/* Display list of added features */}
+              {features.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {features.map((feat, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded-lg"
+                    >
+                      <span>{feat}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFeatures(features.filter((_, i) => i !== index))
+                        }
+                        className="text-red-500 hover:text-red-700 font-bold"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-gray-700 mb-2">Description</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Write a brief description..."
+                rows="4"
+                className="w-full px-4 py-2 border rounded-lg"
+              />
+              <button
+                type="button"
+                onClick={handleAutoDesc}
+                disabled={loading}
+                className="flex-1 bg-blue-500 text-white p-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ✨ Generate Description
+              </button>
+            </div>
           </div>
         )}
 
