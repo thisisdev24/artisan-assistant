@@ -3,25 +3,10 @@ const express = require("express");
 const router = express.Router();
 const Listing = require("../models/artisan_point/artisan/Listing");
 const Artisan = require("../models/artisan_point/artisan/Artisan");
-const upload = require("../middleware/upload");
-const {
-  createThumbnailBuffer,
-  createLargeThumbnailBuffer,
-  createHighResThumbnailBuffer,
-} = require("../utils/image");
-const { uploadBuffer, getSignedReadUrl } = require("../utils/gcs");
-const path = require("path");
-const crypto = require("crypto");
 const axios = require("axios");
 const mongoose = require("mongoose");
 
 const ML = process.env.ML_SERVICE_URL;
-
-function makeKey(filename) {
-  const ext = path.extname(filename) || ".jpg";
-  const id = Date.now() + "-" + crypto.randomBytes(6).toString("hex");
-  return `images/${id}${ext}`;
-}
 
 function toArray(val) {
   if (!val) return [];
@@ -36,145 +21,14 @@ function makeRegex(val) {
   return new RegExp(String(val).trim(), "i");
 }
 
-// upload route (unchanged)
-router.post(
-  "/upload",
-  upload.fields([
-    { name: "images", maxCount: 6 },
-    { name: "videos", maxCount: 6 },
-  ]),
-  async (req, res) => {
-    try {
-      const {
-        main_category,
-        title,
-        average_rating,
-        rating_number,
-        features,
-        description,
-        price,
-        store,
-        categories,
-        details,
-        parent_asin,
-      } = req.body;
-
-      if (!title || !price)
-        return res
-          .status(400)
-          .json({ error: "validation", message: "title and price required" });
-      const numericPrice = parseFloat(price);
-      if (Number.isNaN(numericPrice))
-        return res
-          .status(400)
-          .json({ error: "validation", message: "price must be a number" });
-
-      const imageFiles = (req.files && req.files["images"]) || [];
-      if (imageFiles.length === 0)
-        return res
-          .status(400)
-          .json({
-            error: "validation",
-            message: "Upload minimum one image of the product",
-          });
-      const videoFiles = (req.files && req.files["videos"]) || [];
-
-      const imagesMeta = [];
-      for (const file of imageFiles) {
-        const key = makeKey(file.originalname);
-        await uploadBuffer(file.buffer, key, file.mimetype);
-
-        let thumbBuf, largeThumbnailBuf, highResThumbnailBuf;
-        try {
-          thumbBuf = await createThumbnailBuffer(file.buffer, 320);
-          largeThumbnailBuf = await createLargeThumbnailBuffer(
-            file.buffer,
-            640
-          );
-          highResThumbnailBuf = await createHighResThumbnailBuffer(
-            file.buffer,
-            1024
-          );
-        } catch (thumbErr) {
-          console.warn(
-            "Thumbnail generation failed for",
-            file.originalname,
-            thumbErr
-          );
-          thumbBuf = file.buffer;
-          largeThumbnailBuf = file.buffer;
-          highResThumbnailBuf = file.buffer;
-        }
-
-        const thumbKey = key.replace(/(\.[^.]+)$/, "_thumb$1");
-        await uploadBuffer(thumbBuf, thumbKey, "image/jpeg");
-        const largeThumbKey = key.replace(/(\.[^.]+)$/, "_thumb$2");
-        await uploadBuffer(largeThumbnailBuf, largeThumbKey, "image/jpeg");
-        const highResThumbKey = key.replace(/(\.[^.]+)$/, "_thumb$3");
-        await uploadBuffer(highResThumbnailBuf, highResThumbKey, "image/jpeg");
-
-        const thumbnailUrl = await getSignedReadUrl(
-          thumbKey,
-          24 * 60 * 60 * 1000
-        );
-        const largeThumbnailUrl = await getSignedReadUrl(
-          largeThumbKey,
-          24 * 60 * 60 * 1000
-        );
-        const highResThumbnailUrl = await getSignedReadUrl(
-          highResThumbKey,
-          24 * 60 * 60 * 1000
-        );
-
-        imagesMeta.push({
-          thumb: thumbnailUrl,
-          large: largeThumbnailUrl,
-          hi_res: highResThumbnailUrl,
-        });
-      }
-
-      const videosMeta = [];
-      for (const file of videoFiles) {
-        const key = makeKey(file.originalname);
-        await uploadBuffer(file.buffer, key, file.mimetype);
-        const url = await getSignedReadUrl(key, 24 * 60 * 60 * 1000);
-        videosMeta.push({ key, url });
-      }
-
-      const listing = await Listing.create({
-        main_category,
-        title,
-        average_rating,
-        rating_number,
-        features,
-        description,
-        store,
-        categories,
-        details,
-        parent_asin,
-        price: numericPrice,
-        images: imagesMeta,
-        videos: videosMeta,
-      });
-
-      res.status(201).json(listing);
-    } catch (err) {
-      console.error("List create err", err);
-      if (err.name === "ValidationError")
-        return res
-          .status(400)
-          .json({ error: "validation", message: err.message });
-      res.status(500).json({ error: "internal", message: err.message });
-    }
-  }
-);
-
 // retrieve with pagination (keeps existing behaviour)
 router.get("/retrieve", async (req, res) => {
   try {
     const {
       store: storeQuery,
       artisanId,
+      status,
+      deleteRequested,
       category,
       categories,
       minPrice,
@@ -279,7 +133,9 @@ router.get("/retrieve", async (req, res) => {
       andFilters.push({ rating_number: { $gte: parseInt(minReviews, 10) } });
     }
 
-    const filter = andFilters.length ? { $and: andFilters } : {};
+    const filter = andFilters.length
+      ? { $and: andFilters, deleteRequested: deleteRequested, status: status }
+      : { deleteRequested: deleteRequested, status: status };
 
     const sortMap = {
       price_asc: { price: 1 },
@@ -298,7 +154,7 @@ router.get("/retrieve", async (req, res) => {
           .skip(skip)
           .limit(lim)
           .select(
-            "title description price images average_rating rating_number createdAt"
+            "title description price images average_rating rating_number createdAt status deleteRequested"
           )
           .lean(),
         Listing.countDocuments(filter),
@@ -319,6 +175,8 @@ router.get("/retrieve", async (req, res) => {
           rating_number: doc.rating_number,
           imageUrl,
           createdAt: doc.createdAt,
+          status: doc.status,
+          deleteRequested: doc.deleteRequested,
         };
       });
 
@@ -373,8 +231,10 @@ router.get("/search", async (req, res) => {
       })
       .filter(Boolean);
 
+    const filter = { deleteRequested: false, status: "published" };
+
     // fetch listings
-    const docs = await Listing.find({ _id: { $in: objectIds } })
+    const docs = await Listing.find({ _id: { $in: objectIds }, filter })
       .select(
         "title description price images average_rating rating_number createdAt"
       )
@@ -454,12 +314,10 @@ router.get("/gen_desc", async (req, res) => {
       console.error(
         "ML_SERVICE_URL is not configured. Set process.env.ML_SERVICE_URL"
       );
-      return res
-        .status(500)
-        .json({
-          error: "ml_service_unavailable",
-          message: "ML service URL not configured",
-        });
+      return res.status(500).json({
+        error: "ml_service_unavailable",
+        message: "ML service URL not configured",
+      });
     }
 
     // Call ML service which returns { description: "..." }
@@ -483,13 +341,11 @@ router.get("/gen_desc", async (req, res) => {
     const fallback = `${req.query.title || ""}. Features: ${(
       req.query.features || []
     ).toString()}`;
-    return res
-      .status(200)
-      .json({
-        description: fallback,
-        error: "generation_proxy_failed",
-        detail: err?.message,
-      });
+    return res.status(200).json({
+      description: fallback,
+      error: "generation_proxy_failed",
+      detail: err?.message,
+    });
   }
 });
 

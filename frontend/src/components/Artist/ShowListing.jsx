@@ -134,14 +134,6 @@ const ShowListing = ({ storeName: propStoreName }) => {
     return "/placeholder.jpg";
   };
 
-  const shortDescription = (product) => {
-    const d = product?.description;
-    if (!d) return "";
-    if (typeof d === "string") return d;
-    if (Array.isArray(d) && d.length > 0) return d[0];
-    return "";
-  };
-
   async function handleDelete(productId) {
     try {
       await apiClient.delete(`/api/listings/${productId}/${sellerId}`);
@@ -179,8 +171,8 @@ const ShowListing = ({ storeName: propStoreName }) => {
   }
 
   return (
-    <div className="min-h-screen bg-secondary/20 px-6 py-12">
-      <div className="max-w-6xl lg:max-w-7xl mx-auto">
+    <div className="min-h-screen bg-secondary/20 py-12">
+      <div className="max-w-7xl lg:max-w-screen-2xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800">
             My Listed Products
@@ -204,56 +196,60 @@ const ShowListing = ({ storeName: propStoreName }) => {
             </button>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-12">
             {products.map((product) => (
               <div
                 key={product._id}
-                className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6"
+                className="bg-transparent rounded-2xl border-2 border-black hover:shadow-xl hover:bg-primary/20 transition-all duration-300"
               >
                 <img
                   src={pickImageSrc(product)}
                   alt={product.title}
-                  className="w-full h-48 object-cover rounded-lg mb-4"
+                  className="w-full h-[450px] object-fill rounded-xl shadow-lg mx-auto"
                   onError={(e) => {
                     e.currentTarget.src = "/placeholder.jpg";
                   }}
                 />
-                <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                  {product.title}
-                </h2>
-                <p className="text-gray-600 mb-2">
-                  {shortDescription(product)}
-                </p>
-                <p className="text-lg font-bold text-indigo-700 mb-4">
-                  ₹{Math.round(product.price) ?? "—"}
-                </p>
+                <div className="px-4 py-4">
+                  <h2 className="text-xl font-semibold text-gray-800 mb-2 capitalize truncate">
+                    {product.title}
+                  </h2>
+                  <p className="text-lg font-bold text-indigo-700 mb-4">
+                    ₹{Math.round(product.price) ?? "—"}
+                  </p>
 
-                <div className="flex justify-between">
-                  <button
-                    onClick={() =>
-                      navigate(`/seller/edit-product/${product._id}`)
-                    }
-                    className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(product._id)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
-                  >
-                    Request Delete
-                  </button>
-                  {product.deleteRequested && (
-                      <span className="text-sm text-orange-600">
-                        Pending admin approval
-                      </span>
+                  <div className="flex flex-row justify-between items-center gap-2">
+                    <button
+                      onClick={() =>
+                        navigate(`/seller/edit-product/${product._id}`)
+                      }
+                      className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
+                    >
+                      Edit
+                    </button>
+                    {product.deleteRequested ? (
+                      <div>
+                        <p>Deletion requested from admin</p>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() =>
+                          handleDelete(product._id) && (
+                            <p>Deletion requested from admin</p>
+                          )
+                        }
+                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
+                      >
+                        Delete
+                      </button>
                     )}
-                  <button
-                    onClick={() => navigate(`/product/${product._id}`)}
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
-                  >
-                    View
-                  </button>
+                    <button
+                      onClick={() => navigate(`/product/${product._id}`)}
+                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
+                    >
+                      View
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
