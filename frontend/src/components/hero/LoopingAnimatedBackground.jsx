@@ -26,7 +26,7 @@ export default function LoopingAnimatedBackground({
   mobileSpeed = 18,
   opacity = 0.2,
   mobileOpacity = 0.12,
-  colors = ["#FF9933", "#FFBF80"],
+  colors = ["#FFAD33", "#FFD1B3", "#FFAA80"],
   density = 6,
 }) {
   // Generate positions across a wide area so tiled copies loop seamlessly

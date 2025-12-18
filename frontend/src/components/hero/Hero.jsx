@@ -140,25 +140,25 @@ const Hero = () => {
       mobileSpeed={18}
       opacity={0.2}
       mobileOpacity={0.1}
-      colors={["#FFAD33", "#FFD1B3"]}
+      colors={["#FFAD33", "#FFD1B3", "#FFAA80"]}
       density={6}
     >
       {/* hero + vertical sections container */}
-      <div className="container mx-auto my-12">
+      <div className="container mx-auto my-12 select-none">
         {/* ===== SLIDER HERO ===== */}
         <section className="my-16">
           <Slider {...settings}>
             {imageList.map((data) => (
               <div key={data.id} className="overflow-hidden">
                 <motion.div
-                  className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-center mx-auto"
+                  className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center mx-auto"
                   initial="hidden"
                   animate={loaded ? "visible" : "hidden"}
                   variants={containerVariants}
                 >
                   {/* text content */}
                   <motion.div
-                    className="flex flex-col items-start justify-center gap-6 max-w-1/2 max-h-full ml-2"
+                    className="flex flex-col items-start justify-center gap-6 max-w-1/2 max-h-full m-6"
                     variants={heroVariants}
                   >
                     <motion.h1
@@ -167,6 +167,7 @@ const Hero = () => {
                       data-aos-once="true"
                       className="text-4xl sm:text-5xl lg:text-6xl font-bold text-black leading-tight uppercase"
                       variants={itemVariants}
+                      whileHover={{scale: 1.1}}
                     >
                       {data.title}
                     </motion.h1>
@@ -174,7 +175,7 @@ const Hero = () => {
                       data-aos="fade-up"
                       data-aos-duration="500"
                       data-aos-delay="100"
-                      className="text-md sm:text-lg lg:text-xl text-gray-800"
+                      className="text-base lg:text-lg text-gray-800"
                       variants={itemVariants}
                     >
                       {data.desc}
@@ -204,13 +205,14 @@ const Hero = () => {
 
                   {/* image */}
                   <motion.div
-                    className="rounded-xl overflow-hidden max-w-1/2 max-h-full shadow-xl border border-white/8 mr-2"
+                    className="rounded-xl overflow-hidden max-w-1/2 max-h-full m-6"
                     variants={illustrationVariants}
+                    whileHover={{scale: 0.9}}
                   >
                     <img
                       src={data.img}
                       alt={data.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-fill shadow-xl mx-auto duration-100"
                     />
                   </motion.div>
                 </motion.div>
