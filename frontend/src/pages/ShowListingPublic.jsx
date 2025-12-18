@@ -286,7 +286,7 @@ const ShowListingPublic = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-secondary/20 to-secondary/30 py-4 sm:py-8">
+    <div className="min-h-screen bg-white py-4 sm:py-8">
       <div className="max-w-7xl lg:max-w-screen-2xl mx-auto">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-12 select-none">
           <div>
@@ -521,7 +521,7 @@ const ShowListingPublic = () => {
               <p className="text-lg font-medium">{errorMsg}</p>
               <button
                 onClick={() => fetchProducts({ pageNum: page })}
-                className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg"
+                className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all hover:shadow-lg"
               >
                 Retry
               </button>
@@ -551,12 +551,12 @@ const ShowListingPublic = () => {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-12">
                 {products.map((product) => (
                   <div
                     key={product._id}
                     onClick={() => navigate(`/products/${product._id}`)}
-                    className="bg-transparent rounded-xl hover:shadow-xl hover:bg-primary/20 transition-all duration-300 flex flex-col relative cursor-pointer hover:-translate-y-1"
+                    className="bg-transparent rounded-xl hover:shadow-xl hover:border-2 hover:bg-primary/20 transition-all duration-100 flex flex-col relative cursor-pointer hover:-translate-y-1"
                   >
                     <img
                       src={
@@ -567,7 +567,7 @@ const ShowListingPublic = () => {
                       }
                       alt={product.title}
                       loading="lazy"
-                      className="w-full h-[450px] object-fill rounded-xl shadow-lg mx-auto"
+                      className="w-full h-[450px] object-fill rounded-xl mx-auto hover:shadow-lg hover:border-2 duration-100"
                     />
 
                     <button

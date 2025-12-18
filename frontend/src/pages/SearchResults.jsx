@@ -151,7 +151,7 @@ const SearchResults = () => {
   const handleBack = () => navigate("/");
 
   return (
-    <div className="p-6 min-h-screen bg-secondary/20 select-none">
+    <div className="p-6 min-h-screen bg-white select-none">
       <div className="max-w-7xl lg:max-w-screen-2xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Search results for “{query}”</h1>
@@ -170,7 +170,7 @@ const SearchResults = () => {
           <div className="text-gray-600 mt-8">No results found.</div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10">
           {results.map((item) => (
             <div
               key={
@@ -179,12 +179,12 @@ const SearchResults = () => {
                 item.faiss_id ||
                 JSON.stringify(item)
               }
-              className="flex flex-col rounded-xl hover:shadow-xl hover:bg-primary/20 relative"
+              className="flex flex-col rounded-xl hover:shadow-xl hover:bg-primary/20 hover:border-2 relative duration-100"
             >
               <img
                 src={item.images[0].hi_res || item.images[0].large}
                 alt={item.title || "item"}
-                className="w-full h-[450px] object-fill rounded-xl shadow-lg mb-2"
+                className="w-full h-[450px] object-fill rounded-xl hover:shadow-xl hover:border-2 duration-100"
                 onError={(e) => {
                   e.currentTarget.src = "/placeholder.jpg";
                 }}
@@ -226,10 +226,7 @@ const SearchResults = () => {
                 <h2 className="text-lg font-bold text-gray-900 mb-1 capitalize truncate">
                   {item.title}
                 </h2>
-                <div className="flex justify-start items-center gap-4 text-gray-700 text-sm lg:text-base">
-                  ₹{Math.round(item.price) ?? "—"}
-                </div>
-                <div className="flex justify-start items-center text-gray-700 text-sm lg:text-base">
+                <div className="flex justify-start items-center text-gray-700 text-sm lg:text-base mb-2">
                   ⭐{" "}
                   <span className="font-semibold ml-1">
                     {item.average_rating || 0}
@@ -237,6 +234,9 @@ const SearchResults = () => {
                   <span className="ml-2">
                     ({item.rating_number || 0} reviews)
                   </span>
+                </div>
+                <div className="flex justify-start items-center gap-4 text-red-500 text-md lg:text-lg font-bold">
+                  ₹{Math.round(item.price) ?? "—"}
                 </div>
                 <button
                   onClick={() =>

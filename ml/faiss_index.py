@@ -11,6 +11,12 @@ from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 import pytz
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv(dotenv_path='../backend/.env')
+except ImportError:
+    print("Note: python-dotenv not installed, using system environment variables only")
+
 # ------------------------------
 # Logging
 # ------------------------------
@@ -28,9 +34,9 @@ logger = logging.getLogger(__name__)
 class FaissTextIndexer:
     def __init__(
         self,
-        db_name="test",
-        collection_name="listings",
-        data_dir="data",
+        db_name,
+        collection_name,
+        data_dir,
         mongo_uri=None
     ):
         # SECURITY: Get MongoDB URI from environment variable
@@ -435,7 +441,6 @@ class FaissTextIndexer:
 
         return results
 
-
 # ==========================================================
 #                 MANUAL REBUILD
 # ==========================================================
@@ -455,9 +460,9 @@ if __name__ == "__main__":
         exit(1)
     
     indexer = FaissTextIndexer(
-        db_name=os.environ.get("ML_DB", "test"),
-        collection_name=os.environ.get("ML_COLLECTION", "listings"),
-        data_dir="data",
+        db_name=os.environ.get("ML_DB"),
+        collection_name=os.environ.get("ML_COLLECTION"),
+        data_dir=os.environ.get("ML_DATA_DIR"),
         mongo_uri=mongo_uri
     )
 

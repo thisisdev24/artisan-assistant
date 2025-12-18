@@ -56,7 +56,7 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="bg-primary/30 backdrop-blur-lg border-b border-white/20 shadow-lg sticky min-w-screen z-20 top-0 start-0 border-default">
+      <nav className="bg-secondary/30 backdrop-blur-lg shadow-xl sticky min-w-screen z-20 top-0 start-0">
         <div className="max-w-full flex flex-wrap items-center justify-between mx-auto p-4 select-none">
           {/* logo section */}
           <Link
