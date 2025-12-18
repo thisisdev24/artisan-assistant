@@ -144,28 +144,28 @@ const Hero = () => {
       density={6}
     >
       {/* hero + vertical sections container */}
-      <div className="container mx-auto my-12 select-none">
+      <div className="container mx-auto select-none">
         {/* ===== SLIDER HERO ===== */}
         <section className="my-16">
           <Slider {...settings}>
             {imageList.map((data) => (
               <div key={data.id} className="overflow-hidden">
                 <motion.div
-                  className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center mx-auto"
+                  className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center mx-auto my-4"
                   initial="hidden"
                   animate={loaded ? "visible" : "hidden"}
                   variants={containerVariants}
                 >
                   {/* text content */}
                   <motion.div
-                    className="flex flex-col items-start justify-center gap-6 max-w-1/2 max-h-full m-6"
+                    className="flex flex-col items-start justify-center gap-6 max-w-1/2 max-h-full mx-6 leading-tight"
                     variants={heroVariants}
                   >
                     <motion.h1
                       data-aos="zoom-out"
                       data-aos-duration="500"
                       data-aos-once="true"
-                      className="text-4xl sm:text-5xl lg:text-6xl font-bold text-black leading-tight uppercase"
+                      className="text-4xl sm:text-5xl lg:text-6xl font-bold text-black uppercase"
                       variants={itemVariants}
                       whileHover={{scale: 1.1}}
                     >
@@ -186,16 +186,16 @@ const Hero = () => {
                       data-aos-delay="300"
                       variants={itemVariants}
                     >
-                      <div className="flex gap-3">
+                      <div className="flex gap-3 mt-2">
                         <Link
                           to={`/search?query=${data.title}`}
-                          className="text-sm sm:text-md lg:text-lg bg-gradient-to-r from-primary/50 to-secondary hover:scale-105 duration-200 text-black py-2 px-4 rounded-full shadow-lg font-semibold"
+                          className="text-sm sm:text-base bg-gradient-to-r from-primary/60 via-white/20 to-secondary/50 hover:scale-105 duration-200 text-black py-2 px-4 rounded-full shadow-xl border border-gray-600 font-semibold"
                         >
                           Order Now
                         </Link>
                         <Link
                           to="/ShowListingPublic"
-                          className="text-sm sm:text-md lg:text-lg py-2 px-4 rounded-full border border-black/10 bg-white/5 shadow-lg font-semibold"
+                          className="text-sm sm:text-base bg-gradient-to-r from-primary/60 via-white/20 to-secondary/50 hover:scale-105 duration-200 text-black py-2 px-4 rounded-full shadow-xl border border-gray-600 font-semibold"
                         >
                           Browse Products
                         </Link>
@@ -205,7 +205,7 @@ const Hero = () => {
 
                   {/* image */}
                   <motion.div
-                    className="rounded-xl overflow-hidden max-w-1/2 max-h-full m-6"
+                    className="rounded-xl overflow-hidden max-w-1/2 max-h-full mx-6"
                     variants={illustrationVariants}
                     whileHover={{scale: 0.9}}
                   >

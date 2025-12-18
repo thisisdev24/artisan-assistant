@@ -56,7 +56,7 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="bg-gradient-to-t from-primary/30 via-white/90 to-primary/20 backdrop-blur-lg shadow-xl sticky min-w-screen z-20 top-0 start-0">
+      <nav className="bg-gradient-to-r from-primary/30 via-white/40 to-primary/20 backdrop-blur-lg shadow-xl sticky min-w-screen z-20 top-0 start-0">
         <div className="max-w-full flex flex-wrap items-center justify-between mx-auto p-4 select-none">
           {/* logo section */}
           <Link
