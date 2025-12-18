@@ -56,7 +56,7 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="bg-primary/10 backdrop-blur-lg border-b border-white/20 shadow-lg sticky min-w-screen z-20 top-0 start-0 border-default">
+      <nav className="bg-primary/30 backdrop-blur-lg border-b border-white/20 shadow-lg sticky min-w-screen z-20 top-0 start-0 border-default">
         <div className="max-w-full flex flex-wrap items-center justify-between mx-auto p-4 select-none">
           {/* logo section */}
           <Link
@@ -65,7 +65,7 @@ const Navbar = () => {
           >
             <SiSnapcraft />
             <p>Artist</p>
-            <p className="text-primary ">Point</p>
+            <p className="text-orange-400 ">Point</p>
           </Link>
           {/* menu section - Role-based navigation */}
           <div className="items-center justify-between hidden md:flex md:w-auto md:mt-2 md:order-1">

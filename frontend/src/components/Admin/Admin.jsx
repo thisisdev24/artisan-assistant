@@ -114,13 +114,24 @@ const Admin = () => {
     const deleteListing = async (listingId) => {
         if (!window.confirm('Are you sure you want to delete this listing?')) return;
         try {
-            await apiClient.delete(`/api/admin/listings/${listingId}`);
+            await apiClient.delete(`/api/admin/${listingId}/approve-delete`);
             loadListings();
         } catch (err) {
             console.error('Failed to delete listing:', err);
             alert('Failed to delete listing');
         }
     };
+
+    const rejectDeletion = async (listingId) => {
+        if (!window.confirm('Reject this deletion?')) return;
+        try {
+            await apiClient.patch(`/api/admin/${listingId}/reject-delete`);
+            loadListings();
+        } catch (err) {
+            console.error('Failed to reject deletion:', err);
+            alert('Failed to reject');
+        }
+    }
 
     return (
         <div className="min-h-screen bg-gray-100 py-8 px-4">
@@ -348,8 +359,60 @@ const Admin = () => {
 
                 {/* Listings Tab */}
                 {activeTab === 'listings' && (
-                    <div className="bg-white rounded-lg shadow overflow-hidden">
+                    <div className="bg-transparent rounded-lg shadow overflow-hidden">
+                        <h1 className='p-4 text-lg font-bold'>Deletion Requests</h1>
                         <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Seller</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {loading ? (
+                                        <tr>
+                                            <td colSpan="4" className="px-6 py-4 text-center">Loading...</td>
+                                        </tr>
+                                    ) : listings.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="4" className="px-6 py-4 text-center">No listings found</td>
+                                        </tr>
+                                    ) : (
+                                        listings.map((l) => (
+                                            (l.deleteRequested &&
+                                            (
+                                                <tr key={l._id}>
+                                                <td className="px-6 py-4">{l.title || 'Untitled'}</td>
+                                                <td className="px-6 py-4">₹{l.price || 0}</td>
+                                                <td className="px-6 py-4">{l.store || 'N/A'}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <button
+                                                        onClick={() => deleteListing(l._id)}
+                                                        className="text-red-600 hover:text-red-800 text-sm px-3 py-1 border border-red-600 rounded hover:bg-red-50"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                    <button
+                                                        onClick={() => rejectDeletion(l._id)}
+                                                        className="ml-2 text-red-600 hover:text-red-800 text-sm px-3 py-1 border border-red-600 rounded hover:bg-red-50"
+                                                    >
+                                                        Reject
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            )
+                                            )
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                            </div>
+
+                            <h1 className='p-4 text-lg font-bold mt-6'>All Products</h1>
+                            <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>

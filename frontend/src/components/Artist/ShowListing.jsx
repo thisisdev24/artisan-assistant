@@ -43,8 +43,11 @@ const ShowListing = ({ storeName: propStoreName }) => {
     const fromState = location?.state?.storeName;
     const params = new URLSearchParams(location?.search || "");
     const fromQuery = params.get("store");
-    const fromLocal = typeof window !== "undefined" ? localStorage.getItem("store") : null;
-    return propStoreName || fromState || fromQuery || sellerStore || fromLocal || "";
+    const fromLocal =
+      typeof window !== "undefined" ? localStorage.getItem("store") : null;
+    return (
+      propStoreName || fromState || fromQuery || sellerStore || fromLocal || ""
+    );
   }, [propStoreName, location, sellerStore]);
 
   useEffect(() => {
@@ -71,7 +74,7 @@ const ShowListing = ({ storeName: propStoreName }) => {
         if (effectiveStore) params.store = effectiveStore;
         if (sellerId) params.artisanId = sellerId;
 
-        const resp = await apiClient.get('/api/listings/retrieve', {
+        const resp = await apiClient.get("/api/listings/retrieve", {
           params,
           signal: controller.signal,
           timeout: 20000,
@@ -81,7 +84,11 @@ const ShowListing = ({ storeName: propStoreName }) => {
 
         // backend may return either an array or { results: [...], total, page }
         const data = resp.data;
-        const items = Array.isArray(data) ? data : (Array.isArray(data.results) ? data.results : []);
+        const items = Array.isArray(data)
+          ? data
+          : Array.isArray(data.results)
+          ? data.results
+          : [];
         setProducts(items);
       } catch (err) {
         if (!mountedRef.current) return;
@@ -90,7 +97,11 @@ const ShowListing = ({ storeName: propStoreName }) => {
           return;
         }
         console.error("Error fetching products:", err);
-        setErrorMsg(err?.response?.data?.message || err.message || "Failed to load products");
+        setErrorMsg(
+          err?.response?.data?.message ||
+            err.message ||
+            "Failed to load products"
+        );
         setProducts([]);
       } finally {
         if (mountedRef.current) setLoading(false);
@@ -111,18 +122,31 @@ const ShowListing = ({ storeName: propStoreName }) => {
     if (product.imageUrl) return product.imageUrl;
     if (Array.isArray(product.images) && product.images.length > 0) {
       const img = product.images[0];
-      return img?.thumbnailUrl || img?.thumb || img?.url || img?.large || img?.hi_res || "/placeholder.jpg";
+      return (
+        img?.thumbnailUrl ||
+        img?.thumb ||
+        img?.url ||
+        img?.large ||
+        img?.hi_res ||
+        "/placeholder.jpg"
+      );
     }
     return "/placeholder.jpg";
   };
 
-  const shortDescription = (product) => {
-    const d = product?.description;
-    if (!d) return "";
-    if (typeof d === "string") return d;
-    if (Array.isArray(d) && d.length > 0) return d[0];
-    return "";
-  };
+  async function handleDelete(productId) {
+    try {
+      await apiClient.delete(`/api/listings/${productId}/${sellerId}`);
+      setProducts((prev) =>
+        prev.map((p) =>
+          p._id === productId ? { ...p, deleteRequested: true } : p
+        )
+      );
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert(err?.response?.data?.message || "Failed to delete product");
+    }
+  }
 
   if (loading) {
     return (
@@ -136,16 +160,23 @@ const ShowListing = ({ storeName: propStoreName }) => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6">
         <p className="text-red-600 mb-4">Error: {errorMsg}</p>
-        <button onClick={() => window.location.reload()} className="bg-indigo-600 text-white px-4 py-2 rounded">Retry</button>
+        <button
+          onClick={() => window.location.reload()}
+          className="bg-indigo-600 text-white px-4 py-2 rounded"
+        >
+          Retry
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 px-6 py-12">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-secondary/20 py-12">
+      <div className="max-w-7xl lg:max-w-screen-2xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800">My Listed Products</h1>
+          <h1 className="text-4xl font-bold text-gray-800">
+            My Listed Products
+          </h1>
           <button
             onClick={handleBack}
             className="bg-gray-700 hover:bg-gray-800 text-white px-5 py-2 rounded-lg font-semibold transition-all"
@@ -165,39 +196,60 @@ const ShowListing = ({ storeName: propStoreName }) => {
             </button>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-12">
             {products.map((product) => (
               <div
                 key={product._id}
-                className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6"
+                className="bg-transparent rounded-2xl border-2 border-black hover:shadow-xl hover:bg-primary/20 transition-all duration-300"
               >
                 <img
                   src={pickImageSrc(product)}
                   alt={product.title}
-                  className="w-full h-48 object-cover rounded-lg mb-4"
-                  onError={(e) => { e.currentTarget.src = "/placeholder.jpg"; }}
+                  className="w-full h-[450px] object-fill rounded-xl shadow-lg mx-auto"
+                  onError={(e) => {
+                    e.currentTarget.src = "/placeholder.jpg";
+                  }}
                 />
-                <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                  {product.title}
-                </h2>
-                <p className="text-gray-600 mb-2">{shortDescription(product)}</p>
-                <p className="text-lg font-bold text-indigo-700 mb-4">
-                  ₹{Math.round(product.price) ?? "—"}
-                </p>
+                <div className="px-4 py-4">
+                  <h2 className="text-xl font-semibold text-gray-800 mb-2 capitalize truncate">
+                    {product.title}
+                  </h2>
+                  <p className="text-lg font-bold text-indigo-700 mb-4">
+                    ₹{Math.round(product.price) ?? "—"}
+                  </p>
 
-                <div className="flex justify-between">
-                  <button
-                    onClick={() => navigate(`/seller/edit-product/${product._id}`)}
-                    className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => navigate(`/product/${product._id}`)}
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
-                  >
-                    View
-                  </button>
+                  <div className="flex flex-row justify-between items-center gap-2">
+                    <button
+                      onClick={() =>
+                        navigate(`/seller/edit-product/${product._id}`)
+                      }
+                      className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
+                    >
+                      Edit
+                    </button>
+                    {product.deleteRequested ? (
+                      <div>
+                        <p>Deletion requested from admin</p>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() =>
+                          handleDelete(product._id) && (
+                            <p>Deletion requested from admin</p>
+                          )
+                        }
+                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
+                      >
+                        Delete
+                      </button>
+                    )}
+                    <button
+                      onClick={() => navigate(`/product/${product._id}`)}
+                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
+                    >
+                      View
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
