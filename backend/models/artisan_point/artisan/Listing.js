@@ -47,7 +47,7 @@ const listingSchema = new mongoose.Schema({
   details: mongoose.Schema.Types.Mixed,
   // NEW: color detection auto-fill
   // detected_colors: array of objects { hex: "#rrggbb", percentage: 0.45, name: "red", source_image: "https://..." }
-    // NEW: color detection auto-fill
+  // NEW: color detection auto-fill
   // detected_colors: array of objects { hex: "#rrggbb", percentage: 0.45, name: "red", source_image: "https://..." }
   detected_colors: [
     {
@@ -119,7 +119,7 @@ const listingSchema = new mongoose.Schema({
 
   // ML metadata: keep track of when the tags were last updated
   clip_tags_updated_at: Date,
-  
+
   parent_asin: String,
   faiss_vector_id: Number,
   embedding_created_at: Date,
@@ -129,7 +129,13 @@ const listingSchema = new mongoose.Schema({
   slug: { type: String, index: true },
   meta_title: String,
   meta_description: String,
-  deleted: { type: Boolean, default: false }
+  deleteRequested: {
+    type: Boolean,
+    default: false
+  },
+  deleteRequestedAt: {
+    type: Date
+  }
 }, { timestamps: true });
 
 listingSchema.index({ createdAt: -1 });

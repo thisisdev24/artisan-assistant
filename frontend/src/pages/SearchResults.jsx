@@ -58,14 +58,14 @@ const SearchResults = () => {
     try {
       if (isInWishlist) {
         await apiClient.post("/api/wishlist/remove", { listingId: itemId });
-        setWishlistIds(prev => {
+        setWishlistIds((prev) => {
           const next = new Set(prev);
           next.delete(itemId);
           return next;
         });
       } else {
         await apiClient.post("/api/wishlist/add", { listingId: itemId });
-        setWishlistIds(prev => {
+        setWishlistIds((prev) => {
           const next = new Set(prev);
           next.add(itemId);
           return next;
@@ -103,13 +103,16 @@ const SearchResults = () => {
 
       // Debug log — helpful to see what's calling the API repeatedly
       // You can remove this when stable
-      console.log(`[SearchResults] fetching /api/listings/search?query=${query}`);
+      console.log(
+        `[SearchResults] fetching /api/listings/search?query=${query}`
+      );
 
-      axios.get("http://localhost:5000/api/listings/search", {
-        params: { query },
-        timeout: 20000,
-        signal: controller.signal, // modern axios supports AbortController
-      })
+      axios
+        .get("http://localhost:5000/api/listings/search", {
+          params: { query },
+          timeout: 20000,
+          signal: controller.signal, // modern axios supports AbortController
+        })
         .then((resp) => {
           if (!mountedRef.current) return;
           // backend returns { results: [...] } per agreed contract
@@ -152,7 +155,12 @@ const SearchResults = () => {
       <div className="max-w-7xl lg:max-w-screen-2xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Search results for “{query}”</h1>
-          <button onClick={handleBack} className="px-4 py-2 bg-gray-700 text-white rounded">Back</button>
+          <button
+            onClick={handleBack}
+            className="px-4 py-2 bg-gray-700 text-white rounded"
+          >
+            Back
+          </button>
         </div>
 
         {loading && <div className="text-gray-600">Loading results…</div>}
@@ -164,25 +172,43 @@ const SearchResults = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
           {results.map((item) => (
-            <div key={item._id || item.listing_id || item.faiss_id || JSON.stringify(item)} className="flex flex-col rounded-xl hover:shadow-xl hover:bg-primary/20 relative">
+            <div
+              key={
+                item._id ||
+                item.listing_id ||
+                item.faiss_id ||
+                JSON.stringify(item)
+              }
+              className="flex flex-col rounded-xl hover:shadow-xl hover:bg-primary/20 relative"
+            >
               <img
-                src={
-                  item.images[0].hi_res || item.images[0].large
-                }
+                src={item.images[0].hi_res || item.images[0].large}
                 alt={item.title || "item"}
                 className="w-full h-[450px] object-fill rounded-xl shadow-lg mb-2"
-                onError={(e) => { e.currentTarget.src = "/placeholder.jpg"; }}
+                onError={(e) => {
+                  e.currentTarget.src = "/placeholder.jpg";
+                }}
               />
 
               {/* Wishlist Heart Icon */}
               <button
                 onClick={(e) => toggleWishlist(e, item)}
                 className="absolute top-4 right-4 p-2 bg-white/80 rounded-full shadow-sm hover:bg-white transition-colors"
-                title={wishlistIds.has(item._id || item.listing_id || item.faiss_id) ? "Remove from Wishlist" : "Add to Wishlist"}
+                title={
+                  wishlistIds.has(item._id || item.listing_id || item.faiss_id)
+                    ? "Remove from Wishlist"
+                    : "Add to Wishlist"
+                }
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className={`h-6 w-6 ${wishlistIds.has(item._id || item.listing_id || item.faiss_id) ? "text-red-500 fill-current" : "text-gray-400"}`}
+                  className={`h-6 w-6 ${
+                    wishlistIds.has(
+                      item._id || item.listing_id || item.faiss_id
+                    )
+                      ? "text-red-500 fill-current"
+                      : "text-gray-400"
+                  }`}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -197,8 +223,12 @@ const SearchResults = () => {
               </button>
 
               <div className="px-4 mt-4">
-                <h2 className="text-lg font-bold text-gray-900 mb-1 capitalize truncate">{item.title}</h2>
-                <div className="flex justify-start items-center gap-4 text-gray-700 text-sm lg:text-base">₹{Math.round(item.price) ?? "—"}</div>
+                <h2 className="text-lg font-bold text-gray-900 mb-1 capitalize truncate">
+                  {item.title}
+                </h2>
+                <div className="flex justify-start items-center gap-4 text-gray-700 text-sm lg:text-base">
+                  ₹{Math.round(item.price) ?? "—"}
+                </div>
                 <div className="flex justify-start items-center text-gray-700 text-sm lg:text-base">
                   ⭐{" "}
                   <span className="font-semibold ml-1">
@@ -209,13 +239,14 @@ const SearchResults = () => {
                   </span>
                 </div>
                 <button
-                  onClick={() => navigate(`/products/${item._id || item.listing_id}`)}
+                  onClick={() =>
+                    navigate(`/products/${item._id || item.listing_id}`)
+                  }
                   className="my-4 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
                 >
                   View
                 </button>
               </div>
-
             </div>
           ))}
         </div>
