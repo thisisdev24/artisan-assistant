@@ -148,7 +148,7 @@ const SearchResults = () => {
   const handleBack = () => navigate("/");
 
   return (
-    <div className="p-6 min-h-screen bg-secondary/10 select-none">
+    <div className="p-6 min-h-screen bg-secondary/20 select-none">
       <div className="max-w-7xl lg:max-w-screen-2xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Search results for “{query}”</h1>
@@ -162,15 +162,15 @@ const SearchResults = () => {
           <div className="text-gray-600 mt-8">No results found.</div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
           {results.map((item) => (
-            <div key={item._id || item.listing_id || item.faiss_id || JSON.stringify(item)} className="flex flex-col bg-transparent rounded-xl hover:shadow-xl relative">
+            <div key={item._id || item.listing_id || item.faiss_id || JSON.stringify(item)} className="flex flex-col rounded-xl hover:shadow-xl hover:bg-primary/20 relative">
               <img
                 src={
                   item.images[0].hi_res || item.images[0].large
                 }
                 alt={item.title || "item"}
-                className="w-full h-[450px] object-fill rounded mb-3"
+                className="w-full h-[450px] object-fill rounded-xl shadow-lg mb-2"
                 onError={(e) => { e.currentTarget.src = "/placeholder.jpg"; }}
               />
 
@@ -199,7 +199,15 @@ const SearchResults = () => {
               <div className="px-4 mt-4">
                 <h2 className="text-lg font-bold text-gray-900 mb-1 capitalize truncate">{item.title}</h2>
                 <div className="flex justify-start items-center gap-4 text-gray-700 text-sm lg:text-base">₹{Math.round(item.price) ?? "—"}</div>
-                {typeof item.score !== "undefined" && <div className="text-xs text-gray-500 mt-1">score: {item.score.toFixed(3)}</div>}
+                <div className="flex justify-start items-center text-gray-700 text-sm lg:text-base">
+                  ⭐{" "}
+                  <span className="font-semibold ml-1">
+                    {item.average_rating || 0}
+                  </span>
+                  <span className="ml-2">
+                    ({item.rating_number || 0} reviews)
+                  </span>
+                </div>
                 <button
                   onClick={() => navigate(`/products/${item._id || item.listing_id}`)}
                   className="my-4 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"

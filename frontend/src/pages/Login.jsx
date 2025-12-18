@@ -43,29 +43,29 @@ const Login = () => {
   return (
     <>
       {/* <Navbar /> */}
-      <div className="min-h-screen bg-gray-100 flex flex-col justify-center items-center">
-        <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-lg">
-          <h2 className="text-3xl font-bold text-center text-black mb-6 select-none" >Login</h2>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div className="min-h-screen bg-secondary/20 flex flex-col justify-center items-center select-none">
+        <div className="w-full max-w-md lg:max-w-lg bg-primary/20 p-8 rounded-xl shadow-2xl">
+          <h2 className="text-3xl lg:text-4xl font-bold text-center text-black mb-6" >Login</h2>
+          <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4">
             <input
               type="email"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full border border-gray-300 p-4 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <input
               type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full border border-gray-300 p-4 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             />
             {/* Role dropdown */}
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full border border-gray-300 p-4 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="buyer">Buyer</option>
               <option value="seller">Seller</option>
@@ -74,14 +74,14 @@ const Login = () => {
 
             <button
               type="submit"
-              className="bg-gradient-to-r from-primary to-secondary text-white py-3 rounded-md hover:scale-105 duration-200 font-semibold"
+              className="w-1/2 mt-4 bg-gradient-to-r from-primary to-secondary text-black py-4 rounded-md hover:scale-105 duration-200 font-semibold"
             >
-              Login
+              Continue
             </button>
           </form>
-          <p className="text-sm text-gray-600 text-center mt-4">
+          <p className="text-sm lg:text-base text-gray-600 text-center mt-4">
             Don't have an account?{" "}
-            <Link to="/register" className="text-primary font-semibold hover:underline">
+            <Link to="/register" className="text-orange-400 font-semibold hover:underline">
               Register
             </Link>
           </p>

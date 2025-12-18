@@ -9,8 +9,8 @@ export default {
   theme: {
     extend: {
       colors:{
-        primary:'#FF9900',
-        secondary:'#FFD1B3',
+        primary:'#FFAD33',
+        secondary:'#FFE066',
       container:true,
       padding:{
 

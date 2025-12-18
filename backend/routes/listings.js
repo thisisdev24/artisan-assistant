@@ -319,8 +319,8 @@ router.get('/search', async (req, res) => {
         description: r.description,
         price: doc.price || r.price || 0,
         images: r.images, // Return full images array
-        average_rating: doc.average_rating || 0,
-        rating_number: doc.rating_number || 0,
+        average_rating: r.average_rating,
+        rating_number: r.rating_number,
         score: r.score || null
       };
     });

@@ -286,7 +286,7 @@ const ShowListingPublic = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-secondary/10 to-secondary/20 py-4 sm:py-8">
+    <div className="min-h-screen bg-gradient-to-br from-secondary/20 to-secondary/30 py-4 sm:py-8">
       <div className="max-w-7xl lg:max-w-screen-2xl mx-auto">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-12 select-none">
           <div>
@@ -555,7 +555,7 @@ const ShowListingPublic = () => {
                   <div
                     key={product._id}
                     onClick={() => navigate(`/products/${product._id}`)}
-                    className="bg-transparent rounded-xl hover:shadow-xl transition-all duration-300 flex flex-col relative cursor-pointer hover:-translate-y-1"
+                    className="bg-transparent rounded-xl hover:shadow-xl hover:bg-primary/20 transition-all duration-300 flex flex-col relative cursor-pointer hover:-translate-y-1"
                   >
                     <img
                       src={
