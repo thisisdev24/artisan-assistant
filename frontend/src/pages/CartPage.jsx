@@ -141,7 +141,7 @@ const CartPage = () => {
           </div>
           <div className="border-t mt-4 pt-4 flex justify-between items-center">
             <span className="text-lg font-semibold text-gray-900">Total</span>
-            <span className="text-2xl font-bold text-indigo-600">{formatCurrency((Math.floor(subtotal * 80)))}</span>
+            <span className="text-2xl font-bold text-indigo-600">{formatCurrency(subtotal)}</span>
           </div>
           <button
             onClick={handleCheckout}
