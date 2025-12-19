@@ -20,6 +20,7 @@ const COOKIE_SECURE = (process.env.NODE_ENV === "production"); // secure only in
 const COOKIE_SAMESITE = process.env.REFRESH_COOKIE_SAMESITE || "Lax"; // Lax by default
 
 function getModelName(role) {
+  role = String(role).toLowerCase;
   if (role === "buyer") return User;
   else if (role === "seller") return Artisan;
   return Admin;
