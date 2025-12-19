@@ -5,7 +5,7 @@ import { PiShoppingCartThin } from "react-icons/pi";
 import { FaDumbbell } from "react-icons/fa";
 import { SiSnapcraft } from "react-icons/si";
 import { MdMenu } from "react-icons/md";
-import { Link, useNavigate } from "react-router-dom"; // Import Link
+import { Link, useNavigate, useLocation } from "react-router-dom"; // Import Link
 import ResponsiveMenu from "./ResponsiveMenu";
 import { FaUser } from "react-icons/fa";
 import { useCart } from "../../context/CartContext";
@@ -18,6 +18,7 @@ const Navbar = () => {
   const [userMenuOpen, setUserMenuOpen] = React.useState(false); // for user dropdown menu
   const [productsOpen, setProductsOpen] = React.useState(false); // <-- new state for Products hover dropdown
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { user, logout, isBuyer, isSeller, isAdmin } = useAuth();
   const { cartCount } = useCart();
@@ -444,27 +445,7 @@ const Navbar = () => {
                         </div>
                       )}
                     </>
-                  ) : (
-                    <>
-                      {/* Icon for sellers/admins */}
-                      <Link
-                        to={isSeller ? "/Seller" : "/Admin"}
-                        className="text-2xl hover:bg-primary hover:text-white p-2 rounded-full duration-200"
-                        title={user.name}
-                      >
-                        <FaUser />
-                      </Link>
-                      <button
-                        onClick={() => {
-                          logout();
-                          navigate("/");
-                        }}
-                        className="text-sm text-black hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-4 py-1 duration-200"
-                      >
-                        Logout
-                      </button>
-                    </>
-                  )}
+                  ) : null}
                 </div>
               ) : (
                 <div className="pl-32 hidden md:flex gap-2">
@@ -484,9 +465,11 @@ const Navbar = () => {
               )}
             </div>
             {/* mobile hamburger menu section */}
-            <div className="md:hidden " onClick={() => setOpen(!open)}>
-              <MdMenu className="text-4xl " />
-            </div>
+            {!location.pathname.startsWith('/admin') && (
+              <div className="md:hidden " onClick={() => setOpen(!open)}>
+                <MdMenu className="text-4xl " />
+              </div>
+            )}
           </div>
         </div>
       </nav>

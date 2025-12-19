@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import Navbar from "./components/Navbar/Navbar";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Link } from "react-router-dom";
@@ -22,8 +22,17 @@ import Profile from "./pages/Profile";
 import CartPage from "./pages/CartPage";
 import Checkout from "./pages/Checkout";
 import Artists from "./pages/Artists";
-import Admin from "./components/Admin/Admin";
-import AdminAnalytics from "./components/Admin/AdminAnalytics";
+
+// Lazy load admin components for better performance
+const Admin = lazy(() => import("./components/Admin/Admin"));
+const AdminAnalytics = lazy(() => import("./components/Admin/AdminAnalytics"));
+const Layout = lazy(() => import("./components/Admin/Layout"));
+const Dashboard = lazy(() => import("./components/Admin/Dashboard"));
+const Users = lazy(() => import("./components/Admin/Users"));
+const UserDetails = lazy(() => import("./components/Admin/UserDetails"));
+const Sellers = lazy(() => import("./components/Admin/Sellers"));
+const SellerDetails = lazy(() => import("./components/Admin/SellerDetails"));
+const Products = lazy(() => import("./components/Admin/Products"));
 import ProtectedRoute from "./components/ProtectedRoute";
 import MyWishlist from "./pages/MyWishlist";
 import RecentlyViewed from "./pages/RecentlyViewed";
@@ -46,7 +55,7 @@ function App() {
     <LoggerProvider>
       <Router>
         <Navbar />
-        <div>
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-2 border-gray-900 border-t-transparent rounded-full animate-spin" /></div>}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
@@ -80,7 +89,7 @@ function App() {
               path="/drafts"
               element={
                 <ProtectedRoute allowedRoles={["seller"]}>
-                  <CreateListing/>
+                  <CreateListing />
                   <ProductDetailsForm />
                 </ProtectedRoute>
               }
@@ -89,7 +98,7 @@ function App() {
               path="/gen_desc"
               element={
                 <ProtectedRoute allowedRoles={["seller"]}>
-                  <CreateListing/>
+                  <CreateListing />
                 </ProtectedRoute>
               }
             />
@@ -166,19 +175,31 @@ function App() {
               }
             />
             <Route path="/recently-viewed" element={<RecentlyViewed />} />
+
+            {/* Admin Routes - with Layout wrapper */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="users" element={<Users />} />
+              <Route path="users/:id" element={<UserDetails />} />
+              <Route path="sellers" element={<Sellers />} />
+              <Route path="sellers/:id" element={<SellerDetails />} />
+              <Route path="products" element={<Products />} />
+              <Route path="analytics" element={<AdminAnalytics />} />
+            </Route>
+
+            {/* Legacy route - redirect to new structure */}
             <Route
               path="/Admin"
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <Admin />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/analytics"
-              element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <AdminAnalytics />
                 </ProtectedRoute>
               }
             />
@@ -190,7 +211,7 @@ function App() {
         <Route path="/shorts" element={<Shorts />} />
         <Route path="/contact" element={<Contact />} /> */}
           </Routes>
-        </div>
+        </Suspense>
       </Router>
     </LoggerProvider>
   );

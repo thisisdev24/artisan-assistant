@@ -10,35 +10,222 @@ const { authenticate, requireAdmin } = require("../middleware/auth");
 router.use(authenticate);
 router.use(requireAdmin);
 
-// Get all users
+// Get all users with search, filter, pagination
 router.get("/users", async (req, res) => {
   try {
-    const users = await User.find({
-      $or: [
-        { "soft_delete.is_deleted": false },
-        { "soft_delete.is_deleted": { $exists: false } },
-      ],
-    })
-      .select("-password")
-      .sort({ createdAt: -1 });
-    res.json(users);
+    const {
+      search, status, role, page = 1, limit = 10,
+      dateFrom, dateTo, joinedWithin, emailVerified, isOnline,
+      lastLoginWithin
+    } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Build query - by default exclude deleted users unless specifically filtering for them
+    let query = {};
+
+    // Handle deleted filter - if status is 'deleted', show only deleted users
+    // Otherwise, exclude deleted users
+    if (status === 'deleted') {
+      query.deleted = true;
+    } else {
+      query.$or = [
+        { deleted: false },
+        { deleted: { $exists: false } }
+      ];
+
+      // Filter by status (active, inactive, blocked)
+      if (status && status !== 'all') {
+        query.status = status;
+      }
+    }
+
+    // Filter by role
+    if (role && role !== 'all') {
+      query.role = role;
+    }
+
+    // Search by name, email, or phone
+    if (search) {
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } },
+          { phone: { $regex: search, $options: 'i' } },
+        ]
+      });
+    }
+
+
+    // Filter by date range (joined date) - custom range
+    if (dateFrom || dateTo) {
+      query.createdAt = query.createdAt || {};
+      if (dateFrom) query.createdAt.$gte = new Date(dateFrom);
+      if (dateTo) query.createdAt.$lte = new Date(dateTo);
+    }
+
+    // Filter by joined date within time period (preset: 7d, 30d, 90d, 1y)
+    if (joinedWithin && joinedWithin !== 'all') {
+      const timeMap = {
+        '7d': 7 * 24 * 60 * 60 * 1000,
+        '30d': 30 * 24 * 60 * 60 * 1000,
+        '90d': 90 * 24 * 60 * 60 * 1000,
+        '1y': 365 * 24 * 60 * 60 * 1000
+      };
+      const milliseconds = timeMap[joinedWithin];
+      if (milliseconds) {
+        const threshold = new Date(Date.now() - milliseconds);
+        query.createdAt = { $gte: threshold };
+      }
+    }
+
+    // Filter by email verified status
+    if (emailVerified && emailVerified !== 'all') {
+      query.email_verified = emailVerified === 'true';
+    }
+
+    // Filter by last login within time period (supports preset and custom: 15m, 1h, 6h, 24h, 7d, 30d, or any Xm/Xh/Xd)
+    if (lastLoginWithin && lastLoginWithin !== 'all') {
+      // Parse time value dynamically (e.g., '15m', '2h', '7d')
+      const match = lastLoginWithin.match(/^(\d+)(m|h|d)$/);
+      if (match) {
+        const value = parseInt(match[1]);
+        const unit = match[2];
+        const unitMultipliers = {
+          'm': 60 * 1000,           // minutes
+          'h': 60 * 60 * 1000,       // hours
+          'd': 24 * 60 * 60 * 1000   // days
+        };
+        const milliseconds = value * unitMultipliers[unit];
+        const threshold = new Date(Date.now() - milliseconds);
+        query.lastLogin = { $gte: threshold };
+      }
+    }
+
+    // Filter by online status using lastLogin timestamp
+    // Users are "online" if they logged in within the last 15 minutes
+    // Frontend only sends this when status is 'all' or 'active'
+    if (isOnline && isOnline !== 'all') {
+      const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+      if (isOnline === 'true') {
+        query.lastLogin = { $gte: fifteenMinutesAgo };
+      } else {
+        query.$or = query.$or || [];
+        query.$or.push(
+          { lastLogin: { $lt: fifteenMinutesAgo } },
+          { lastLogin: { $exists: false } },
+          { lastLogin: null }
+        );
+      }
+    }
+
+    const [users, total] = await Promise.all([
+      User.find(query)
+        .select("-password")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      User.countDocuments(query)
+    ]);
+
+    res.json({
+      users,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / parseInt(limit))
+      }
+    });
   } catch (err) {
     console.error("Get users error:", err);
     res.status(500).json({ msg: "Server error" });
   }
 });
 
-// Get all sellers
+
+// Get all sellers with advanced filtering
 router.get("/sellers", async (req, res) => {
   try {
-    const sellers = await Artisan.find({
+    const {
+      search, status, verified, page = 1, limit = 10,
+      dateFrom, dateTo, joinedWithin, minRating, isOnline
+    } = req.query;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Build Query
+    let query = {
       $or: [
         { "soft_delete.is_deleted": false },
         { "soft_delete.is_deleted": { $exists: false } },
       ],
-    })
+    };
+
+    // Search (Name, Email, Store Name)
+    if (search) {
+      query.$and = [
+        {
+          $or: [
+            { name: { $regex: search, $options: 'i' } },
+            { email: { $regex: search, $options: 'i' } },
+            { store: { $regex: search, $options: 'i' } },
+          ]
+        }
+      ];
+    }
+
+    // Status Filter
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    // Verification Filter relative to `verification.status` or legacy `verified`
+    // Assuming schema uses `verification.status` enum ['unverified', 'pending', 'verified', 'rejected']
+    // OR separate `verified` boolean. Checking model, it has `verification.status`.
+    if (verified && verified !== 'all') {
+      if (verified === 'verified') query['verification.status'] = 'verified';
+      else if (verified === 'pending') query['verification.status'] = 'pending';
+      else if (verified === 'unverified') query['verification.status'] = 'unverified';
+    }
+
+    // Min Rating Filter
+    if (minRating) {
+      query.rating = { $gte: parseFloat(minRating) };
+    }
+
+    // Online Status Filter
+    if (isOnline !== undefined && isOnline !== 'all') {
+      query.isOnline = isOnline === 'true';
+    }
+
+    // Date Range (Joined)
+    if (dateFrom || dateTo) {
+      query.createdAt = query.createdAt || {};
+      if (dateFrom) query.createdAt.$gte = new Date(dateFrom);
+      if (dateTo) query.createdAt.$lte = new Date(dateTo);
+    }
+
+    // Date Presets
+    if (joinedWithin && joinedWithin !== 'all') {
+      const timeMap = {
+        '7d': 7 * 24 * 60 * 60 * 1000,
+        '30d': 30 * 24 * 60 * 60 * 1000,
+        '90d': 90 * 24 * 60 * 60 * 1000,
+        '1y': 365 * 24 * 60 * 60 * 1000
+      };
+      const milliseconds = timeMap[joinedWithin];
+      if (milliseconds) {
+        const threshold = new Date(Date.now() - milliseconds);
+        query.createdAt = { $gte: threshold };
+      }
+    }
+
+    const sellers = await Artisan.find(query)
       .select("-password")
       .sort({ createdAt: -1 });
+    // .skip(skip) .limit(limit) // Pagination disabled for now as frontend does client-side logic in parts, but good to have ready
+
     res.json(sellers);
   } catch (err) {
     console.error("Get sellers error:", err);
@@ -59,7 +246,56 @@ router.get("/admins", async (req, res) => {
   }
 });
 
-// Get user by ID
+// Get user by ID with stats (used by UserDetails page)
+// MUST be defined before /users/:id to avoid Express matching issues
+router.get("/users/:id/stats", async (req, res) => {
+  try {
+    const Order = require("../models/artisan_point/user/Order");
+    const Review = require("../models/artisan_point/user/Review");
+    const Wishlist = require("../models/artisan_point/user/Wishlist");
+
+    let user = await User.findById(req.params.id).select("-password");
+    if (!user) {
+      user = await Artisan.findById(req.params.id).select("-password");
+    }
+    if (!user) {
+      user = await Admin.findById(req.params.id).select("-password");
+    }
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    // Calculate stats
+    const [orders, reviews, wishlist] = await Promise.all([
+      Order.find({ user_id: req.params.id }),
+      Review.find({ user_id: req.params.id }),
+      Wishlist.findOne({ user_id: req.params.id })
+    ]);
+
+    const totalSpent = orders.reduce((sum, o) => sum + (o.payment?.amount || o.total || 0), 0);
+    const orderCount = orders.length;
+    const avgOrderValue = orderCount > 0 ? totalSpent / orderCount : 0;
+    const reviewCount = reviews ? reviews.length : 0;
+    const wishlistCount = wishlist?.items?.length || 0;
+
+    res.json({
+      user: user,
+      stats: {
+        orderCount,
+        totalSpent,
+        avgOrderValue: Math.round(avgOrderValue),
+        reviewCount,
+        wishlistCount
+      }
+    });
+  } catch (err) {
+    console.error("Get user stats error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Get user by ID (basic - without stats)
 router.get("/users/:id", async (req, res) => {
   try {
     let user = await User.findById(req.params.id).select("-password");
@@ -102,6 +338,20 @@ router.put("/users/:id/status", async (req, res) => {
       return res.status(404).json({ msg: "User not found" });
     }
 
+    // Record status history
+    const previousStatus = user.status;
+    if (previousStatus !== status) {
+      user.statusHistory = user.statusHistory || [];
+      user.statusHistory.push({
+        from: previousStatus,
+        to: status,
+        changedBy: req.user?.id,
+        changedByName: req.user?.name || 'Admin',
+        reason: req.body.reason || null,
+        timestamp: new Date()
+      });
+    }
+
     user.status = status;
     await user.save();
 
@@ -136,7 +386,22 @@ router.put("/users/:id/block", async (req, res) => {
       return res.status(404).json({ msg: "User not found" });
     }
 
-    user.status = blocked ? "blocked" : "active";
+    // Record status history
+    const previousStatus = user.status;
+    const newStatus = blocked ? "blocked" : "active";
+    if (previousStatus !== newStatus) {
+      user.statusHistory = user.statusHistory || [];
+      user.statusHistory.push({
+        from: previousStatus,
+        to: newStatus,
+        changedBy: req.user?.id,
+        changedByName: req.user?.name || 'Admin',
+        reason: req.body.reason || (blocked ? 'Blocked by admin' : 'Unblocked by admin'),
+        timestamp: new Date()
+      });
+    }
+
+    user.status = newStatus;
     await user.save();
 
     res.json({
@@ -182,6 +447,57 @@ router.delete("/users/:id", async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 });
+
+// Notify User
+router.post("/users/:id/notify", async (req, res) => {
+  try {
+    const { message, title, type } = req.body;
+
+    const notification = new Notification({
+      userId: req.params.id,
+      title: title || 'Admin Message',
+      message: message,
+      type: type || 'info'
+    });
+
+    await notification.save();
+    res.json({ msg: "Notification sent", notification });
+  } catch (err) {
+    console.error("Notify user error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Notify Seller
+router.post("/sellers/:id/notify", async (req, res) => {
+  try {
+    const { message, title, type } = req.body;
+
+    const notification = new Notification({
+      sellerId: req.params.id,
+      title: title || 'Admin Message',
+      message: message,
+    });
+
+    await notification.save();
+    res.json({ msg: "Notification sent", notification });
+  } catch (err) {
+    console.error("Notify seller error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Get seller products
+router.get("/sellers/:id/products", async (req, res) => {
+  try {
+    const products = await Listing.find({ artisan_id: req.params.id }).sort({ createdAt: -1 });
+    res.json(products);
+  } catch (err) {
+    console.error("Get seller products error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
 
 // Get all listings
 router.get("/listings", async (req, res) => {
@@ -340,8 +656,8 @@ router.get("/analytics/overview", async (req, res) => {
       prevUsersCount > 0
         ? (((newUsersCount - prevUsersCount) / prevUsersCount) * 100).toFixed(1)
         : newUsersCount > 0
-        ? 100
-        : 0;
+          ? 100
+          : 0;
 
     // Try to load analytics from analytics DB
     let analyticsData = {
@@ -744,5 +1060,669 @@ router.get("/analytics/geo", async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 });
+// Get user stats (order count, total spent)
+router.get("/users/:id/stats", async (req, res) => {
+  try {
+    const Order = require("../models/artisan_point/user/Order");
+
+    let user = await User.findById(req.params.id).select("-password");
+    if (!user) {
+      user = await Artisan.findById(req.params.id).select("-password");
+    }
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    // Get order stats
+    const orders = await Order.find({ user_id: req.params.id });
+    const orderCount = orders.length;
+    const totalSpent = orders.reduce((sum, o) => sum + (o.payment?.amount || o.total || 0), 0);
+    const avgOrderValue = orderCount > 0 ? totalSpent / orderCount : 0;
+
+    res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || null,
+        phone_verified: user.phone_verified || false,
+        email_verified: user.email_verified || false,
+        role: user.role,
+        status: user.status || 'active',
+        isOnline: user.isOnline || false,
+        lastLogin: user.lastLogin,
+        createdAt: user.createdAt
+      },
+      stats: {
+        orderCount,
+        totalSpent,
+        avgOrderValue: Math.round(avgOrderValue * 100) / 100
+      }
+    });
+  } catch (err) {
+    console.error("Get user stats error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Change user role (buyer to seller or vice versa)
+router.put("/users/:id/role", async (req, res) => {
+  try {
+    const { role } = req.body;
+
+    if (!["buyer", "seller"].includes(role)) {
+      return res.status(400).json({ msg: "Invalid role. Must be 'buyer' or 'seller'" });
+    }
+
+    let user = await User.findById(req.params.id);
+    if (!user) {
+      user = await Artisan.findById(req.params.id);
+    }
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    user.role = role;
+    await user.save();
+
+    res.json({
+      msg: `User role changed to ${role}`,
+      user: { id: user._id, role: user.role }
+    });
+  } catch (err) {
+    console.error("Change user role error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Export users as CSV data
+router.get("/users/export", async (req, res) => {
+  try {
+    const users = await User.find({
+      $or: [
+        { "soft_delete.is_deleted": false },
+        { "soft_delete.is_deleted": { $exists: false } },
+      ],
+    }).select("-password").lean();
+
+    const csvData = users.map(u => ({
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      status: u.status || 'active',
+      isOnline: u.isOnline || false,
+      lastLogin: u.lastLogin || '',
+      createdAt: u.createdAt
+    }));
+
+    res.json(csvData);
+  } catch (err) {
+    console.error("Export users error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Get user's orders
+router.get("/users/:id/orders", async (req, res) => {
+  try {
+    const Order = require("../models/artisan_point/user/Order");
+    const orders = await Order.find({ user_id: req.params.id })
+      .sort({ createdAt: -1 })
+      .limit(50);
+    res.json(orders);
+  } catch (err) {
+    console.error("Get user orders error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Get user's addresses
+router.get("/users/:id/addresses", async (req, res) => {
+  try {
+    const Address = require("../models/artisan_point/user/Address");
+    const addresses = await Address.find({ user_id: req.params.id });
+    res.json(addresses);
+  } catch (err) {
+    console.error("Get user addresses error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Get seller details enriched
+router.get("/sellers/:id", async (req, res) => {
+  try {
+    console.log("Fetching seller with ID:", req.params.id); // DEBUG LOG
+    const Order = require("../models/artisan_point/user/Order");
+    const Review = require("../models/artisan_point/user/Review");
+    const Product = require("../models/artisan_point/artisan/Listing");
+
+    let seller = await Artisan.findById(req.params.id.trim()).select("-password -payout_details_masked"); // Keep PII safe but send other details
+
+    // Fallback: Check User collection if not found in Artisan (handle legacy/split brain)
+    if (!seller) {
+      console.log("Not found in Artisan, checking User collection..."); // DEBUG LOG
+      const user = await User.findById(req.params.id.trim()).select("-password");
+      if (user && user.role === 'seller') {
+        seller = user;
+      }
+    }
+
+    if (!seller) return res.status(404).json({ msg: "Seller not found" });
+
+    // Calculate aggregated stats
+    const products = await Product.find({ seller_id: req.params.id });
+    const productCount = products.length;
+
+    // Simple aggregation for total sales/revenue (this could be heavy for large DBs, consider specialized Analytics model usage in future)
+    // For now, aggregate strictly completed orders
+    const orders = await Order.find({ "items.seller_id": req.params.id, status: { $ne: 'cancelled' } });
+    const totalSales = orders.length;
+
+    // Revenue calculation needs to sum only items belonging to this seller
+    // Simplifying to total order value for now if structure complex, but ideally iterate items
+    let totalRevenue = 0;
+    orders.forEach(o => {
+      o.items.forEach(i => {
+        if (i.seller_id.toString() === seller._id.toString()) {
+          totalRevenue += (i.price * i.quantity);
+        }
+      });
+    });
+
+    // Reviews
+    const reviews = await Review.find({ product_id: { $in: products.map(p => p._id) } });
+    const avgRating = reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : 0;
+
+    res.json({
+      seller,
+      stats: {
+        productCount,
+        totalSales,
+        totalRevenue,
+        avgRating
+      }
+    });
+  } catch (err) {
+    console.error("Get seller details error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Get seller orders
+router.get("/sellers/:id/orders", async (req, res) => {
+  try {
+    const Order = require("../models/artisan_point/user/Order");
+    const orders = await Order.find({ "items.seller_id": req.params.id })
+      .sort({ createdAt: -1 })
+      .limit(50); // Limit to last 50 for performance
+    res.json(orders);
+  } catch (err) {
+    console.error("Get seller orders error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Get seller reviews
+router.get("/sellers/:id/reviews", async (req, res) => {
+  try {
+    const Review = require("../models/artisan_point/user/Review");
+    const Product = require("../models/artisan_point/artisan/Listing");
+
+    // Find all products by seller
+    const products = await Product.find({ seller_id: req.params.id }).select('_id title images');
+    const productMap = {};
+    products.forEach(p => productMap[p._id] = p);
+
+    // Find reviews for these products
+    const reviews = await Review.find({ product_id: { $in: products.map(p => p._id) } })
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    // Enrich review with product info
+    const enrichedReviews = reviews.map(r => ({
+      ...r.toObject(),
+      product_title: productMap[r.product_id]?.title,
+      product_image: productMap[r.product_id]?.images?.[0]
+    }));
+
+    res.json(enrichedReviews);
+  } catch (err) {
+    console.error("Get seller reviews error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Verify Seller Endpoint
+router.put("/sellers/:id/verify", async (req, res) => {
+  try {
+    const { status, notes } = req.body; // status: 'verified' | 'rejected'
+
+    if (!['verified', 'rejected'].includes(status)) {
+      return res.status(400).json({ msg: "Invalid status" });
+    }
+
+    const seller = await Artisan.findById(req.params.id);
+    if (!seller) return res.status(404).json({ msg: "Seller not found" });
+
+    seller.verification = {
+      ...seller.verification,
+      status: status,
+      verified_at: status === 'verified' ? new Date() : null,
+      rejection_reason: status === 'rejected' ? notes : null
+    };
+
+    // If verified, verify the identity card too for consistency
+    if (status === 'verified' && seller.identity_card) {
+      seller.identity_card.verified = true;
+    }
+
+    await seller.save();
+    res.json({ msg: `Seller ${status}`, seller });
+  } catch (err) {
+    console.error("Verify seller error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Get seller notes
+router.get("/sellers/:id/notes", async (req, res) => {
+  try {
+    const seller = await Artisan.findById(req.params.id);
+    if (!seller) return res.status(404).json({ msg: "Seller not found" });
+    res.json(seller.notes || []);
+  } catch (err) {
+    console.error("Get seller notes error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Add seller note
+router.post("/sellers/:id/notes", async (req, res) => {
+  try {
+    const { content } = req.body;
+    if (!content) return res.status(400).json({ msg: "Content required" });
+
+    const seller = await Artisan.findById(req.params.id);
+    if (!seller) return res.status(404).json({ msg: "Seller not found" });
+
+    const note = {
+      content,
+      createdBy: req.user?.id,
+      createdByName: req.user?.name || 'Admin',
+      createdAt: new Date()
+    };
+
+    seller.notes = seller.notes || [];
+    seller.notes.unshift(note);
+    await seller.save();
+
+    res.json({ msg: "Note added", note });
+  } catch (err) {
+    console.error("Add seller note error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Get seller customers (unique buyers from orders)
+router.get("/sellers/:id/customers", async (req, res) => {
+  try {
+    const Order = require("../models/artisan_point/user/Order");
+
+    // Find all orders containing items from this seller
+    const orders = await Order.find({ "items.seller_id": req.params.id })
+      .populate('user_id', 'name email phone')
+      .sort({ createdAt: -1 });
+
+    // Aggregate unique customers with their stats
+    const customerMap = new Map();
+    orders.forEach(order => {
+      const userId = order.user_id?._id?.toString();
+      if (!userId) return;
+
+      if (!customerMap.has(userId)) {
+        customerMap.set(userId, {
+          _id: userId,
+          name: order.user_id?.name || 'Unknown',
+          email: order.user_id?.email || '',
+          phone: order.user_id?.phone || '',
+          orderCount: 0,
+          totalSpent: 0,
+          lastOrderDate: order.createdAt
+        });
+      }
+
+      const customer = customerMap.get(userId);
+      customer.orderCount++;
+      customer.totalSpent += order.total_amount || 0;
+    });
+
+    const customers = Array.from(customerMap.values())
+      .sort((a, b) => b.totalSpent - a.totalSpent);
+
+    res.json(customers);
+  } catch (err) {
+    console.error("Get seller customers error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Verify individual seller field (email/phone/identity)
+router.post("/sellers/:id/verify-field", async (req, res) => {
+  try {
+    const { field } = req.body;
+    const seller = await Artisan.findById(req.params.id);
+    if (!seller) return res.status(404).json({ msg: "Seller not found" });
+
+    const now = new Date();
+    const adminName = req.user?.name || 'Admin';
+    const adminId = req.user?.id;
+
+    switch (field) {
+      case 'email':
+        seller.emailVerified = true;
+        seller.emailVerifiedAt = now;
+        break;
+      case 'phone':
+        seller.phoneVerified = true;
+        seller.phoneVerifiedAt = now;
+        break;
+      case 'identity':
+        seller.identity_card.verified = true;
+        seller.identity_card.verifiedAt = now;
+        seller.identity_card.verifiedBy = adminId;
+        seller.identity_card.verifiedByName = adminName;
+        break;
+      default:
+        return res.status(400).json({ msg: "Invalid field" });
+    }
+
+    // Check if all verified -> auto-verify seller
+    if (seller.emailVerified && seller.phoneVerified && seller.identity_card?.verified) {
+      seller.verification.status = 'verified';
+      seller.verification.verified_at = now;
+      seller.verification.verifiedBy = adminId;
+      seller.verification.verifiedByName = adminName;
+    }
+
+    await seller.save();
+    res.json({ msg: `${field} verified`, seller });
+  } catch (err) {
+    console.error("Verify seller field error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Force approve seller (3 admins = auto-verify)
+router.post("/sellers/:id/force-approve", async (req, res) => {
+  try {
+    const seller = await Artisan.findById(req.params.id);
+    if (!seller) return res.status(404).json({ msg: "Seller not found" });
+
+    const adminId = req.user?.id;
+    const adminName = req.user?.name || 'Admin';
+
+    // Check if already approved by this admin
+    seller.verification.adminApprovals = seller.verification.adminApprovals || [];
+    const alreadyApproved = seller.verification.adminApprovals.some(
+      a => a.adminId?.toString() === adminId
+    );
+    if (alreadyApproved) {
+      return res.status(400).json({ msg: "Already approved by this admin" });
+    }
+
+    // Add approval
+    seller.verification.adminApprovals.push({
+      adminId,
+      adminName,
+      approvedAt: new Date()
+    });
+
+    // If 3 approvals, auto-verify
+    if (seller.verification.adminApprovals.length >= 3) {
+      seller.verification.status = 'verified';
+      seller.verification.verified_at = new Date();
+      seller.verification.verifiedBy = adminId;
+      seller.verification.verifiedByName = `Forced (${seller.verification.adminApprovals.map(a => a.adminName).join(', ')})`;
+    }
+
+    await seller.save();
+    res.json({
+      msg: `Approval added (${seller.verification.adminApprovals.length}/3)`,
+      approvalCount: seller.verification.adminApprovals.length,
+      seller
+    });
+  } catch (err) {
+    console.error("Force approve error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Get seller messages (chat)
+router.get("/sellers/:id/messages", async (req, res) => {
+  try {
+    const seller = await Artisan.findById(req.params.id).select('messages name email');
+    if (!seller) return res.status(404).json({ msg: "Seller not found" });
+    res.json(seller.messages || []);
+  } catch (err) {
+    console.error("Get seller messages error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Send message to seller
+router.post("/sellers/:id/messages", async (req, res) => {
+  try {
+    const { content } = req.body;
+    if (!content) return res.status(400).json({ msg: "Content required" });
+
+    const seller = await Artisan.findById(req.params.id);
+    if (!seller) return res.status(404).json({ msg: "Seller not found" });
+
+    const message = {
+      content,
+      fromAdmin: true,
+      senderId: req.user?.id,
+      senderName: req.user?.name || 'Admin',
+      createdAt: new Date(),
+      read: false
+    };
+
+    seller.messages = seller.messages || [];
+    seller.messages.push(message);
+    await seller.save();
+
+    res.json({ msg: "Message sent", message });
+  } catch (err) {
+    console.error("Send seller message error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Get admin notes for user
+router.get("/users/:id/notes", async (req, res) => {
+  try {
+    // Notes stored in-memory or can be added to User model later
+    // For now, return empty array - can be enhanced with a Notes model
+    res.json([]);
+  } catch (err) {
+    console.error("Get user notes error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Add admin note for user
+router.post("/users/:id/notes", async (req, res) => {
+  try {
+    const { content } = req.body;
+    if (!content) {
+      return res.status(400).json({ msg: "Note content required" });
+    }
+    // For now, just acknowledge - can be enhanced with a Notes model
+    res.json({
+      msg: "Note added",
+      note: {
+        _id: Date.now().toString(),
+        content,
+        createdBy: req.user,
+        createdAt: new Date()
+      }
+    });
+  } catch (err) {
+    console.error("Add user note error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Get user's reviews
+router.get("/users/:id/reviews", async (req, res) => {
+  try {
+    const Review = require("../models/artisan_point/user/Review");
+    const reviews = await Review.find({ user_id: req.params.id })
+      .sort({ createdAt: -1 })
+      .limit(50);
+    res.json(reviews);
+  } catch (err) {
+    console.error("Get user reviews error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Get user's wishlist
+router.get("/users/:id/wishlist", async (req, res) => {
+  try {
+    const Wishlist = require("../models/artisan_point/user/Wishlist");
+    const Listing = require("../models/artisan_point/artisan/Listing");
+
+    const wishlist = await Wishlist.findOne({ user_id: req.params.id });
+    if (!wishlist || !wishlist.items?.length) {
+      return res.json([]);
+    }
+
+    const products = await Listing.find({
+      _id: { $in: wishlist.items.map(i => i.listing_id) }
+    }).select('title price images');
+
+    const items = products.map(p => ({
+      _id: p._id,
+      title: p.title,
+      price: p.price,
+      image: p.images?.[0]
+    }));
+
+    res.json(items);
+  } catch (err) {
+    console.error("Get user wishlist error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Get user's activity log
+router.get("/users/:id/activity", async (req, res) => {
+  try {
+    // For now, return login history based on lastLogin
+    const activities = [];
+    const user = await User.findById(req.params.id).select('lastLogin createdAt');
+
+    if (user?.lastLogin) {
+      activities.push({ action: 'Last login', timestamp: user.lastLogin });
+    }
+    if (user?.createdAt) {
+      activities.push({ action: 'Account created', timestamp: user.createdAt });
+    }
+
+    res.json(activities);
+  } catch (err) {
+    console.error("Get user activity error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Reset user password (send reset email)
+router.post("/users/:id/reset-password", async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    // In production, this would send an email
+    // For now, just acknowledge the request
+    res.json({ msg: "Password reset email sent to " + user.email });
+  } catch (err) {
+    console.error("Reset password error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Gift store credit to user
+router.post("/users/:id/credit", async (req, res) => {
+  try {
+    const { amount } = req.body;
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ msg: "Valid amount required" });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    // Add credit to user (assuming there's a storeCredit field)
+    user.storeCredit = (user.storeCredit || 0) + parseFloat(amount);
+    await user.save();
+
+    res.json({ msg: "Credit added", newBalance: user.storeCredit });
+  } catch (err) {
+    console.error("Gift credit error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Send notification to user
+router.post("/users/:id/notify", async (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message) {
+      return res.status(400).json({ msg: "Message required" });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    // In production, this would send a push notification
+    // For now, just log and acknowledge
+    console.log(`Notification to ${user.email}: ${message}`);
+
+    res.json({ msg: "Notification sent" });
+  } catch (err) {
+    console.error("Send notification error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Impersonate user (admin login as user)
+router.post("/users/:id/impersonate", async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    // In production, this would create a special session
+    // with admin-impersonation flags for audit trail
+    res.json({
+      msg: "Impersonation mode activated",
+      user: { id: user._id, name: user.name, email: user.email }
+    });
+  } catch (err) {
+    console.error("Impersonate error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
 
 module.exports = router;
+

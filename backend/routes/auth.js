@@ -128,7 +128,11 @@ router.post("/login", async (req, res) => {
     user.login.is_logged_in = true;
     user.login.last_login_at = new Date();
     user.login.login_count = (user.login.login_count || 0) + 1;
+    // Also set top-level fields for admin panel
+    user.isOnline = true;
+    user.lastLogin = new Date();
     await user.save();
+
 
     // Access token
     const accessToken = signAccessToken({ id: user._id }, process.env.JWT_ACCESS_TTL || "1h");
@@ -238,8 +242,10 @@ router.post("/logout", authenticate, async (req, res) => {
           userDoc.login = userDoc.login || {};
           userDoc.login.last_logout_at = new Date();
           userDoc.login.is_logged_in = false;
+          userDoc.isOnline = false; // Also set top-level field
           await userDoc.save();
         }
+
       } catch (e) {
         // ignore
       }
@@ -366,6 +372,8 @@ router.get("/profile-full", authenticate, async (req, res) => {
         name: user.name,
         email: user.email,
         phone: user.phone || null,
+        phone_verified: user.phone_verified || false,
+        email_verified: user.email_verified || false,
         store: user.store || null,
         mfa_enabled: user.mfa_enabled || false,
         last_login_at: user.login?.last_login_at || null,
@@ -421,6 +429,46 @@ router.get("/profile-full", authenticate, async (req, res) => {
   } catch (err) {
     console.error("profile-full error:", err);
     return res.status(500).json({ msg: "profile_fetch_failed" });
+  }
+});
+
+// ---------------------------
+// Update Profile Route
+// ---------------------------
+router.put("/profile", authenticate, async (req, res) => {
+  try {
+    const { phone } = req.body;
+    const userId = req.user.id;
+    const role = req.user.role;
+
+    let Model = getModelName(role);
+    const user = await Model.findById(userId);
+
+    if (!user) return res.status(404).json({ msg: "User not found" });
+
+    // Handle Phone Update
+    if (phone !== undefined) {
+      if (user.phone !== phone) {
+        user.phone = phone;
+        user.phone_verified = false; // Reset verification on change
+      }
+    }
+
+    await user.save();
+
+    res.json({
+      msg: "Profile updated successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role
+      }
+    });
+  } catch (err) {
+    console.error("Profile update error:", err);
+    res.status(500).json({ msg: "Server error" });
   }
 });
 
