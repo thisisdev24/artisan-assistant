@@ -9,7 +9,12 @@ const mongoose = require('mongoose');
 const ArtisanSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   email: { type: String, required: true, unique: true, lowercase: true },
+  emailVerified: { type: Boolean, default: false },
+  emailVerifiedAt: Date,
   password: { type: String, required: true, select: false },
+  phone: { type: String, default: '' },
+  phoneVerified: { type: Boolean, default: false },
+  phoneVerifiedAt: Date,
   role: { type: String, default: 'seller' },
   store: { type: String, required: true },
   store_slug: { type: String, index: true },
@@ -21,7 +26,14 @@ const ArtisanSchema = new mongoose.Schema({
   verification: {
     documents: [String],
     status: { type: String, enum: ['unverified', 'pending', 'verified', 'rejected'], default: 'unverified' },
-    verified_at: Date
+    verified_at: Date,
+    verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
+    verifiedByName: String,
+    adminApprovals: [{
+      adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
+      adminName: String,
+      approvedAt: { type: Date, default: Date.now }
+    }]
   },
   address: {
     line1: { type: String, default: '' },
@@ -36,7 +48,10 @@ const ArtisanSchema = new mongoose.Schema({
     number: { type: String, default: '' },
     document_url: { type: String, default: '' },
     expires_at: { type: Date, default: null },
-    verified: { type: Boolean, default: false }
+    verified: { type: Boolean, default: false },
+    verifiedAt: Date,
+    verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
+    verifiedByName: String
   },
   profile_details: {
     bio: { type: String, default: '' },
@@ -44,6 +59,31 @@ const ArtisanSchema = new mongoose.Schema({
     specialties: { type: [String], default: [] }
   },
   payout_details_masked: String,
+  isOnline: { type: Boolean, default: false },
+  lastLogin: Date,
+  status: { type: String, default: 'active', enum: ['active', 'inactive', 'blocked', 'suspended'] },
+  statusHistory: [{
+    from: String,
+    to: String,
+    changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
+    changedByName: String,
+    reason: String,
+    timestamp: { type: Date, default: Date.now }
+  }],
+  notes: [{
+    content: String,
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
+    createdByName: String,
+    createdAt: { type: Date, default: Date.now }
+  }],
+  messages: [{
+    content: String,
+    fromAdmin: { type: Boolean, default: true },
+    senderId: mongoose.Schema.Types.ObjectId,
+    senderName: String,
+    createdAt: { type: Date, default: Date.now },
+    read: { type: Boolean, default: false }
+  }],
   deleted: { type: Boolean, default: false }
 }, { timestamps: true });
 

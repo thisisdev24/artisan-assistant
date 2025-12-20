@@ -92,7 +92,7 @@ const Profile = () => {
     const renderContent = () => {
         switch (activeTab) {
             case 'personal':
-                return <PersonalInfoSection data={profileData.details} role={role} />;
+                return <PersonalInfoSection data={profileData.details} role={role} onChange={fetchProfile} />;
             case 'addresses':
                 return <AddressesSection addresses={profileData.addresses} onChange={fetchProfile} />;
             case 'orders':
@@ -180,15 +180,96 @@ const Profile = () => {
 
 /* --- Sub-components (Internal for now) --- */
 
-const PersonalInfoSection = ({ data, role }) => (
-    <div className="space-y-4">
-        <InfoRow label="Name" value={data.name} />
-        <InfoRow label="Email" value={data.email} />
-        <InfoRow label="Role" value={role} />
-        {data.phone && <InfoRow label="Phone" value={data.phone} />}
-        {data.store && <InfoRow label="Store Name" value={data.store} />}
-    </div>
-);
+const PersonalInfoSection = ({ data, role, onChange }) => {
+    const [isEditingPhone, setIsEditingPhone] = useState(false);
+    const [phoneInput, setPhoneInput] = useState(data.phone || '');
+    const [saving, setSaving] = useState(false);
+
+    // Update local state when data changes (e.g. after refresh)
+    useEffect(() => {
+        setPhoneInput(data.phone || '');
+    }, [data.phone]);
+
+    const handleSavePhone = async () => {
+        try {
+            setSaving(true);
+            await apiClient.put('/api/auth/profile', { phone: phoneInput });
+            setIsEditingPhone(false);
+            if (onChange) onChange();
+        } catch (err) {
+            console.error("Failed to update phone", err);
+            alert("Failed to update phone number");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="space-y-4">
+            <InfoRow label="Name" value={data.name} />
+            <InfoRow label="Email" value={data.email} />
+            <InfoRow label="Role" value={role} />
+
+            <div className="pb-2 border-b border-gray-100 last:border-0">
+                <div className="flex justify-between items-end mb-1">
+                    <span className="block text-sm text-gray-500">Phone</span>
+                    {!isEditingPhone && (
+                        <button
+                            onClick={() => setIsEditingPhone(true)}
+                            className="text-xs text-primary font-medium hover:underline"
+                        >
+                            {data.phone ? 'Edit' : 'Add Phone'}
+                        </button>
+                    )}
+                </div>
+
+                {isEditingPhone ? (
+                    <div className="flex items-center gap-2 mt-1">
+                        <input
+                            type="tel"
+                            value={phoneInput}
+                            onChange={(e) => setPhoneInput(e.target.value)}
+                            placeholder="Enter phone number"
+                            className="flex-1 border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                            autoFocus
+                        />
+                        <button
+                            onClick={handleSavePhone}
+                            disabled={saving}
+                            className="px-3 py-1.5 bg-primary text-white text-xs font-medium rounded hover:bg-primary/90 disabled:opacity-50"
+                        >
+                            {saving ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                            onClick={() => {
+                                setIsEditingPhone(false);
+                                setPhoneInput(data.phone || '');
+                            }}
+                            className="px-3 py-1.5 border border-gray-200 text-gray-600 text-xs font-medium rounded hover:bg-gray-50"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                ) : (
+                    data.phone ? (
+                        <div className="flex items-center gap-2">
+                            <span className="text-gray-900 font-medium">{data.phone}</span>
+                            {data.phone_verified ? (
+                                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Verified</span>
+                            ) : (
+                                <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-medium">Unverified</span>
+                            )}
+                        </div>
+                    ) : (
+                        <span className="text-gray-400 italic">Not set</span>
+                    )
+                )}
+            </div>
+
+            {data.store && <InfoRow label="Store Name" value={data.store} />}
+        </div>
+    );
+};
 
 const AddressesSection = ({ addresses, onChange }) => {
     const [showForm, setShowForm] = useState(false);
