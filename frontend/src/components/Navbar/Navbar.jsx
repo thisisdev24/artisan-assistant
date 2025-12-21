@@ -62,15 +62,15 @@ const Navbar = () => {
           {/* logo section */}
           <Link
             to={user ? (isSeller ? "/Seller" : isAdmin ? "/Admin" : "/") : "/"}
-            className="text-2xl flex items-center gap-2 font-bold uppercase order-1"
+            className="text-2xl flex items-center gap-2 font-bold uppercase"
           >
             <SiSnapcraft />
             <p>Artist</p>
             <p className="text-orange-400 ">Point</p>
           </Link>
           {/* menu section - Role-based navigation */}
-          <div className="items-center justify-between hidden md:flex md:w-auto md:mt-2 md:order-1">
-            <ul className="flex flex-col h-8 font-medium border border-default rounded-base bg-neutral-secondary-soft md:space-x-8 rtl:space-x-reverse md:flex-row md:mt-0 md:border-0 md:bg-neutral-primary">
+          <div className="items-center justify-between hidden md:flex md:w-auto">
+            <ul className="flex flex-col font-medium border border-default md:space-x-8 rtl:space-x-reverse md:flex-row md:mt-0 md:border-0">
               {!user ? (
                 // Not logged in - show public menu
                 NavbarMenu.map((item) => {
@@ -125,7 +125,7 @@ const Navbar = () => {
                   <li>
                     <Link
                       to="/Seller"
-                      className="incline-block py-1 px-3 hover:text-primary font-semibold"
+                      className="incline-block pr-3 hover:text-primary font-semibold"
                     >
                       Dashboard
                     </Link>
@@ -133,7 +133,7 @@ const Navbar = () => {
                   <li>
                     <Link
                       to="/CreateListing"
-                      className="incline-block py-1 px-3 hover:text-primary font-semibold"
+                      className="incline-block px-3 hover:text-primary font-semibold"
                     >
                       Add Product
                     </Link>
@@ -141,7 +141,7 @@ const Navbar = () => {
                   <li>
                     <Link
                       to="/ShowListing"
-                      className="incline-block py-1 px-3 hover:text-primary font-semibold"
+                      className="incline-block pl-3 hover:text-primary font-semibold"
                     >
                       My Products
                     </Link>
@@ -153,7 +153,7 @@ const Navbar = () => {
                   <li>
                     <Link
                       to="/Admin"
-                      className="incline-block py-1 px-3 hover:text-primary font-semibold"
+                      className="incline-block hover:text-primary font-semibold"
                     >
                       Dashboard
                     </Link>
@@ -212,9 +212,9 @@ const Navbar = () => {
             </ul>
           </div>
           {/* icons section */}
-          <div className="flex items-center gap-4 order-3">
+          <div>
             {/* icons section */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-8">
               {/* Search button */}
               <button
                 onMouseEnter={() => setSearchOpen(!searchOpen)}
@@ -246,25 +246,22 @@ const Navbar = () => {
                   </button>
                 </form>
               )}
-              {/* Cart button - show for everyone, redirect to login if not logged in */}
-              <button
-                onClick={() => {
-                  if (isBuyer) {
+              {isBuyer && (
+                <button
+                  onClick={() => {
                     navigate("/cart");
-                  } else {
-                    navigate("/login");
-                  }
-                }}
-                className="relative text-2xl hover:bg-primary hover:text-white p-2 rounded-full duration-200"
-                aria-label="Open cart"
-              >
-                <PiShoppingCartThin />
-                {isBuyer && cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5">
-                    {cartCount}
-                  </span>
-                )}
-              </button>
+                  }}
+                  className="relative text-2xl hover:bg-primary hover:text-white p-2 rounded-full duration-200"
+                  aria-label="Open cart"
+                >
+                  <PiShoppingCartThin />
+                  {isBuyer && cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5">
+                      {cartCount}
+                    </span>
+                  )}
+                </button>
+              )}
               {/* User menu - Hamburger for buyers, icon for sellers/admins */}
               {user ? (
                 <div className="flex items-center gap-2 relative user-menu-container order-4">
@@ -445,7 +442,36 @@ const Navbar = () => {
                         </div>
                       )}
                     </>
-                  ) : null}
+                  ) : (
+                    isSeller && (
+                      <div className="border-t border-gray-100">
+                        <button
+                          onClick={() => {
+                            logout();
+                            setUserMenuOpen(false);
+                            navigate("/");
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 transition-colors text-red-600"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                            />
+                          </svg>
+                          <span>Logout</span>
+                        </button>
+                      </div>
+                    )
+                  )}
                 </div>
               ) : (
                 <div className="pl-32 hidden md:flex gap-2">
@@ -465,7 +491,7 @@ const Navbar = () => {
               )}
             </div>
             {/* mobile hamburger menu section */}
-            {!location.pathname.startsWith('/admin') && (
+            {!location.pathname.startsWith("/admin") && (
               <div className="md:hidden " onClick={() => setOpen(!open)}>
                 <MdMenu className="text-4xl " />
               </div>
