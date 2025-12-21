@@ -214,7 +214,7 @@ const Navbar = () => {
           {/* icons section */}
           <div>
             {/* icons section */}
-            <div className="flex items-center">
+            <div className="flex items-center gap-8">
               {/* Search button */}
               <button
                 onMouseEnter={() => setSearchOpen(!searchOpen)}
