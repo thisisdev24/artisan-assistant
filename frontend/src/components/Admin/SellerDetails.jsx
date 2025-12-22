@@ -5,12 +5,23 @@ import {
     ArrowLeft, Mail, Phone, Calendar, Store, Package, ShoppingBag,
     Star, MapPin, TrendingUp, Ban, Shield, Trash2, Download,
     BadgeCheck, DollarSign, Eye, MessageSquare, Users, Activity,
-    CheckCircle, Send, Clock, AlertCircle
+    CheckCircle, Send, Clock, AlertCircle, Search, SlidersHorizontal, ChevronDown,
+    XCircle, RotateCcw, ShieldAlert
 } from 'lucide-react';
+import { ActivityTab } from './UserDetailsTabs';
+import { useAuth } from '../../context/AuthContext';
+
+// Helper to extract image URL from various formats
+const getImageUrl = (img) => {
+    if (!img) return null;
+    if (typeof img === 'string') return img;
+    return img.large || img.thumb || img.hi_res || img.variant || img.url || null;
+};
 
 const SellerDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [seller, setSeller] = useState(null);
     const [products, setProducts] = useState([]);
@@ -21,6 +32,7 @@ const SellerDetails = () => {
     const [newNote, setNewNote] = useState('');
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
+    const [activityLog, setActivityLog] = useState([]);
     const [stats, setStats] = useState({ productCount: 0, totalSales: 0, totalRevenue: 0, avgRating: 0 });
     const [activeTab, setActiveTab] = useState('products');
 
@@ -39,6 +51,11 @@ const SellerDetails = () => {
     // Table view limits
     const [ordersLimit, setOrdersLimit] = useState(10);
     const [customersLimit, setCustomersLimit] = useState(10);
+
+    // Product filters
+    const [productSearch, setProductSearch] = useState('');
+    const [productSort, setProductSort] = useState('newest'); // newest, orders, reviews, price_high, price_low
+    const [productStatus, setProductStatus] = useState('all'); // all, active, inactive, out_of_stock
 
     // Pagination
     const [ordersPage, setOrdersPage] = useState(1);
@@ -87,6 +104,50 @@ const SellerDetails = () => {
         return items.filter(item => new Date(item[dateField]) >= cutoff);
     };
 
+    // Filtered & sorted products
+    const filteredProducts = React.useMemo(() => {
+        let result = [...products];
+
+        // Search filter
+        if (productSearch) {
+            const q = productSearch.toLowerCase();
+            result = result.filter(p =>
+                p.title?.toLowerCase().includes(q) ||
+                p.category?.toLowerCase().includes(q) ||
+                p.description?.toLowerCase().includes(q)
+            );
+        }
+
+        // Status filter
+        if (productStatus !== 'all') {
+            if (productStatus === 'active') result = result.filter(p => p.status === 'active' || p.is_active === true);
+            if (productStatus === 'inactive') result = result.filter(p => p.status === 'inactive' || p.is_active === false);
+            if (productStatus === 'out_of_stock') result = result.filter(p => (p.stock || p.quantity || 0) <= 0);
+        }
+
+        // Sorting
+        switch (productSort) {
+            case 'orders':
+                result.sort((a, b) => (b.order_count || b.sales_count || 0) - (a.order_count || a.sales_count || 0));
+                break;
+            case 'reviews':
+                result.sort((a, b) => (b.rating || b.average_rating || 0) - (a.rating || a.average_rating || 0));
+                break;
+            case 'price_high':
+                result.sort((a, b) => (b.price || 0) - (a.price || 0));
+                break;
+            case 'price_low':
+                result.sort((a, b) => (a.price || 0) - (b.price || 0));
+                break;
+            case 'newest':
+            default:
+                result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                break;
+        }
+
+        return result;
+    }, [products, productSearch, productStatus, productSort]);
+
     useEffect(() => {
         loadSellerData();
     }, [id]);
@@ -99,6 +160,8 @@ const SellerDetails = () => {
         if (activeTab === 'reviews' && !reviews.length) loadReviews();
         if (activeTab === 'notes' && !notes.length) loadNotes();
         if (activeTab === 'messages' && !messages.length) loadMessages();
+        if (activeTab === 'messages' && !messages.length) loadMessages();
+        if ((activeTab === 'activity' || activeTab === 'verification history') && !activityLog.length) loadActivity();
     }, [activeTab]);
 
     const loadSellerData = async () => {
@@ -173,6 +236,13 @@ const SellerDetails = () => {
         } catch (err) { alert('Failed to send message'); }
     };
 
+    const loadActivity = async () => {
+        try {
+            const res = await apiClient.get(`/api/admin/sellers/${id}/activity`);
+            setActivityLog(res.data || []);
+        } catch (err) { console.error(err); }
+    };
+
     const verifyField = async (field) => {
         if (!window.confirm(`Verify seller's ${field}?`)) return;
         try {
@@ -222,6 +292,27 @@ const SellerDetails = () => {
         }
     };
 
+    const revokeVerification = async () => {
+        if (!window.confirm('Are you sure you want to REVOKE verification? This will reset approvals and notify the seller.')) return;
+        try {
+            await apiClient.post(`/api/admin/sellers/${id}/revoke-verification`);
+            alert('Verification revoked successfully');
+            loadSellerData();
+        } catch (err) {
+            alert(err.response?.data?.msg || 'Failed to revoke verification');
+        }
+    };
+
+    const removeApproval = async () => {
+        if (!window.confirm('Retract your approval?')) return;
+        try {
+            await apiClient.post(`/api/admin/sellers/${id}/remove-approval`);
+            loadSellerData();
+        } catch (err) {
+            alert(err.response?.data?.msg || 'Failed to remove approval');
+        }
+    };
+
     const exportSellerData = () => {
         const data = { seller, stats, products, orders, reviews, exportedAt: new Date().toISOString() };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -247,7 +338,7 @@ const SellerDetails = () => {
     if (loading) return <div className="h-64 flex items-center justify-center"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>;
     if (!seller) return <div className="text-center py-12">Seller not found</div>;
 
-    const tabs = ['products', 'order details', 'verification', 'notes', 'status history'];
+    const tabs = ['products', 'order details', 'verification', 'verification history', 'activity', 'messages', 'notes', 'status history'];
 
     return (
         <div className="space-y-6">
@@ -283,6 +374,11 @@ const SellerDetails = () => {
                                     <div className="flex items-center gap-2 mb-1">
                                         <h1 className="text-2xl font-bold text-gray-900">{seller.store || seller.name}</h1>
                                         {seller.verification?.status === 'verified' && <BadgeCheck className="w-6 h-6 text-blue-500" />}
+                                        {seller.verification?.status !== 'verified' && (seller.verification?.adminApprovals?.length || 0) > 0 && (
+                                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200">
+                                                Partially Verified ({seller.verification.adminApprovals.length}/3)
+                                            </span>
+                                        )}
                                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1.5 ${seller.isOnline ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-600 border border-gray-200'}`}>
                                             <span className={`w-1.5 h-1.5 rounded-full ${seller.isOnline ? 'bg-emerald-500' : 'bg-gray-400'}`}></span>
                                             {seller.isOnline ? 'Online' : 'Offline'}
@@ -305,11 +401,11 @@ const SellerDetails = () => {
                                             <Shield className="w-3.5 h-3.5" /> {seller.identity_card?.verified ? 'ID Verified' : 'ID Pending'}
                                         </div>
                                         <div className="h-4 w-px bg-gray-300 mx-1"></div>
-                                        <span className="text-xs text-gray-500 flex items-center gap-1" title={`Joined: ${new Date(seller.createdAt).toLocaleDateString()}`}>
-                                            <Calendar className="w-3.5 h-3.5" /> Joined {formatRelativeTime(seller.createdAt)}
+                                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                                            <Calendar className="w-3.5 h-3.5" /> Joined: {new Date(seller.createdAt).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
                                         </span>
-                                        <span className="text-xs text-gray-500 flex items-center gap-1" title={`Last Active: ${seller.lastLogin ? new Date(seller.lastLogin).toLocaleString() : 'Never'}`}>
-                                            <Clock className="w-3.5 h-3.5" /> Active {seller.lastLogin ? formatRelativeTime(seller.lastLogin) : 'Never'}
+                                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                                            <Clock className="w-3.5 h-3.5" /> Active: {seller.lastLogin ? new Date(seller.lastLogin).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : 'Never'}
                                         </span>
                                     </div>
                                 </div>
@@ -466,15 +562,35 @@ const SellerDetails = () => {
                                     <p className="text-xs text-gray-600">Requires 3 admin approvals to force verify without all documents</p>
                                 </div>
                                 {seller.verification?.status === 'verified' ? (
-                                    <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium flex items-center gap-2">
-                                        <CheckCircle className="w-4 h-4" /> Verified
-                                    </span>
+                                    <div className="flex items-center gap-3">
+                                        <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium flex items-center gap-2">
+                                            <CheckCircle className="w-4 h-4" /> Verified
+                                        </span>
+                                        <button
+                                            onClick={revokeVerification}
+                                            className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-sm font-medium transition-colors"
+                                        >
+                                            Revoke Verification
+                                        </button>
+                                    </div>
                                 ) : (
                                     <div className="flex items-center gap-3">
                                         <span className="text-sm text-gray-600">{seller.verification?.adminApprovals?.length || 0}/3 Approvals</span>
-                                        <button onClick={forceApprove} className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600">
-                                            Add My Approval
-                                        </button>
+                                        {seller.verification?.adminApprovals?.some(a => a.adminId === user?.id) ? (
+                                            <button
+                                                onClick={removeApproval}
+                                                className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-200 transition-colors"
+                                            >
+                                                Remove My Approval
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={forceApprove}
+                                                className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors"
+                                            >
+                                                Add My Approval
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -521,17 +637,80 @@ const SellerDetails = () => {
                     </div>
                 )}
 
+
+
                 {activeTab === 'products' && (
-                    <div>
-                        <div className="flex items-center justify-between mb-4">
-                            <p className="text-sm text-gray-500">{products.length} products listed</p>
+                    <div className="space-y-4">
+                        {/* Filter Toolbar */}
+                        <div className="bg-white border border-gray-200 rounded-xl p-4">
+                            <div className="flex flex-col lg:flex-row gap-4">
+                                {/* Search */}
+                                <div className="flex-1 relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search products by name, category..."
+                                        value={productSearch}
+                                        onChange={e => setProductSearch(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                    />
+                                </div>
+
+                                {/* Status Filter */}
+                                <div className="flex items-center gap-2">
+                                    <SlidersHorizontal className="w-4 h-4 text-gray-400" />
+                                    <select
+                                        value={productStatus}
+                                        onChange={e => setProductStatus(e.target.value)}
+                                        className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500"
+                                    >
+                                        <option value="all">All Status</option>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                        <option value="out_of_stock">Out of Stock</option>
+                                    </select>
+                                </div>
+
+                                {/* Sort */}
+                                <div className="flex items-center gap-2">
+                                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                                    <select
+                                        value={productSort}
+                                        onChange={e => setProductSort(e.target.value)}
+                                        className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500"
+                                    >
+                                        <option value="newest">Newest First</option>
+                                        <option value="orders">Most Orders</option>
+                                        <option value="reviews">Highest Rated</option>
+                                        <option value="price_high">Price: High → Low</option>
+                                        <option value="price_low">Price: Low → High</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Results count */}
+                            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+                                <p className="text-sm text-gray-500">
+                                    Showing <span className="font-medium text-gray-900">{filteredProducts.length}</span> of {products.length} products
+                                </p>
+                                {(productSearch || productStatus !== 'all') && (
+                                    <button
+                                        onClick={() => { setProductSearch(''); setProductStatus('all'); setProductSort('newest'); }}
+                                        className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                                    >
+                                        Clear filters
+                                    </button>
+                                )}
+                            </div>
                         </div>
+
+                        {/* Product Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {products.map(p => (
+                            {filteredProducts.map(p => (
                                 <div key={p._id} className="bg-white border border-gray-200 rounded-xl overflow-hidden group hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate(`/admin/products/${p._id}`)}>
                                     <div className="relative h-48 bg-gray-100 overflow-hidden">
-                                        {p.images?.[0] ? (
-                                            <img src={p.images[0]} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                        {getImageUrl(p.images?.[0]) ? (
+                                            <img src={getImageUrl(p.images[0])} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-gray-400">
                                                 <Package className="w-12 h-12" />
@@ -542,6 +721,14 @@ const SellerDetails = () => {
                                                 {p.status || (p.is_active ? 'Active' : 'Inactive')}
                                             </span>
                                         </div>
+                                        {/* Show order count badge if sorting by orders */}
+                                        {productSort === 'orders' && (p.order_count || p.sales_count) > 0 && (
+                                            <div className="absolute top-2 left-2">
+                                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                                                    {p.order_count || p.sales_count} orders
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="p-4">
                                         <h3 className="font-semibold text-gray-900 truncate mb-1 group-hover:text-indigo-600 transition-colors">{p.title}</h3>
@@ -556,7 +743,8 @@ const SellerDetails = () => {
                                             <div className="text-right">
                                                 <div className="flex items-center gap-1">
                                                     <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                                                    <span className="text-sm font-medium">{p.rating?.toFixed(1) || '0.0'}</span>
+                                                    <span className="text-sm font-medium">{(p.rating || p.average_rating)?.toFixed(1) || '0.0'}</span>
+                                                    <span className="text-xs text-gray-400">({p.rating_number || p.review_count || 0})</span>
                                                 </div>
                                                 <span className={`text-xs ${(p.stock || p.quantity) > 0 ? 'text-green-600' : 'text-red-500'}`}>
                                                     {(p.stock || p.quantity) > 0 ? `${p.stock || p.quantity} in stock` : 'Out of stock'}
@@ -572,10 +760,22 @@ const SellerDetails = () => {
                                 </div>
                             ))}
                         </div>
-                        {products.length === 0 && (
-                            <div className="text-center py-16">
+
+                        {/* Empty State */}
+                        {filteredProducts.length === 0 && (
+                            <div className="text-center py-16 bg-white border border-gray-200 rounded-xl">
                                 <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                                <p className="text-gray-500">No products found</p>
+                                <p className="text-gray-500 mb-2">
+                                    {products.length === 0 ? 'No products listed yet' : 'No products match your filters'}
+                                </p>
+                                {products.length > 0 && (
+                                    <button
+                                        onClick={() => { setProductSearch(''); setProductStatus('all'); }}
+                                        className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                                    >
+                                        Clear filters
+                                    </button>
+                                )}
                             </div>
                         )}
                     </div>
@@ -876,6 +1076,86 @@ const SellerDetails = () => {
                     </div>
                 )}
 
+                {/* Verification History Tab */}
+                {activeTab === 'verification history' && (
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold">Verification History</h3>
+                            <button onClick={() => apiClient.get(`/api/admin/sellers/${id}/activity`).then(res => setActivityLog(res.data || [])).catch(console.error)} className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                                <Activity className="w-4 h-4" /> Refresh Log
+                            </button>
+                        </div>
+
+                        <div className="relative pl-4 border-l-2 border-gray-100 space-y-8 ml-3">
+                            {activityLog.filter(log => log.admin_action?.action_type?.startsWith('VERIFICATION_')).length > 0 ? (
+                                activityLog
+                                    .filter(log => log.admin_action?.action_type?.startsWith('VERIFICATION_'))
+                                    .map((log, index) => {
+                                        const type = log.admin_action.action_type;
+                                        const isApproved = type === 'VERIFICATION_APPROVED';
+                                        const isRevoked = type === 'VERIFICATION_REVOKED';
+                                        const isRetracted = type === 'VERIFICATION_RETRACTED';
+                                        const isRejected = type === 'VERIFICATION_REJECTED';
+
+                                        return (
+                                            <div key={index} className="relative">
+                                                {/* Timeline Dot */}
+                                                <div className={`absolute -left-[21px] top-0 w-8 h-8 rounded-full border-4 border-white flex items-center justify-center 
+                                                    ${isApproved ? 'bg-green-100 text-green-600' :
+                                                        isRevoked ? 'bg-red-100 text-red-600' :
+                                                            isRetracted ? 'bg-amber-100 text-amber-600' :
+                                                                'bg-gray-100 text-gray-500'}`}>
+                                                    {isApproved && <CheckCircle className="w-4 h-4" />}
+                                                    {isRevoked && <XCircle className="w-4 h-4" />}
+                                                    {isRetracted && <RotateCcw className="w-4 h-4" />}
+                                                    {isRejected && <ShieldAlert className="w-4 h-4" />}
+                                                    {!isApproved && !isRevoked && !isRetracted && !isRejected && <Shield className="w-4 h-4" />}
+                                                </div>
+
+                                                <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                                                    <div className="flex items-start justify-between">
+                                                        <div>
+                                                            <h4 className="font-semibold text-gray-900">
+                                                                {isApproved ? 'Verification Approved' :
+                                                                    isRevoked ? 'Verification Revoked' :
+                                                                        isRetracted ? 'Approval Retracted' :
+                                                                            isRejected ? 'Verification Rejected' :
+                                                                                'Verification Update'}
+                                                            </h4>
+                                                            <p className="text-xs text-gray-500 mt-1">
+                                                                by <span className="font-medium text-gray-700">{log.admin_context?.admin_name || 'System'}</span>
+                                                            </p>
+                                                        </div>
+                                                        <span className="text-xs text-gray-400" title={new Date(log.timestamp).toLocaleString()}>
+                                                            {formatRelativeTime(log.timestamp)}
+                                                        </span>
+                                                    </div>
+                                                    {(log.admin_action?.audit_notes || log.admin_action?.reason) && (
+                                                        <div className="mt-3 p-3 bg-gray-50 rounded-md text-sm text-gray-600">
+                                                            {log.admin_action?.audit_notes || log.admin_action?.reason}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                            ) : (
+                                <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-200 ml-[-20px]">
+                                    <Shield className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                                    <p className="text-gray-500 text-sm">No verification history recorded yet</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Activity Tab */}
+                {activeTab === 'activity' && (
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                        <ActivityTab activityLog={activityLog} />
+                    </div>
+                )}
+
                 {/* Messages Tab */}
                 {activeTab === 'messages' && (
                     <div className="flex flex-col h-[500px]">
@@ -948,49 +1228,6 @@ const SellerDetails = () => {
                                 <p className="text-gray-500 text-sm">No status changes recorded</p>
                             </div>
                         )}
-                    </div>
-                )}
-            </div>
-
-            {/* Products Section - Always Visible at Bottom */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                        <Package className="w-5 h-5 text-gray-400" /> All Products
-                        <span className="text-sm font-normal text-gray-500">({products.length})</span>
-                    </h3>
-                    {products.length > 8 && (
-                        <button onClick={() => setActiveTab('products')} className="text-sm text-indigo-600 hover:text-indigo-700">View All →</button>
-                    )}
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {products.slice(0, 8).map(p => (
-                        <div key={p._id} className="border border-gray-200 rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/admin/products/${p._id}`)}>
-                            <div className="h-24 bg-gray-100 overflow-hidden">
-                                {p.images?.[0] ? (
-                                    <img src={p.images[0]} alt={p.title} className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                        <Package className="w-8 h-8" />
-                                    </div>
-                                )}
-                            </div>
-                            <div className="p-3">
-                                <h4 className="font-medium text-sm truncate">{p.title}</h4>
-                                <div className="flex items-center justify-between mt-1">
-                                    <span className="text-sm font-bold">₹{p.price?.toLocaleString()}</span>
-                                    <span className={`text-xs ${(p.stock || p.quantity) > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                        {(p.stock || p.quantity) > 0 ? `${p.stock || p.quantity} left` : 'Out'}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                {products.length === 0 && (
-                    <div className="text-center py-10">
-                        <Package className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                        <p className="text-gray-500 text-sm">No products listed</p>
                     </div>
                 )}
             </div>

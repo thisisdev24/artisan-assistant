@@ -4,11 +4,28 @@ const User = require("../models/artisan_point/user/User");
 const Artisan = require("../models/artisan_point/artisan/Artisan");
 const Admin = require("../models/artisan_point/admin/Admin");
 const Listing = require("../models/artisan_point/artisan/Listing");
+const AdminChat = require('../models/artisan_point/admin/AdminChat');
+
+const { notifyAllAdmins, sendNotification } = require('../services/notificationService');
+const { logEvent } = require('../services/logs/loggerService');
+const { getLogModels } = require('../models/logs');
 const { authenticate, requireAdmin } = require("../middleware/auth");
 
 // All routes require admin authentication
+// All routes require admin authentication
 router.use(authenticate);
 router.use(requireAdmin);
+
+// Get current admin info
+router.get("/me", async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.user.id).select('-password');
+    res.json(admin);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
 
 // Get all users with search, filter, pagination
 router.get("/users", async (req, res) => {
@@ -180,13 +197,15 @@ router.get("/sellers", async (req, res) => {
       query.status = status;
     }
 
-    // Verification Filter relative to `verification.status` or legacy `verified`
-    // Assuming schema uses `verification.status` enum ['unverified', 'pending', 'verified', 'rejected']
-    // OR separate `verified` boolean. Checking model, it has `verification.status`.
+    // Verification Filter
     if (verified && verified !== 'all') {
-      if (verified === 'verified') query['verification.status'] = 'verified';
-      else if (verified === 'pending') query['verification.status'] = 'pending';
-      else if (verified === 'unverified') query['verification.status'] = 'unverified';
+      if (verified === 'partial') {
+        // Partially verified: Has approvals but not yet verified
+        query['verification.adminApprovals.0'] = { $exists: true };
+        query['verification.status'] = { $ne: 'verified' };
+      } else {
+        query['verification.status'] = verified;
+      }
     }
 
     // Min Rating Filter
@@ -499,24 +518,124 @@ router.get("/sellers/:id/products", async (req, res) => {
 });
 
 
-// Get all listings
+// Get all listings with advanced filtering and pagination
 router.get("/listings", async (req, res) => {
   try {
-    const listings = await Listing.find({
+    const {
+      search, status, category, stockStatus,
+      minPrice, maxPrice,
+      page = 1, limit = 10,
+      sortBy = 'createdAt', sortOrder = 'desc'
+    } = req.query;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Build Query
+    let query = {
       $or: [
         { "soft_delete.is_deleted": false },
         { "soft_delete.is_deleted": { $exists: false } },
       ],
-    }).sort({ createdAt: -1 });
-    res.json(listings);
+    };
+
+    // Search (Title, Description, Store Name)
+    if (search) {
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [
+          { title: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } },
+          { store: { $regex: search, $options: 'i' } },
+        ]
+      });
+    }
+
+    // Status Filter
+    // Note: 'deleteRequested' is a separate flag, but let's handle standard status
+    if (status && status !== 'all') {
+      if (status === 'pending_delete') {
+        query.deleteRequested = true;
+      } else {
+        // query.status = status; // Listing model might not have 'status' string, check schema if needed. 
+        // Assuming 'is_active' or similar, or just 'status' if added.
+        // Let's rely on what's common. If schema uses is_active:
+        if (status === 'active') query.is_active = true;
+        if (status === 'inactive') query.is_active = false;
+      }
+    }
+
+    // Category Filter
+    if (category && category !== 'all') {
+      query.category = category;
+    }
+
+    // Price Range
+    if (minPrice || maxPrice) {
+      query.price = {};
+      if (minPrice) query.price.$gte = parseFloat(minPrice);
+      if (maxPrice) query.price.$lte = parseFloat(maxPrice);
+    }
+
+    // Stock Status
+    if (stockStatus && stockStatus !== 'all') {
+      if (stockStatus === 'in_stock') query.$or = [{ stock: { $gt: 0 } }, { quantity: { $gt: 0 } }]; // Handle both stock/quantity fields if inconsistent
+      if (stockStatus === 'out_of_stock') query.$and = [{ stock: { $lte: 0 } }, { quantity: { $lte: 0 } }];
+    }
+
+    // Sort
+    const sort = {};
+    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    const [listings, total] = await Promise.all([
+      Listing.find(query)
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit)),
+      Listing.countDocuments(query)
+    ]);
+
+    res.json({
+      listings,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / parseInt(limit))
+      }
+    });
   } catch (err) {
     console.error("Get listings error:", err);
     res.status(500).json({ msg: "Server error" });
   }
 });
 
-// Delete listing
+// Get single listing by ID (for Admin Details)
+router.get("/listings/:id", async (req, res) => {
+  try {
+    const listing = await Listing.findById(req.params.id);
+    if (!listing) {
+      return res.status(404).json({ msg: "Listing not found" });
+    }
 
+    // Attempt to fetch related data (e.g. Seller info) if not fully populated
+    // We already have some fields like 'store' (name). 
+    // If we need full seller object:
+    let seller = null;
+    if (listing.artisan_id) {
+      seller = await Artisan.findById(listing.artisan_id).select('name email phone store store_logo verification');
+    }
+
+    res.json({ listing, seller });
+  } catch (err) {
+    console.error("Get listing details error:", err);
+    if (err.kind === 'ObjectId') {
+      return res.status(404).json({ msg: "Listing not found" });
+    }
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Delete listing
 // Approve delete
 router.delete(
   "/:id/approve-delete",
@@ -545,30 +664,35 @@ router.patch(
 // Get dashboard statistics
 router.get("/stats", async (req, res) => {
   try {
-    const [usersCount, sellersCount, listingsCount, adminsCount] =
+    const notDeleted = {
+      $or: [
+        { "soft_delete.is_deleted": false },
+        { "soft_delete.is_deleted": { $exists: false } },
+      ],
+    };
+
+    const [usersCount, sellersCount, listingsCount, adminsCount, activeListingsCount, outOfStockCount] =
       await Promise.all([
-        User.countDocuments({
-          $or: [
-            { "soft_delete.is_deleted": false },
-            { "soft_delete.is_deleted": { $exists: false } },
-          ],
-        }),
-        Artisan.countDocuments({
-          $or: [
-            { "soft_delete.is_deleted": false },
-            { "soft_delete.is_deleted": { $exists: false } },
-          ],
-        }),
+        User.countDocuments(notDeleted),
+        Artisan.countDocuments(notDeleted),
+        Listing.countDocuments(notDeleted),
+        Admin.countDocuments(notDeleted),
+        // Active: in stock (stock > 0) and not pending delete
         Listing.countDocuments({
+          ...notDeleted,
+          deleteRequested: { $ne: true },
           $or: [
-            { "soft_delete.is_deleted": false },
-            { "soft_delete.is_deleted": { $exists: false } },
+            { stock: { $gt: 0 } },
+            { quantity: { $gt: 0 } },
           ],
         }),
-        Admin.countDocuments({
-          $or: [
-            { "soft_delete.is_deleted": false },
-            { "soft_delete.is_deleted": { $exists: false } },
+        // Out of stock: stock = 0 or null
+        Listing.countDocuments({
+          ...notDeleted,
+          deleteRequested: { $ne: true },
+          $and: [
+            { $or: [{ stock: { $lte: 0 } }, { stock: { $exists: false } }, { stock: null }] },
+            { $or: [{ quantity: { $lte: 0 } }, { quantity: { $exists: false } }, { quantity: null }] },
           ],
         }),
       ]);
@@ -578,6 +702,8 @@ router.get("/stats", async (req, res) => {
       sellers: sellersCount,
       listings: listingsCount,
       admins: adminsCount,
+      activeListings: activeListingsCount,
+      outOfStockListings: outOfStockCount,
     });
   } catch (err) {
     console.error("Get stats error:", err);
@@ -1106,6 +1232,124 @@ router.get("/users/:id/stats", async (req, res) => {
   }
 });
 
+// Get user activity (verification history, admin actions, user events)
+router.get("/users/:id/activity", async (req, res) => {
+  try {
+    const activities = [];
+
+    // First, get basic user activity from User model
+    let user = await User.findById(req.params.id);
+    if (!user) {
+      user = await Artisan.findById(req.params.id);
+    }
+
+    if (user) {
+      // Add last login
+      if (user.lastLogin) {
+        activities.push({
+          action: 'Last login',
+          timestamp: user.lastLogin,
+          type: 'user_event'
+        });
+      }
+
+      // Add account creation
+      if (user.createdAt) {
+        activities.push({
+          action: 'Account created',
+          timestamp: user.createdAt,
+          type: 'user_event'
+        });
+      }
+
+      // Add email verification status
+      if (user.emailVerified || user.email_verified) {
+        const emailVerifiedAt = user.emailVerifiedAt || user.email_verified_at || user.updatedAt;
+        activities.push({
+          action: 'Email verified',
+          field: 'email',
+          value: user.email,
+          timestamp: emailVerifiedAt,
+          type: 'verification_event',
+          status: 'verified'
+        });
+      }
+
+      // Add phone verification status
+      if (user.phoneVerified || user.phone_verified) {
+        const phoneVerifiedAt = user.phoneVerifiedAt || user.phone_verified_at || user.updatedAt;
+        activities.push({
+          action: 'Phone verified',
+          field: 'phone',
+          value: user.phone,
+          timestamp: phoneVerifiedAt,
+          type: 'verification_event',
+          status: 'verified'
+        });
+      }
+
+      // Add status changes from statusHistory
+      if (user.statusHistory && user.statusHistory.length > 0) {
+        user.statusHistory.forEach(h => {
+          activities.push({
+            type: 'status_change',
+            from: h.from,
+            to: h.to,
+            reason: h.reason,
+            by: h.changedByName || 'Admin',
+            timestamp: h.timestamp
+          });
+        });
+      }
+    }
+
+    // Then, get admin events and security events from logs DB
+    try {
+      const { AdminEvent, SecurityEvent } = await getLogModels();
+
+      if (AdminEvent) {
+        const adminLogs = await AdminEvent.find({
+          $or: [
+            { "admin_action.resource_id": req.params.id },
+            { "admin_action.target_user_id": req.params.id }
+          ]
+        }).sort({ timestamp: -1, _id: -1 }).limit(50).lean();
+
+        adminLogs.forEach(log => {
+          activities.push({
+            ...log,
+            type: 'admin_event'
+          });
+        });
+      }
+
+      if (SecurityEvent) {
+        const securityLogs = await SecurityEvent.find({
+          "actor.user_id": req.params.id
+        }).sort({ timestamp: -1, _id: -1 }).limit(50).lean();
+
+        securityLogs.forEach(log => {
+          activities.push({
+            ...log,
+            type: 'security_event'
+          });
+        });
+      }
+    } catch (logErr) {
+      // Log models might not be available, continue with user activity only
+      console.log("Log models not available, returning user activity only:", logErr.message);
+    }
+
+    // Sort all activities by timestamp descending
+    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    res.json(activities.slice(0, 50));
+  } catch (err) {
+    console.error("Get user activity error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
 // Change user role (buyer to seller or vice versa)
 router.put("/users/:id/role", async (req, res) => {
   try {
@@ -1319,6 +1563,25 @@ router.put("/sellers/:id/verify", async (req, res) => {
     }
 
     await seller.save();
+
+    // Log Verification Action
+    logEvent({
+      event_type: "ADMIN_ACTION",
+      category: "admin",
+      admin_action: {
+        action_type: status === 'verified' ? "VERIFICATION_APPROVED" : "VERIFICATION_REJECTED",
+        resource_type: "Artisan",
+        resource_id: seller._id.toString(),
+        target_user_id: seller._id.toString(),
+        reason: notes,
+        audit_notes: `Seller was ${status} by admin`
+      },
+      admin_context: {
+        admin_id: req.user.id,
+        admin_name: req.user.name
+      }
+    });
+
     res.json({ msg: `Seller ${status}`, seller });
   } catch (err) {
     console.error("Verify seller error:", err);
@@ -1485,12 +1748,108 @@ router.post("/sellers/:id/force-approve", async (req, res) => {
       seller.verification.verified_at = new Date();
       seller.verification.verifiedBy = adminId;
       seller.verification.verifiedByName = `Forced (${seller.verification.adminApprovals.map(a => a.adminName).join(', ')})`;
+
+      // Notify Seller
+      await sendNotification({
+        recipientId: seller._id,
+        recipientModel: 'Artisan',
+        title: 'Account Verified',
+        message: 'Your seller account has been verified by the admin team. You can now start selling!',
+        link: '/seller/dashboard',
+        type: 'success'
+      });
     }
 
     await seller.save();
+
+    // CRM / Chat Integration
+    // Find active action request or create new
+    let chatMsg = await AdminChat.findOne({
+      type: 'action_request',
+      actionType: 'APPROVE_SELLER',
+      targetId: seller._id,
+      actionStatus: 'pending'
+    });
+
+    const approvalCount = seller.verification.adminApprovals.length;
+
+    if (chatMsg) {
+      // Update existing message
+      chatMsg.content = `Request to Verify Seller: ${seller.name}\nStore: ${seller.store}\n\nApprovals: ${approvalCount}/3\nLatest: ${adminName}`;
+      if (approvalCount >= 3) {
+        chatMsg.actionStatus = 'completed';
+        chatMsg.content += '\n\n[VERIFIED]';
+        chatMsg.performedBy = adminId;
+      }
+      await chatMsg.save();
+    } else if (approvalCount < 3) {
+      // Create new message only if not completed
+      chatMsg = await AdminChat.create({
+        sender: adminId,
+        content: `Request to Verify Seller: ${seller.name}\nStore: ${seller.store}\n\nApprovals: ${approvalCount}/3\nInitiated by: ${adminName}`,
+        type: 'action_request',
+        actionType: 'APPROVE_SELLER',
+        targetId: seller._id,
+        targetName: seller.store
+      });
+    }
+
+    // Notify other admins only if not yet verified (or if it was just verified, maybe notify success?)
+    if (approvalCount < 3) {
+      await notifyAllAdmins({
+        title: 'Seller Verification Request',
+        message: `${seller.store} needs approval (${approvalCount}/3). Requested by ${adminName}.`,
+        link: '/admin/chat', // Direct to chat to approve
+        excludeAdminId: adminId
+      });
+    } else {
+      // Notify admins of success
+      await notifyAllAdmins({
+        title: 'Seller Verified',
+        message: `${seller.store} has been fully verified.`,
+        link: `/admin/sellers/${seller._id}`,
+        type: 'success',
+        excludeAdminId: adminId
+      });
+    }
+
+    // Log Approval
+    logEvent({
+      event_type: "ADMIN_ACTION",
+      category: "admin",
+      admin_action: {
+        action_type: "VERIFICATION_APPROVED",
+        resource_type: "Artisan",
+        resource_id: seller._id.toString(),
+        target_user_id: seller._id.toString(),
+        audit_notes: `Force verification approval added (${approvalCount}/3)`
+      },
+      admin_context: {
+        admin_id: req.user.id,
+        admin_name: req.user.name
+      }
+    });
+
+    // Log Approval
+    logEvent({
+      event_type: "ADMIN_ACTION",
+      category: "admin",
+      admin_action: {
+        action_type: "VERIFICATION_APPROVED",
+        resource_type: "Artisan",
+        resource_id: seller._id.toString(),
+        target_user_id: seller._id.toString(),
+        audit_notes: `Force verification approval added (${approvalCount}/3)`
+      },
+      admin_context: {
+        admin_id: req.user.id,
+        admin_name: req.user.name
+      }
+    });
+
     res.json({
-      msg: `Approval added (${seller.verification.adminApprovals.length}/3)`,
-      approvalCount: seller.verification.adminApprovals.length,
+      msg: `Approval added (${approvalCount}/3)`,
+      approvalCount,
       seller
     });
   } catch (err) {
@@ -1498,6 +1857,147 @@ router.post("/sellers/:id/force-approve", async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 });
+
+// Revoke verification
+router.post("/sellers/:id/revoke-verification", async (req, res) => {
+  try {
+    const seller = await Artisan.findById(req.params.id);
+    if (!seller) return res.status(404).json({ msg: "Seller not found" });
+
+    const adminId = req.user.id;
+    const adminName = req.user.name;
+
+    // Reset verification
+    seller.verification.status = 'unverified';
+    seller.verification.adminApprovals = []; // Clear approvals
+    seller.verification.verifiedBy = null;
+    seller.verification.verifiedByName = null;
+    seller.verification.verified_at = null;
+    seller.status = 'inactive'; // Deactivate store
+
+    await seller.save();
+
+    // Notify Seller
+    await sendNotification({
+      recipientId: seller._id,
+      recipientModel: 'Artisan',
+      title: 'Verification Revoked',
+      message: 'Your seller verification has been revoked by the admin team.',
+      link: '/seller/dashboard',
+      type: 'error'
+    });
+
+    // Notify Admins
+    await notifyAllAdmins({
+      title: 'Verification Revoked',
+      message: `${seller.store} verification was REVOKED by ${adminName}.`,
+      link: `/admin/sellers/${seller._id}`,
+      type: 'warning',
+      excludeAdminId: adminId
+    });
+
+    // Update Chat Log
+    const chatMsg = await AdminChat.findOne({
+      type: 'action_request',
+      actionType: 'APPROVE_SELLER',
+      targetId: seller._id,
+      actionStatus: 'completed'
+    });
+
+    if (chatMsg) {
+      chatMsg.content += `\n\n[REVOKED by ${adminName} at ${new Date().toLocaleString()}]`;
+      // Keep status completed to show history
+      await chatMsg.save();
+    }
+
+    // Log Revocation
+    logEvent({
+      event_type: "ADMIN_ACTION",
+      category: "admin",
+      admin_action: {
+        action_type: "VERIFICATION_REVOKED",
+        resource_type: "Artisan",
+        resource_id: seller._id.toString(),
+        target_user_id: seller._id.toString(),
+        audit_notes: "Verification revoked by admin"
+      },
+      admin_context: {
+        admin_id: req.user.id,
+        admin_name: req.user.name
+      }
+    });
+
+    res.json({ msg: "Verification revoked", seller });
+  } catch (err) {
+    console.error("Revoke verification error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Remove approval (Retract)
+router.post("/sellers/:id/remove-approval", async (req, res) => {
+  try {
+    const seller = await Artisan.findById(req.params.id);
+    if (!seller) return res.status(404).json({ msg: "Seller not found" });
+
+    // Can only retract if NOT verified
+    if (seller.verification.status === 'verified') {
+      return res.status(400).json({ msg: "Seller is already verified. Use Revoke instead." });
+    }
+
+    const adminId = req.user.id;
+    const adminName = req.user.name;
+
+    // Check if approved
+    const approvalIndex = seller.verification.adminApprovals.findIndex(a => a.adminId.toString() === adminId);
+    if (approvalIndex === -1) {
+      return res.status(400).json({ msg: "You have not approved this seller." });
+    }
+
+    // Remove approval
+    seller.verification.adminApprovals.splice(approvalIndex, 1);
+    await seller.save();
+
+    const approvalCount = seller.verification.adminApprovals.length;
+
+    // Update Chat Log
+    const chatMsg = await AdminChat.findOne({
+      type: 'action_request',
+      actionType: 'APPROVE_SELLER',
+      targetId: seller._id,
+      actionStatus: 'pending' // Only update pending requests
+    });
+
+    if (chatMsg) {
+      chatMsg.content = `Request to Verify Seller: ${seller.name}\nStore: ${seller.store}\n\nApprovals: ${approvalCount}/3\n(Retracted by ${adminName})`;
+      await chatMsg.save();
+    }
+
+    // Log Retraction
+    logEvent({
+      event_type: "ADMIN_ACTION",
+      category: "admin",
+      admin_action: {
+        action_type: "VERIFICATION_RETRACTED",
+        resource_type: "Artisan",
+        resource_id: seller._id.toString(),
+        target_user_id: seller._id.toString(),
+        audit_notes: "Verification approval retracted"
+      },
+      admin_context: {
+        admin_id: req.user.id,
+        admin_name: req.user.name
+      }
+    });
+
+    res.json({ msg: "Approval retracted", seller });
+  } catch (err) {
+    console.error("Retract approval error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Get seller messages (chat)
 
 // Get seller messages (chat)
 router.get("/sellers/:id/messages", async (req, res) => {
@@ -1536,6 +2036,48 @@ router.post("/sellers/:id/messages", async (req, res) => {
     res.json({ msg: "Message sent", message });
   } catch (err) {
     console.error("Send seller message error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+// Get seller activity log
+router.get("/sellers/:id/activity", async (req, res) => {
+  try {
+    const seller = await Artisan.findById(req.params.id);
+    if (!seller) return res.status(404).json({ msg: "Seller not found" });
+
+    const activities = [];
+
+    // Account events
+    if (seller.createdAt) activities.push({ type: 'event', action: 'Account created', timestamp: seller.createdAt });
+    if (seller.lastLogin) activities.push({ type: 'event', action: 'Last login', timestamp: seller.lastLogin });
+
+    // Status changes
+    if (seller.statusHistory && seller.statusHistory.length > 0) {
+      seller.statusHistory.forEach(h => {
+        activities.push({
+          type: 'status_change',
+          from: h.from,
+          to: h.to,
+          reason: h.reason,
+          by: h.changedByName || 'Admin',
+          timestamp: h.timestamp
+        });
+      });
+    }
+
+    // Verification events
+    if (seller.emailVerifiedAt) activities.push({ action: 'Email verified', timestamp: seller.emailVerifiedAt });
+    if (seller.phoneVerifiedAt) activities.push({ action: 'Phone verified', timestamp: seller.phoneVerifiedAt });
+    if (seller.identity_card?.verifiedAt) activities.push({ action: 'Identity document verified', timestamp: seller.identity_card.verifiedAt });
+    if (seller.verification?.verified_at) activities.push({ action: 'Store verified', timestamp: seller.verification.verified_at });
+
+    // Sort by timestamp desc
+    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    res.json(activities);
+  } catch (err) {
+    console.error("Get seller activity error:", err);
     res.status(500).json({ msg: "Server error" });
   }
 });
@@ -1614,27 +2156,6 @@ router.get("/users/:id/wishlist", async (req, res) => {
     res.json(items);
   } catch (err) {
     console.error("Get user wishlist error:", err);
-    res.status(500).json({ msg: "Server error" });
-  }
-});
-
-// Get user's activity log
-router.get("/users/:id/activity", async (req, res) => {
-  try {
-    // For now, return login history based on lastLogin
-    const activities = [];
-    const user = await User.findById(req.params.id).select('lastLogin createdAt');
-
-    if (user?.lastLogin) {
-      activities.push({ action: 'Last login', timestamp: user.lastLogin });
-    }
-    if (user?.createdAt) {
-      activities.push({ action: 'Account created', timestamp: user.createdAt });
-    }
-
-    res.json(activities);
-  } catch (err) {
-    console.error("Get user activity error:", err);
     res.status(500).json({ msg: "Server error" });
   }
 });

@@ -130,6 +130,12 @@ app.use('/api/admin', adminRoutes);
 const reviewRoutes = require('./routes/reviews');
 app.use('/api/reviews', reviewRoutes);
 
+const adminChatRoutes = require('./routes/adminChat');
+app.use('/api/admin-chat', adminChatRoutes);
+
+const notificationRoutes = require('./routes/notifications');
+app.use('/api/notifications', notificationRoutes);
+
 // enable logging middleware AFTER application routes
 app.use(attachLogger);
 

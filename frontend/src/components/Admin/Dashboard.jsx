@@ -5,6 +5,14 @@ import {
     Users, Store, Package, ShoppingCart, TrendingUp, TrendingDown,
     DollarSign, Eye, ArrowUpRight
 } from 'lucide-react';
+import AdminChat from './AdminChat';
+
+// Helper to extract image URL from various formats
+const getImageUrl = (img) => {
+    if (!img) return null;
+    if (typeof img === 'string') return img;
+    return img.large || img.thumb || img.hi_res || img.variant || img.url || null;
+};
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -32,7 +40,7 @@ const Dashboard = () => {
             // Try to load top products
             try {
                 const prodRes = await apiClient.get('/api/admin/listings?limit=5');
-                setTopProducts(prodRes.data || []);
+                setTopProducts(prodRes.data?.listings || prodRes.data || []);
             } catch (e) { }
         } catch (err) {
             console.error('Failed to load dashboard:', err);
@@ -114,68 +122,78 @@ const Dashboard = () => {
                 />
             </div>
 
-            {/* Recent Activity */}
-            <div className="grid lg:grid-cols-2 gap-6">
-                {/* Recent Orders */}
-                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                    <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                        <h2 className="font-semibold text-gray-900">Recent Orders</h2>
-                        <button className="text-sm text-gray-500 hover:text-gray-900">View all</button>
-                    </div>
-                    <div className="divide-y divide-gray-100">
-                        {recentOrders.length === 0 ? (
-                            <div className="p-8 text-center text-gray-500 text-sm">No recent orders</div>
-                        ) : (
-                            recentOrders.slice(0, 5).map(order => (
-                                <div key={order._id} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50">
-                                    <div>
-                                        <p className="font-medium text-sm text-gray-900">#{order._id.slice(-8)}</p>
-                                        <p className="text-xs text-gray-500">{order.user?.name || 'Guest'}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="font-medium text-sm text-gray-900">₹{order.total || 0}</p>
-                                        <span className={`text-xs px-2 py-0.5 rounded ${order.status === 'delivered' ? 'bg-emerald-50 text-emerald-700' :
-                                            order.status === 'cancelled' ? 'bg-red-50 text-red-700' :
-                                                'bg-amber-50 text-amber-700'
-                                            }`}>{order.status || 'pending'}</span>
-                                    </div>
-                                </div>
-                            ))
-                        )}
+            {/* Dashboard Grid with Chat */}
+            <div className="grid lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Recent Activity */}
+                    <div className="grid gap-6">
+                        {/* Recent Orders */}
+                        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                                <h2 className="font-semibold text-gray-900">Recent Orders</h2>
+                                <button className="text-sm text-gray-500 hover:text-gray-900">View all</button>
+                            </div>
+                            <div className="divide-y divide-gray-100">
+                                {recentOrders.length === 0 ? (
+                                    <div className="p-8 text-center text-gray-500 text-sm">No recent orders</div>
+                                ) : (
+                                    recentOrders.slice(0, 5).map(order => (
+                                        <div key={order._id} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50">
+                                            <div>
+                                                <p className="font-medium text-sm text-gray-900">#{order._id.slice(-8)}</p>
+                                                <p className="text-xs text-gray-500">{order.user?.name || 'Guest'}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-medium text-sm text-gray-900">₹{order.total || 0}</p>
+                                                <span className={`text-xs px-2 py-0.5 rounded ${order.status === 'delivered' ? 'bg-emerald-50 text-emerald-700' :
+                                                    order.status === 'cancelled' ? 'bg-red-50 text-red-700' :
+                                                        'bg-amber-50 text-amber-700'
+                                                    }`}>{order.status || 'pending'}</span>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Top Products */}
+                        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                                <h2 className="font-semibold text-gray-900">Top Products</h2>
+                                <button onClick={() => navigate('/admin/products')} className="text-sm text-gray-500 hover:text-gray-900">View all</button>
+                            </div>
+                            <div className="divide-y divide-gray-100">
+                                {topProducts.length === 0 ? (
+                                    <div className="p-8 text-center text-gray-500 text-sm">No products</div>
+                                ) : (
+                                    topProducts.slice(0, 5).map(product => (
+                                        <div key={product._id} className="px-5 py-3 flex items-center gap-3 hover:bg-gray-50">
+                                            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                                                {getImageUrl(product.images?.[0]) ? (
+                                                    <img src={getImageUrl(product.images?.[0])} alt="" className="w-full h-full object-cover rounded-lg" />
+                                                ) : (
+                                                    <Package className="w-4 h-4 text-gray-400" />
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-medium text-sm text-gray-900 truncate">{product.title || 'Untitled'}</p>
+                                                <p className="text-xs text-gray-500">₹{product.price || 0}</p>
+                                            </div>
+                                            <div className="flex items-center gap-1 text-xs text-gray-500">
+                                                <Eye className="w-3 h-3" />
+                                                {product.views || 0}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* Top Products */}
-                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                    <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                        <h2 className="font-semibold text-gray-900">Top Products</h2>
-                        <button onClick={() => navigate('/admin/products')} className="text-sm text-gray-500 hover:text-gray-900">View all</button>
-                    </div>
-                    <div className="divide-y divide-gray-100">
-                        {topProducts.length === 0 ? (
-                            <div className="p-8 text-center text-gray-500 text-sm">No products</div>
-                        ) : (
-                            topProducts.slice(0, 5).map(product => (
-                                <div key={product._id} className="px-5 py-3 flex items-center gap-3 hover:bg-gray-50">
-                                    <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                                        {product.images?.[0] ? (
-                                            <img src={product.images[0]} alt="" className="w-full h-full object-cover rounded-lg" />
-                                        ) : (
-                                            <Package className="w-4 h-4 text-gray-400" />
-                                        )}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-medium text-sm text-gray-900 truncate">{product.title || 'Untitled'}</p>
-                                        <p className="text-xs text-gray-500">₹{product.price || 0}</p>
-                                    </div>
-                                    <div className="flex items-center gap-1 text-xs text-gray-500">
-                                        <Eye className="w-3 h-3" />
-                                        {product.views || 0}
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
+                {/* Right Column: Chat */}
+                <div className="lg:col-span-1">
+                    <AdminChat />
                 </div>
             </div>
         </div>

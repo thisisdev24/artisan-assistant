@@ -1,15 +1,20 @@
 const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema({
-    userId: {
+    recipient: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: false
+        required: true,
+        refPath: 'recipientModel'
     },
-    sellerId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Artisan',
-        required: false
+    recipientModel: {
+        type: String,
+        required: true,
+        enum: ['User', 'Artisan', 'Admin']
+    },
+    type: {
+        type: String,
+        enum: ['info', 'success', 'warning', 'error'],
+        default: 'info'
     },
     title: {
         type: String,
@@ -19,18 +24,13 @@ const notificationSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    type: {
-        type: String,
-        enum: ['info', 'success', 'warning', 'error', 'system'],
-        default: 'info'
+    link: {
+        type: String, // e.g., '/admin/sellers/123'
+        default: null
     },
     read: {
         type: Boolean,
         default: false
-    },
-    data: {
-        type: Object,
-        default: {}
     },
     createdAt: {
         type: Date,
@@ -38,8 +38,7 @@ const notificationSchema = new mongoose.Schema({
     }
 });
 
-// Index for efficient querying by user/seller
-notificationSchema.index({ userId: 1, createdAt: -1 });
-notificationSchema.index({ sellerId: 1, createdAt: -1 });
+// Index for quick fetching by recipient
+notificationSchema.index({ recipient: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Notification', notificationSchema);

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Timeline Mockup</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 p-10 flex justify-center items-start min-h-screen">
+
+    <div class="w-full max-w-2xl bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+        <h3 class="text-lg font-semibold mb-6 text-gray-900 border-b pb-4">Activity Log</h3>
+        
+        <div class="space-y-4">
+            <div class="relative">
+                <!-- Timeline line -->
+                <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+
+                <!-- Item 1 -->
+                <div class="relative flex gap-4 pb-6">
+                    <!-- Timeline dot -->
+                    <div class="relative z-10 w-8 h-8 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center flex-shrink-0">
+                        <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="flex-1 bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                        <p class="text-sm font-medium text-gray-900 mb-1">Status changed from inactive to active by Admin</p>
+                        <p class="text-xs text-gray-500">
+                            May 15, 2024 at 02:30 PM
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Item 2 -->
+                <div class="relative flex gap-4 pb-6">
+                    <!-- Timeline dot -->
+                    <div class="relative z-10 w-8 h-8 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center flex-shrink-0">
+                        <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="flex-1 bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                        <p class="text-sm font-medium text-gray-900 mb-1">Last login</p>
+                        <p class="text-xs text-gray-500">
+                            May 14, 2024 at 09:15 AM
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Item 3 -->
+                <div class="relative flex gap-4 pb-6">
+                    <!-- Timeline dot -->
+                    <div class="relative z-10 w-8 h-8 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center flex-shrink-0">
+                        <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="flex-1 bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                        <p class="text-sm font-medium text-gray-900 mb-1">Identity document verified</p>
+                        <p class="text-xs text-gray-500">
+                            May 10, 2024 at 11:45 AM
+                        </p>
+                    </div>
+                </div>
+
+                 <!-- Item 4 -->
+                 <div class="relative flex gap-4 pb-6">
+                    <!-- Timeline dot -->
+                    <div class="relative z-10 w-8 h-8 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center flex-shrink-0">
+                        <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="flex-1 bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                        <p class="text-sm font-medium text-gray-900 mb-1">Account created</p>
+                        <p class="text-xs text-gray-500">
+                            May 01, 2024 at 10:00 AM
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

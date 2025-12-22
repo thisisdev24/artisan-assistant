@@ -10,6 +10,7 @@ import ResponsiveMenu from "./ResponsiveMenu";
 import { FaUser } from "react-icons/fa";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
+import NotificationBell from "../Common/NotificationBell";
 
 const Navbar = () => {
   const [open, setOpen] = React.useState(false);
@@ -215,6 +216,9 @@ const Navbar = () => {
           <div className="flex items-center gap-4 order-3">
             {/* icons section */}
             <div className="flex items-center gap-4">
+              {/* Notification Bell - show only for logged in users */}
+              {user && <NotificationBell />}
+
               {/* Search button */}
               <button
                 onMouseEnter={() => setSearchOpen(!searchOpen)}

@@ -33,6 +33,7 @@ const UserDetails = lazy(() => import("./components/Admin/UserDetails"));
 const Sellers = lazy(() => import("./components/Admin/Sellers"));
 const SellerDetails = lazy(() => import("./components/Admin/SellerDetails"));
 const Products = lazy(() => import("./components/Admin/Products"));
+const ProductDetails = lazy(() => import("./components/Admin/ProductDetails"));
 import ProtectedRoute from "./components/ProtectedRoute";
 import MyWishlist from "./pages/MyWishlist";
 import RecentlyViewed from "./pages/RecentlyViewed";
@@ -191,6 +192,7 @@ function App() {
               <Route path="sellers" element={<Sellers />} />
               <Route path="sellers/:id" element={<SellerDetails />} />
               <Route path="products" element={<Products />} />
+              <Route path="products/:id" element={<ProductDetails />} />
               <Route path="analytics" element={<AdminAnalytics />} />
             </Route>
 

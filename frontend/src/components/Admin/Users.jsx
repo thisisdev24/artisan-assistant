@@ -41,6 +41,9 @@ const UsersPage = () => {
     const [showColumnSettings, setShowColumnSettings] = useState(false);
     const [undoAction, setUndoAction] = useState(null);
     const [hoveredUser, setHoveredUser] = useState(null);
+    const [showExportMenu, setShowExportMenu] = useState(false);
+    const [exportPageRange, setExportPageRange] = useState({ from: 1, to: 1 });
+    const [exportLoading, setExportLoading] = useState(false);
 
     // Debounce search input
     const searchTimeoutRef = useRef(null);
@@ -235,22 +238,88 @@ const UsersPage = () => {
         }
     };
 
-    const exportUsers = async () => {
+    const exportUsers = async (mode) => {
+        setExportLoading(true);
+        let usersToExport = [];
+        let fileName = 'users';
+
         try {
-            const res = await apiClient.get('/api/admin/users/export');
+            // Build filter params (same as loadUsers)
+            const customLastLoginTime = lastLoginFilter === 'custom' && lastLoginCustomValue
+                ? `${lastLoginCustomValue}${lastLoginCustomUnit}` : null;
+            const baseParams = {
+                ...(debouncedSearch && { search: debouncedSearch }),
+                ...(statusFilter !== 'all' && { status: statusFilter }),
+                ...(joinedFilter !== 'all' && joinedFilter !== 'custom' && { joinedWithin: joinedFilter }),
+                ...(joinedFilter === 'custom' && joinedFrom && { dateFrom: joinedFrom }),
+                ...(joinedFilter === 'custom' && joinedTo && { dateTo: joinedTo }),
+                ...(lastLoginFilter !== 'all' && lastLoginFilter !== 'custom' && { lastLoginWithin: lastLoginFilter }),
+                ...(customLastLoginTime && { lastLoginWithin: customLastLoginTime }),
+                ...(emailVerifiedFilter !== 'all' && { emailVerified: emailVerifiedFilter }),
+                ...((statusFilter === 'all' || statusFilter === 'active') && onlineFilter !== 'all' && { isOnline: onlineFilter }),
+            };
+
+            if (mode === 'selected') {
+                if (selectedUsers.length === 0) {
+                    alert('No users selected');
+                    setExportLoading(false);
+                    return;
+                }
+                usersToExport = users.filter(u => selectedUsers.includes(u._id));
+                fileName = `selected_users_${selectedUsers.length}`;
+            } else if (mode === 'current') {
+                usersToExport = users;
+                fileName = `page_${pagination.page}_users_${users.length}`;
+            } else if (mode === 'range') {
+                const fromPage = Math.max(1, exportPageRange.from);
+                const toPage = Math.min(pagination.pages, exportPageRange.to);
+                let allData = [];
+                for (let p = fromPage; p <= toPage; p++) {
+                    const res = await apiClient.get('/api/admin/users', {
+                        params: { ...baseParams, page: p, limit: pagination.limit }
+                    });
+                    allData = allData.concat(res.data.users || res.data || []);
+                }
+                usersToExport = allData;
+                fileName = `pages_${fromPage}-${toPage}_users_${allData.length}`;
+            } else {
+                // 'all' - fetch ALL with current filters
+                const res = await apiClient.get('/api/admin/users', {
+                    params: { ...baseParams, limit: 10000 }
+                });
+                usersToExport = res.data.users || res.data || [];
+                fileName = `all_users_${usersToExport.length}`;
+            }
+
+            // Generate CSV
             const csv = [
-                ['Name', 'Email', 'Status', 'Online', 'Last Login', 'Created At'].join(','),
-                ...res.data.map(u => [u.name, u.email, u.status, u.isOnline, u.lastLogin, u.createdAt].join(','))
+                ['Name', 'Email', 'Phone', 'Status', 'Online', 'Email Verified', 'Phone Verified', 'Last Login', 'Joined'].join(','),
+                ...usersToExport.map(u => [
+                    `"${(u.name || '').replace(/"/g, '""')}"`,
+                    u.email,
+                    u.phone || '',
+                    u.status || 'active',
+                    u.isOnline ? 'Yes' : 'No',
+                    u.email_verified ? 'Yes' : 'No',
+                    u.phone_verified ? 'Yes' : 'No',
+                    u.lastLogin ? new Date(u.lastLogin).toLocaleString() : 'Never',
+                    new Date(u.createdAt).toLocaleString()
+                ].join(','))
             ].join('\n');
 
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'users.csv';
+            a.download = `${fileName}_${new Date().toISOString().split('T')[0]}.csv`;
             a.click();
+            URL.revokeObjectURL(url);
         } catch (err) {
+            console.error('Export failed:', err);
             alert('Export failed');
+        } finally {
+            setExportLoading(false);
+            setShowExportMenu(false);
         }
     };
 
@@ -500,10 +569,77 @@ const UsersPage = () => {
                         </button>
                     </div>
 
-                    <button onClick={exportUsers} className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800">
-                        <Download className="w-4 h-4" />
-                        Export
-                    </button>
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowExportMenu(!showExportMenu)}
+                            disabled={exportLoading}
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50"
+                        >
+                            <Download className="w-4 h-4" />
+                            {exportLoading ? 'Exporting...' : 'Export'}
+                            <ChevronDown className="w-3 h-3" />
+                        </button>
+                        {showExportMenu && (
+                            <div className="absolute right-0 top-full mt-2 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-30 w-64">
+                                <p className="px-4 py-1 text-xs font-medium text-gray-400 uppercase">Export Options</p>
+                                {selectedUsers.length > 0 && (
+                                    <button
+                                        onClick={() => exportUsers('selected')}
+                                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between"
+                                    >
+                                        <span>Selected Users</span>
+                                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">{selectedUsers.length}</span>
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => exportUsers('current')}
+                                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between"
+                                >
+                                    <span>Current Page</span>
+                                    <span className="text-xs text-gray-400">Page {pagination.page} ({users.length})</span>
+                                </button>
+                                <div className="border-t border-gray-100 my-2" />
+                                <div className="px-4 py-2">
+                                    <p className="text-xs text-gray-500 mb-2">Page Range</p>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max={pagination.pages}
+                                            value={exportPageRange.from}
+                                            onChange={(e) => setExportPageRange(p => ({ ...p, from: parseInt(e.target.value) || 1 }))}
+                                            className="w-16 text-sm border border-gray-200 rounded px-2 py-1"
+                                        />
+                                        <span className="text-gray-400">to</span>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max={pagination.pages}
+                                            value={exportPageRange.to}
+                                            onChange={(e) => setExportPageRange(p => ({ ...p, to: parseInt(e.target.value) || 1 }))}
+                                            className="w-16 text-sm border border-gray-200 rounded px-2 py-1"
+                                        />
+                                        <button
+                                            onClick={() => exportUsers('range')}
+                                            className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm"
+                                        >
+                                            Export
+                                        </button>
+                                    </div>
+                                    <p className="text-[10px] text-gray-400">Total pages: {pagination.pages}</p>
+                                </div>
+                                <div className="border-t border-gray-100 my-2" />
+                                <button
+                                    onClick={() => exportUsers('all')}
+                                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between"
+                                >
+                                    <span className="font-medium">All (Filtered)</span>
+                                    <span className="text-xs text-gray-400">~{pagination.total} users</span>
+                                </button>
+                                <p className="px-4 text-[10px] text-gray-400">Exports all users matching current filters</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -785,7 +921,10 @@ const UsersPage = () => {
                                 )}
                                 {visibleColumns.includes('joined') && (
                                     <td className={`${denseView ? 'py-2' : 'py-4'} px-4 text-gray-500 text-sm`}>
-                                        {new Date(u.createdAt).toLocaleDateString()}
+                                        {new Date(u.createdAt).toLocaleString('en-IN', {
+                                            day: '2-digit', month: 'short', year: 'numeric',
+                                            hour: '2-digit', minute: '2-digit', hour12: true
+                                        })}
                                     </td>
                                 )}
                                 {visibleColumns.includes('actions') && (
