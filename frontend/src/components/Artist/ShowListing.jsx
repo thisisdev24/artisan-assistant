@@ -171,8 +171,8 @@ const ShowListing = ({ storeName: propStoreName }) => {
   }
 
   return (
-    <div className="min-h-screen bg-secondary/20 py-12">
-      <div className="max-w-7xl lg:max-w-screen-2xl mx-auto">
+    <div className="min-h-screen bg-white">
+      <div className="max-w-7xl lg:max-w-screen-2xl mx-auto my-32">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800">
             My Listed Products
@@ -196,34 +196,34 @@ const ShowListing = ({ storeName: propStoreName }) => {
             </button>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-12">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-x-8 md:gap-y-16">
             {products.map((product) => (
               <div
                 key={product._id}
-                className="bg-transparent rounded-2xl border-2 border-black hover:shadow-xl hover:bg-primary/20 transition-all duration-300"
+                className="w-full bg-transparent rounded-2xl hover:shadow-xl hover:bg-primary/20 transition-all duration-300"
               >
                 <img
                   src={pickImageSrc(product)}
                   alt={product.title}
-                  className="w-full h-[450px] object-fill rounded-xl shadow-lg mx-auto"
+                  className="w-full h-[450px] object-fill rounded-xl mx-auto"
                   onError={(e) => {
                     e.currentTarget.src = "/placeholder.jpg";
                   }}
                 />
-                <div className="px-4 py-4">
-                  <h2 className="text-xl font-semibold text-gray-800 mb-2 capitalize truncate">
+                <div className="items-center text-center p-4 overflow-hidden">
+                  <h2 className="text-xl font-semibold text-gray-800 mb-2 capitalize truncate mx-4">
                     {product.title}
                   </h2>
                   <p className="text-lg font-bold text-indigo-700 mb-4">
                     ₹{Math.round(product.price) ?? "—"}
                   </p>
 
-                  <div className="flex flex-row justify-between items-center gap-2">
+                  <div className="flex flex-row justify-center items-center gap-6">
                     <button
                       onClick={() =>
                         navigate(`/seller/edit-product/${product._id}`)
                       }
-                      className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
+                      className="bg-primary hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
                     >
                       Edit
                     </button>
@@ -245,7 +245,7 @@ const ShowListing = ({ storeName: propStoreName }) => {
                     )}
                     <button
                       onClick={() => navigate(`/product/${product._id}`)}
-                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
+                      className="bg-primary hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
                     >
                       View
                     </button>

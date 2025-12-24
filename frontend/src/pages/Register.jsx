@@ -36,9 +36,9 @@ const Register = () => {
   return (
     <>
       {/* <Navbar /> */}
-      <div className="min-h-screen bg-secondary/20 flex flex-col justify-center items-center">
-        <div className="w-full max-w-md lg:max-w-lg bg-primary/20 p-8 rounded-xl shadow-2xl">
-          <h2 className="text-3xl lg:text-4xl font-bold text-center text-black mb-6 select-none">Register</h2>
+      <div className="min-h-screen bg-white flex flex-col justify-center items-center">
+        <div className="w-full max-w-md lg:max-w-xl bg-primary/20 p-8 rounded-xl shadow-2xl mt-16 select-none">
+          <h2 className="text-3xl lg:text-4xl font-bold text-center text-black mb-6">Create Account</h2>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <input
               type="text"
@@ -89,9 +89,9 @@ const Register = () => {
 
             <button
               type="submit"
-              className="mt-4 bg-gradient-to-r from-primary to-secondary text-black py-4 rounded-md hover:scale-105 duration-200 font-semibold"
+              className="mt-4 w-1/2 mx-auto bg-gradient-to-r from-primary to-secondary text-black py-4 rounded-md hover:scale-105 duration-200 font-semibold"
             >
-              Register
+              Sign Up
             </button>
           </form>
           <p className="text-sm lg:text-base text-gray-600 text-center mt-4">

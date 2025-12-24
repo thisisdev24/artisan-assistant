@@ -151,8 +151,8 @@ const SearchResults = () => {
   const handleBack = () => navigate("/");
 
   return (
-    <div className="p-6 min-h-screen bg-white select-none">
-      <div className="max-w-7xl lg:max-w-screen-2xl mx-auto">
+    <div className="min-h-screen bg-white select-none">
+      <div className="max-w-7xl lg:max-w-screen-2xl mx-auto my-32">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Search results for “{query}”</h1>
           <button

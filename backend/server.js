@@ -4,22 +4,12 @@ const mongoose = require("mongoose");
 const http = require("http");
 const os = require("os");
 const app = require("./app");
-const Listing = require("./models/artisan_point/artisan/Listing");
-const loadArtisanPointModels = require("./models/artisan_point");
 // Load analytics models on startup
 const { loadAnalyticsModels } = require("./models/analytics");
 
-
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI; // MAIN DB
-const listingDraftsRouter = require('./routes/listingDrafts');
-const listingsRouter = require('./routes/listings');
 const { getLogModels } = require("./models/logs");
-
-// mount draft routes BEFORE or AFTER existing routes — both fine since paths are unique
-app.use('/api/listings', listingDraftsRouter);
-app.use('/api/listings', listingsRouter);
-
 
 async function startServer() {
   try {

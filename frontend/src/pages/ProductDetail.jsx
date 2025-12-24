@@ -236,8 +236,8 @@ const ProductDetail = () => {
   const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
 
   return (
-    <div className="min-h-screen bg-secondary/10 py-8">
-      <div className="max-w-7xl lg:max-w-screen-2xl mx-auto">
+    <div className="min-h-screen bg-white">
+      <div className="max-w-7xl lg:max-w-screen-2xl mx-auto my-32">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900">
