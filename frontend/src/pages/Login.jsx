@@ -43,8 +43,8 @@ const Login = () => {
   return (
     <>
       {/* <Navbar /> */}
-      <div className="min-h-screen bg-secondary/20 flex flex-col justify-center items-center select-none">
-        <div className="w-full max-w-md lg:max-w-lg bg-primary/20 p-8 rounded-xl shadow-2xl">
+      <div className="min-h-screen bg-white flex flex-col justify-center items-center select-none">
+        <div className="w-full max-w-md lg:max-w-xl bg-primary/20 p-8 mt-16 rounded-xl shadow-xl">
           <h2 className="text-3xl lg:text-4xl font-bold text-center text-black mb-6" >Login</h2>
           <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4">
             <input
@@ -74,7 +74,7 @@ const Login = () => {
 
             <button
               type="submit"
-              className="w-1/2 mt-4 bg-gradient-to-r from-primary to-secondary text-black py-4 rounded-md hover:scale-105 duration-200 font-semibold"
+              className="w-1/2 mx-auto mt-4 bg-gradient-to-r from-primary to-secondary text-black py-4 rounded-md hover:scale-105 duration-200 font-semibold"
             >
               Continue
             </button>

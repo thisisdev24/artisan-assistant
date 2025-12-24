@@ -315,8 +315,8 @@ const ShowListingPublic = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white py-4 sm:py-8">
-      <div className="max-w-7xl lg:max-w-screen-2xl mx-auto">
+    <div className="min-h-screen bg-white">
+      <div className="max-w-7xl lg:max-w-screen-2xl mx-auto my-32">
         <motion.div
           className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-12 select-none"
           initial="hidden"

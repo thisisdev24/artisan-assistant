@@ -9,6 +9,7 @@ const Admin = require("../models/artisan_point/admin/Admin");
 const RefreshToken = require("../models/artisan_point/admin/RefreshToken");
 const { generateRefreshTokenValue, hmacToken, signAccessToken } = require("../utils/tokens");
 const { authenticate } = require("../middleware/auth");
+const { logEvent } = require("../services/logs/loggerService");
 
 require("dotenv").config();
 
@@ -152,6 +153,24 @@ router.post("/login", async (req, res) => {
     // set cookie (HttpOnly)
     sendRefreshCookie(res, refreshValue, REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000);
 
+    // Log the successful login
+    logEvent({
+      event_type: "USER_LOGIN",
+      category: "security",
+      security: {
+        action: "login",
+        status: "success",
+        user_id: user._id.toString(),
+        user_role: user.role,
+        ip_address: req.ip || req.connection.remoteAddress
+      },
+      actor: {
+        user_id: user._id.toString(),
+        role: user.role,
+        email: user.email
+      }
+    });
+
     res.json({
       token: accessToken,
       user: { id: user._id, name: user.name, email: user.email, role: user.role, store: user.store }
@@ -245,6 +264,22 @@ router.post("/logout", authenticate, async (req, res) => {
           userDoc.isOnline = false; // Also set top-level field
           await userDoc.save();
         }
+
+        // Log logout
+        logEvent({
+          event_type: "USER_LOGOUT",
+          category: "security",
+          security: {
+            action: "logout",
+            status: "success",
+            user_id: uid,
+            user_role: req.user.role || 'unknown'
+          },
+          actor: {
+            user_id: uid,
+            role: req.user.role || 'unknown'
+          }
+        });
 
       } catch (e) {
         // ignore

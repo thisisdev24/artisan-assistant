@@ -22,12 +22,12 @@ import { motion } from "framer-motion";
 
 export default function LoopingAnimatedBackground({
   children,
-  speed = 20,
+  speed = 18,
   mobileSpeed = 18,
-  opacity = 0.2,
+  opacity = 0.15,
   mobileOpacity = 0.12,
-  colors = ["#FFAD33", "#FFD1B3", "#FFAA80"],
-  density = 6,
+  colors = ["#FFB366"],
+  density = 5,
 }) {
   // Generate positions across a wide area so tiled copies loop seamlessly
   const positions = Array.from({ length: density }).map((_, i) => ({
@@ -116,7 +116,6 @@ export default function LoopingAnimatedBackground({
                     // Slightly offset layers vertically so gradients look layered
                     transform: `translateZ(0) translateY(${layerIdx * 2}%)`,
                     opacity: opacity,
-                    background: `linear-gradient(135deg, ${col} 0%, ${colors[(layerIdx + 1) % colors.length]} 100%)`,
                   }}
                 >
                   {/* each layer places shapes across the width */}

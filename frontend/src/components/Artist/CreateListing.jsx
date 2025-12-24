@@ -152,10 +152,10 @@ const CreateListing = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-50 p-6">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-50">
       <form
         onSubmit={submit}
-        className="w-full max-w-lg bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl p-8 border border-blue-100 select-none"
+        className="w-full max-w-md lg:max-w-xl bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl p-8 mt-16 border border-blue-100 select-none"
       >
         <h2 className="text-3xl font-bold text-center mb-6 text-blue-700">
           Publish Your Product

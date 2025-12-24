@@ -44,6 +44,11 @@ const Sellers = () => {
     const [lastActiveFilter, setLastActiveFilter] = useState('all');
     const [lastActiveDateRange, setLastActiveDateRange] = useState({ from: '', to: '' });
 
+    // Export menu
+    const [showExportMenu, setShowExportMenu] = useState(false);
+    const [exportPageRange, setExportPageRange] = useState({ from: 1, to: 1 });
+    const [exportLoading, setExportLoading] = useState(false);
+
     // Helper: Relative time formatter
     const formatRelativeTime = (date) => {
         if (!date) return 'Never';
@@ -175,26 +180,88 @@ const Sellers = () => {
     };
 
     // Export
-    const exportSellers = async () => {
-        const csv = [
-            ['Name', 'Email', 'Store', 'Status', 'Rating', 'Verified', 'Joined'].join(','),
-            ...sellers.map(s => [
-                s.name,
-                s.email,
-                s.store || '',
-                s.status || 'active',
-                s.rating || 0,
-                s.verification?.status || 'unverified',
-                s.createdAt
-            ].join(','))
-        ].join('\n');
+    const exportSellers = async (mode) => {
+        setExportLoading(true);
+        let sellersToExport = [];
+        let fileName = 'sellers';
 
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'sellers.csv';
-        a.click();
+        try {
+            // Build filter params
+            const baseParams = {
+                ...(searchQuery && { search: searchQuery }),
+                ...(statusFilter !== 'all' && { status: statusFilter }),
+                ...(verifiedFilter !== 'all' && { verified: verifiedFilter }),
+                ...(ratingFilter && { minRating: ratingFilter }),
+                ...(joinedFilter !== 'all' && joinedFilter !== 'custom' && { joinedWithin: joinedFilter }),
+                ...(joinedFilter === 'custom' && joinedFrom && { dateFrom: joinedFrom }),
+                ...(joinedFilter === 'custom' && joinedTo && { dateTo: joinedTo }),
+                ...(isOnlineFilter !== 'all' && { isOnline: isOnlineFilter }),
+            };
+
+            if (mode === 'selected') {
+                if (selectedSellers.length === 0) {
+                    alert('No sellers selected');
+                    setExportLoading(false);
+                    return;
+                }
+                sellersToExport = sellers.filter(s => selectedSellers.includes(s._id));
+                fileName = `selected_sellers_${selectedSellers.length}`;
+            } else if (mode === 'current') {
+                sellersToExport = sortedSellers;
+                fileName = `page_${pagination.page}_sellers_${sortedSellers.length}`;
+            } else if (mode === 'range') {
+                const fromPage = Math.max(1, exportPageRange.from);
+                const toPage = Math.min(pagination.pages || 1, exportPageRange.to);
+                let allData = [];
+                for (let p = fromPage; p <= toPage; p++) {
+                    const res = await apiClient.get('/api/admin/sellers', {
+                        params: { ...baseParams, page: p, limit: pagination.limit }
+                    });
+                    allData = allData.concat(res.data || []);
+                }
+                sellersToExport = allData;
+                fileName = `pages_${fromPage}-${toPage}_sellers_${allData.length}`;
+            } else {
+                // 'all' - fetch ALL with current filters
+                const res = await apiClient.get('/api/admin/sellers', {
+                    params: { ...baseParams, limit: 10000 }
+                });
+                sellersToExport = res.data || [];
+                fileName = `all_sellers_${sellersToExport.length}`;
+            }
+
+            const csv = [
+                ['Name', 'Email', 'Store', 'Phone', 'Status', 'Rating', 'Verified', 'Email Verified', 'Phone Verified', 'Online', 'Last Login', 'Joined'].join(','),
+                ...sellersToExport.map(s => [
+                    `"${(s.name || '').replace(/"/g, '""')}"`,
+                    s.email,
+                    `"${(s.store || '').replace(/"/g, '""')}"`,
+                    s.phone || '',
+                    s.status || 'active',
+                    s.rating || 0,
+                    s.verification?.status || 'unverified',
+                    s.emailVerified ? 'Yes' : 'No',
+                    s.phoneVerified ? 'Yes' : 'No',
+                    s.isOnline ? 'Yes' : 'No',
+                    s.lastLogin ? new Date(s.lastLogin).toLocaleString() : 'Never',
+                    new Date(s.createdAt).toLocaleString()
+                ].join(','))
+            ].join('\n');
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${fileName}_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Export failed:', err);
+            alert('Export failed');
+        } finally {
+            setExportLoading(false);
+            setShowExportMenu(false);
+        }
     };
 
     // Undo last action
@@ -381,10 +448,77 @@ const Sellers = () => {
                         </button>
                     </div>
 
-                    <button onClick={exportSellers} className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800">
-                        <Download className="w-4 h-4" />
-                        Export
-                    </button>
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowExportMenu(!showExportMenu)}
+                            disabled={exportLoading}
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50"
+                        >
+                            <Download className="w-4 h-4" />
+                            {exportLoading ? 'Exporting...' : 'Export'}
+                            <ChevronDown className="w-3 h-3" />
+                        </button>
+                        {showExportMenu && (
+                            <div className="absolute right-0 top-full mt-2 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-30 w-64">
+                                <p className="px-4 py-1 text-xs font-medium text-gray-400 uppercase">Export Options</p>
+                                {selectedSellers.length > 0 && (
+                                    <button
+                                        onClick={() => exportSellers('selected')}
+                                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between"
+                                    >
+                                        <span>Selected Sellers</span>
+                                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">{selectedSellers.length}</span>
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => exportSellers('current')}
+                                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between"
+                                >
+                                    <span>Current Page</span>
+                                    <span className="text-xs text-gray-400">({sortedSellers.length})</span>
+                                </button>
+                                <div className="border-t border-gray-100 my-2" />
+                                <div className="px-4 py-2">
+                                    <p className="text-xs text-gray-500 mb-2">Page Range</p>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max={pagination.pages || 1}
+                                            value={exportPageRange.from}
+                                            onChange={(e) => setExportPageRange(p => ({ ...p, from: parseInt(e.target.value) || 1 }))}
+                                            className="w-16 text-sm border border-gray-200 rounded px-2 py-1"
+                                        />
+                                        <span className="text-gray-400">to</span>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max={pagination.pages || 1}
+                                            value={exportPageRange.to}
+                                            onChange={(e) => setExportPageRange(p => ({ ...p, to: parseInt(e.target.value) || 1 }))}
+                                            className="w-16 text-sm border border-gray-200 rounded px-2 py-1"
+                                        />
+                                        <button
+                                            onClick={() => exportSellers('range')}
+                                            className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm"
+                                        >
+                                            Export
+                                        </button>
+                                    </div>
+                                    <p className="text-[10px] text-gray-400">Total pages: {pagination.pages || 1}</p>
+                                </div>
+                                <div className="border-t border-gray-100 my-2" />
+                                <button
+                                    onClick={() => exportSellers('all')}
+                                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between"
+                                >
+                                    <span className="font-medium">All (Filtered)</span>
+                                    <span className="text-xs text-gray-400">~{quickStats.total} sellers</span>
+                                </button>
+                                <p className="px-4 text-[10px] text-gray-400">Exports all sellers matching current filters</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -403,6 +537,7 @@ const Sellers = () => {
                                 <option value="all">All</option>
                                 <option value="verified">Verified</option>
                                 <option value="pending">Pending</option>
+                                <option value="partial">Partially Verified</option>
                                 <option value="unverified">Unverified</option>
                             </select>
                         </div>
@@ -692,8 +827,8 @@ const Sellers = () => {
                                 )}
                                 {visibleColumns.includes('joined') && (
                                     <td className={`${denseView ? 'py-2' : 'py-3'} px-4`}>
-                                        <span className="text-xs text-gray-500" title={new Date(seller.createdAt).toLocaleString()}>
-                                            {formatRelativeTime(seller.createdAt)}
+                                        <span className="text-xs text-gray-500">
+                                            {new Date(seller.createdAt).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
                                         </span>
                                     </td>
                                 )}
@@ -723,9 +858,16 @@ const Sellers = () => {
                                 )}
                                 {visibleColumns.includes('lastActive') && (
                                     <td className={`${denseView ? 'py-2' : 'py-3'} px-4`}>
-                                        <span className="text-xs text-gray-500" title={seller.lastLogin ? new Date(seller.lastLogin).toLocaleString() : 'Never logged in'}>
-                                            {seller.isOnline ? <span className="text-green-600 font-medium">Online now</span> : formatRelativeTime(seller.lastLogin)}
-                                        </span>
+                                        <div className="text-xs text-gray-500">
+                                            {seller.lastLogin ? (
+                                                <div>
+                                                    <span className="font-medium">{new Date(seller.lastLogin).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span>
+                                                    {seller.isOnline && <span className="ml-2 text-green-600 text-[10px] font-medium">(Online)</span>}
+                                                </div>
+                                            ) : (
+                                                seller.isOnline ? <span className="text-green-600 font-medium">Online now</span> : 'Never'
+                                            )}
+                                        </div>
                                     </td>
                                 )}
                                 {visibleColumns.includes('verification') && (
@@ -734,10 +876,13 @@ const Sellers = () => {
                                             <span className={`w-2 h-2 rounded-full ${seller.identity_card?.verified ? 'bg-green-500' : 'bg-gray-300'}`} title={seller.identity_card?.verified ? 'ID Verified' : 'ID Not verified'}></span>
                                             {seller.verification?.status === 'verified' && <BadgeCheck className="w-4 h-4 text-blue-500" />}
                                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${seller.verification?.status === 'verified' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
-                                                seller.verification?.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border border-yellow-100' :
-                                                    'bg-gray-100 text-gray-600 border border-gray-200'
+                                                (seller.verification?.adminApprovals?.length > 0 && seller.verification?.status !== 'verified') ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' :
+                                                    seller.verification?.status === 'pending' ? 'bg-gray-50 text-gray-700 border border-gray-200' :
+                                                        'bg-gray-100 text-gray-600 border border-gray-200'
                                                 }`}>
-                                                {seller.verification?.status || 'unverified'}
+                                                {seller.verification?.status === 'verified' ? 'Verified' :
+                                                    (seller.verification?.adminApprovals?.length > 0) ? `Partial (${seller.verification.adminApprovals.length}/3)` :
+                                                        seller.verification?.status || 'unverified'}
                                             </span>
                                         </div>
                                     </td>

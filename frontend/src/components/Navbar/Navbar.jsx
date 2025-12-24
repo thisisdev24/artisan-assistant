@@ -10,10 +10,11 @@ import ResponsiveMenu from "./ResponsiveMenu";
 import { FaUser } from "react-icons/fa";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
+import NotificationBell from "../Common/NotificationBell";
 
 const Navbar = () => {
+  // local UI state
   const [open, setOpen] = React.useState(false);
-  const [searchOpen, setSearchOpen] = React.useState(false); // for showing search input
   const [searchQuery, setSearchQuery] = React.useState(""); // for input value
   const [userMenuOpen, setUserMenuOpen] = React.useState(false); // for user dropdown menu
   const [productsOpen, setProductsOpen] = React.useState(false); // <-- new state for Products hover dropdown
@@ -39,14 +40,7 @@ const Navbar = () => {
     e.preventDefault();
     if (searchQuery.trim() !== "") {
       navigate(`/search?query=${encodeURIComponent(searchQuery)}`);
-      setSearchOpen(false);
-      setSearchQuery("");
-    }
-  };
-  // Handles closing search bar (when pressing escape or clicking X)
-  const closeSearchOnMouseOut = () => {
-    if (searchQuery.length === 0) {
-      setSearchOpen(false);
+    } else {
       setSearchQuery("");
     }
   };
@@ -57,8 +51,12 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="bg-gradient-to-r from-primary/30 via-white/40 to-primary/20 backdrop-blur-lg shadow-xl sticky min-w-screen z-20 top-0 start-0">
-        <div className="max-w-full flex flex-wrap items-center justify-between mx-auto p-4 select-none">
+      <nav className="bg-white/50 backdrop-blur-lg shadow-md fixed w-full z-20 top-0 start-0">
+        {/*
+          Container row: use padding and flex utilities consistently (justify-between,
+          items-center). Kept flex-wrap so mobile behaviour remains unchanged.
+        */}
+        <div className="w-full flex flex-wrap items-center justify-between mx-auto px-4 py-3 select-none">
           {/* logo section */}
           <Link
             to={user ? (isSeller ? "/Seller" : isAdmin ? "/Admin" : "/") : "/"}
@@ -68,184 +66,192 @@ const Navbar = () => {
             <p>Artist</p>
             <p className="text-orange-400 ">Point</p>
           </Link>
+
           {/* menu section - Role-based navigation */}
-          <div className="items-center justify-between hidden md:flex md:w-auto">
-            <ul className="flex flex-col font-medium border border-default md:space-x-8 rtl:space-x-reverse md:flex-row md:mt-0 md:border-0">
-              {!user ? (
-                // Not logged in - show public menu
-                NavbarMenu.map((item) => {
-                  const linkClasses = isLinkActive(item.link)
-                    ? "inline-block px-4 font-bold text-black border-b-2 border-primary rounded-lg" // Active state classes
-                    : "inline-block px-4 hover:text-primary text-black"; // Inactive state classes
+          <ul className="flex flex-row items-center font-medium space-x-4 md:space-x-8 rtl:space-x-reverse md:flex-row md:mt-0 md:border-0">
+            {!user ? (
+              // Not logged in - show public menu
+              NavbarMenu.map((item) => {
+                const linkClasses = isLinkActive(item.link)
+                  ? "inline-block px-4 font-bold text-black border-b-2 border-primary rounded-lg" // Active state classes
+                  : "inline-block px-4 hover:text-primary text-black duration-100"; // Inactive state classes
 
-                  // check if this is the Products item - show hover dropdown if so
-                  const submenu = item.children || item.submenu || item.items;
+                // check if this is the Products item - show hover dropdown if so
+                const submenu = item.children || item.submenu || item.items;
 
-                  if (item.title === "Products") {
-                    return (
-                      <li
-                        key={item.id}
-                        className="relative"
-                        onMouseEnter={() => setProductsOpen(true)}
-                        onMouseLeave={() => setProductsOpen(false)}
-                      >
-                        <a href={item.link} className={linkClasses}>
-                          {item.title}
-                        </a>
-
-                        {productsOpen && submenu && (
-                          <ul className="absolute left-0 mt-2 w-48 bg-primary/60 rounded-md shadow-lg z-50 overflow-hidden">
-                            {submenu.map((child, idx) => (
-                              <li key={idx}>
-                                <a
-                                  href={child.link || "#"}
-                                  className="block px-4 py-2 text-sm hover:bg-gray-50 border-b border-gray-800"
-                                >
-                                  {child.title}
-                                </a>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </li>
-                    );
-                  }
-
+                if (item.title === "Products") {
                   return (
-                    <li key={item.id}>
+                    <li
+                      key={item.id}
+                      className="relative"
+                      onMouseEnter={() => setProductsOpen(true)}
+                      onMouseLeave={() => setProductsOpen(false)}
+                    >
                       <a href={item.link} className={linkClasses}>
                         {item.title}
                       </a>
+
+                      {productsOpen && submenu && (
+                        <ul className="absolute left-0 p-2 w-48 bg-primary/60 rounded-md shadow-lg z-50 overflow-hidden">
+                          {submenu.map((child, idx) => (
+                            <li key={idx}>
+                              <a
+                                href={child.link || "#"}
+                                className="block px-4 py-2 text-sm hover:bg-gray-50 border-b border-gray-800 duration-100"
+                              >
+                                {child.title}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </li>
                   );
-                })
-              ) : isSeller ? (
-                // Seller menu - only seller options
-                <>
-                  <li>
-                    <Link
-                      to="/Seller"
-                      className="incline-block pr-3 hover:text-primary font-semibold"
-                    >
-                      Dashboard
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      to="/CreateListing"
-                      className="incline-block px-3 hover:text-primary font-semibold"
-                    >
-                      Add Product
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      to="/ShowListing"
-                      className="incline-block pl-3 hover:text-primary font-semibold"
-                    >
-                      My Products
-                    </Link>
-                  </li>
-                </>
-              ) : isAdmin ? (
-                // Admin menu - only admin options
-                <>
-                  <li>
-                    <Link
-                      to="/Admin"
-                      className="incline-block hover:text-primary font-semibold"
-                    >
-                      Dashboard
-                    </Link>
-                  </li>
-                </>
-              ) : (
-                // Buyer menu - show public menu
-                NavbarMenu.map((item) => {
-                  const submenu = item.children || item.submenu || item.items;
+                }
 
-                  if (item.title === "Products") {
-                    return (
-                      <li
-                        key={item.id}
-                        className="relative"
-                        onMouseEnter={() => setProductsOpen(true)}
-                        onMouseLeave={() => setProductsOpen(false)}
-                      >
-                        <a
-                          href={item.link}
-                          className="incline-block py-1 px-3 hover:text-primary font-semibold"
-                        >
-                          {item.title}{" "}
-                        </a>
+                return (
+                  <li key={item.id}>
+                    <a href={item.link} className={linkClasses}>
+                      {item.title}
+                    </a>
+                  </li>
+                );
+              })
+            ) : isSeller ? (
+              // Seller menu - only seller options
+              <>
+                <li>
+                  <Link
+                    to="/Seller"
+                    className="incline-block pr-3 hover:text-primary font-semibold"
+                  >
+                    Dashboard
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/CreateListing"
+                    className="incline-block px-3 hover:text-primary font-semibold"
+                  >
+                    Add Product
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/ShowListing"
+                    className="incline-block pl-3 hover:text-primary font-semibold"
+                  >
+                    My Products
+                  </Link>
+                </li>
+              </>
+            ) : isAdmin ? (
+              // Admin menu - only admin options
+              <>
+                <li>
+                  <Link
+                    to="/Admin"
+                    className="incline-block hover:text-primary font-semibold"
+                  >
+                    Dashboard
+                  </Link>
+                </li>
+              </>
+            ) : (
+              // Buyer menu - show public menu
+              NavbarMenu.map((item) => {
+                const submenu = item.children || item.submenu || item.items;
 
-                        {productsOpen && submenu && (
-                          <ul className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-100 overflow-hidden">
-                            {submenu.map((child, idx) => (
-                              <li key={idx}>
-                                <a
-                                  href={child.link || "#"}
-                                  className="block px-4 py-2 text-sm hover:bg-gray-50"
-                                >
-                                  {child.title}
-                                </a>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </li>
-                    );
-                  }
-
+                if (item.title === "Products") {
                   return (
-                    <li key={item.id}>
+                    <li
+                      key={item.id}
+                      className="relative"
+                      onMouseEnter={() => setProductsOpen(true)}
+                      onMouseLeave={() => setProductsOpen(false)}
+                    >
                       <a
                         href={item.link}
                         className="incline-block py-1 px-3 hover:text-primary font-semibold"
                       >
                         {item.title}{" "}
                       </a>
+
+                      {productsOpen && submenu && (
+                        <ul className="absolute left-0 p-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-100 overflow-hidden">
+                          {submenu.map((child, idx) => (
+                            <li key={idx}>
+                              <a
+                                href={child.link || "#"}
+                                className="block px-4 py-2 text-sm hover:bg-gray-50"
+                              >
+                                {child.title}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </li>
                   );
-                })
-              )}
-            </ul>
-          </div>
-          {/* icons section */}
-          <div>
-            {/* icons section */}
-            <div className="flex items-center gap-8">
-              {/* Search button */}
-              <button
-                onMouseEnter={() => setSearchOpen(!searchOpen)}
-                className="text-2xl rounded-full"
-              >
-                {searchOpen ? "" : <CiSearch />}
-              </button>
+                }
 
-              {/* Animated search input */}
-              {searchOpen && (
-                <form
-                  onSubmit={handleSearchSubmit}
-                  className="bg-white rounded-full flex items-center shadow-lg overflow-hidden transition-all duration-300"
+                return (
+                  <li key={item.id}>
+                    <a
+                      href={item.link}
+                      className="incline-block py-1 px-3 hover:text-primary font-semibold"
+                    >
+                      {item.title}{" "}
+                    </a>
+                  </li>
+                );
+              })
+            )}
+          </ul>
+
+          {/* icons section */}
+          <div className="flex items-center gap-3">
+            {/* icons section */}
+            <div className="flex items-center gap-3">
+              {/* Notification Bell - show only for logged in users */}
+              {user && <NotificationBell />}
+
+              {/* Search button - keep behaviour but make the animated search input larger and responsive */}
+              {/*
+              {!searchOpen && (
+                <button
+                  onMouseEnter={() => setSearchOpen(true)}
+                  className="text-2xl"
                 >
+                  <CiSearch />
+                </button>
+              )}*/}
+
+              <form
+                onSubmit={handleSearchSubmit}
+                className="flex items-center transition-all duration-200 border border-gray-400 rounded-full bg-white/50"
+              >
+                <div className="w-64 md:w-96 flex items-center p-4 rounded-full">
+                  {/* input uses full width inside the form container */}
                   <input
                     type="text"
                     placeholder="Search products..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    onMouseLeave={() => closeSearchOnMouseOut()}
-                    className="flex-grow px-4 py-2 outline-none text-gray-800"
+                    className="w-full text-gray-800 outline-none font-semibold bg-transparent"
                     autoFocus
                   />
-                  <button
-                    type="submit"
-                    className="bg-primary text-white px-4 py-2 font-semibold hover:bg-indigo-700 transition-all"
-                  >
-                    Go
-                  </button>
-                </form>
-              )}
+                </div>
+
+                <button
+                  type="submit"
+                  className="bg-primary p-4 text-black hover:bg-indigo-400 transition-all h-full rounded-full"
+                  aria-label="Search"
+                >
+                  <CiSearch className="text-2xl" />
+                </button>
+              </form>
+
               {isBuyer && (
                 <button
                   onClick={() => {
@@ -262,6 +268,7 @@ const Navbar = () => {
                   )}
                 </button>
               )}
+
               {/* User menu - Hamburger for buyers, icon for sellers/admins */}
               {user ? (
                 <div className="flex items-center gap-2 relative user-menu-container order-4">
@@ -490,6 +497,7 @@ const Navbar = () => {
                 </div>
               )}
             </div>
+
             {/* mobile hamburger menu section */}
             {!location.pathname.startsWith("/admin") && (
               <div className="md:hidden " onClick={() => setOpen(!open)}>

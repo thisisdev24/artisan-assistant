@@ -141,7 +141,28 @@ export const WishlistTab = ({ wishlist }) => {
 };
 
 export const ActivityTab = ({ activityLog }) => {
-    if (activityLog.length === 0) {
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'active': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            case 'blocked': return 'bg-red-50 text-red-700 border-red-200';
+            case 'inactive': return 'bg-gray-100 text-gray-600 border-gray-200';
+            case 'suspended': return 'bg-amber-50 text-amber-700 border-amber-200';
+            case 'verified': return 'bg-green-50 text-green-700 border-green-200';
+            default: return 'bg-gray-100 text-gray-600 border-gray-200';
+        }
+    };
+
+    const getActivityIcon = (type) => {
+        switch (type) {
+            case 'status_change': return <div className="w-3 h-3 rounded-full bg-amber-400" />;
+            case 'verification_event': return <div className="w-3 h-3 rounded-full bg-green-500" />;
+            case 'admin_event': return <div className="w-3 h-3 rounded-full bg-purple-500" />;
+            case 'security_event': return <div className="w-3 h-3 rounded-full bg-red-400" />;
+            default: return <div className="w-2 h-2 rounded-full bg-indigo-500" />;
+        }
+    };
+
+    if (!activityLog || activityLog.length === 0) {
         return (
             <div className="text-center py-12">
                 <Activity className="w-10 h-10 text-gray-300 mx-auto mb-3" />
@@ -151,18 +172,82 @@ export const ActivityTab = ({ activityLog }) => {
     }
 
     return (
-        <div className="space-y-3">
-            {activityLog.map((activity, i) => (
-                <div key={i} className="flex items-center gap-4 p-3 border-l-2 border-gray-200 bg-gray-50/50 rounded-r-lg">
-                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                        <Activity className="w-4 h-4 text-gray-500" />
+        <div className="space-y-4">
+            <div className="relative">
+                {/* Timeline line */}
+                <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200" />
+
+                {activityLog.map((activity, i) => (
+                    <div key={i} className="relative flex gap-4 pb-6">
+                        {/* Timeline dot */}
+                        <div className="relative z-10 w-8 h-8 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center flex-shrink-0">
+                            {getActivityIcon(activity.type)}
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                            {activity.type === 'status_change' ? (
+                                <>
+                                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                                        <span className={`px-2 py-0.5 rounded text-xs font-medium border ${getStatusColor(activity.from)}`}>
+                                            {activity.from || 'Unknown'}
+                                        </span>
+                                        <span className="text-gray-400">→</span>
+                                        <span className={`px-2 py-0.5 rounded text-xs font-medium border ${getStatusColor(activity.to)}`}>
+                                            {activity.to || 'Unknown'}
+                                        </span>
+                                    </div>
+
+                                    {activity.reason && (
+                                        <p className="text-sm text-gray-600 mb-2">
+                                            <span className="font-medium">Reason:</span> {activity.reason}
+                                        </p>
+                                    )}
+
+                                    <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                                        <span>
+                                            By: <span className="font-medium text-gray-700">{activity.by || 'Admin'}</span>
+                                        </span>
+                                        <span>•</span>
+                                        <span>
+                                            {new Date(activity.timestamp).toLocaleDateString()} at {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                    </div>
+                                </>
+                            ) : activity.type === 'verification_event' ? (
+                                <>
+                                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                                        <span className="text-sm font-medium text-gray-900">{activity.action}</span>
+                                        <span className={`px-2 py-0.5 rounded text-xs font-medium border ${getStatusColor('verified')}`}>
+                                            ✓ Verified
+                                        </span>
+                                    </div>
+                                    {activity.value && (
+                                        <p className="text-sm text-gray-600 mb-2">
+                                            <span className="font-medium capitalize">{activity.field}:</span> {activity.value}
+                                        </p>
+                                    )}
+                                    <p className="text-xs text-gray-500">
+                                        Verified on {new Date(activity.timestamp).toLocaleDateString()} at {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                </>
+                            ) : (
+                                <>
+                                    <p className="text-sm font-medium text-gray-900 mb-1">{activity.action || activity.event_type || 'Activity'}</p>
+                                    {activity.admin_action && (
+                                        <p className="text-sm text-gray-600 mb-1">
+                                            {activity.admin_action.action_type?.replace(/_/g, ' ')}
+                                        </p>
+                                    )}
+                                    <p className="text-xs text-gray-500">
+                                        {new Date(activity.timestamp).toLocaleDateString()} at {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                </>
+                            )}
+                        </div>
                     </div>
-                    <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">{activity.action}</p>
-                        <p className="text-xs text-gray-500">{new Date(activity.timestamp).toLocaleString()}</p>
-                    </div>
-                </div>
-            ))}
+                ))}
+            </div>
         </div>
     );
 };

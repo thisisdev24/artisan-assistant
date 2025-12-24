@@ -382,11 +382,11 @@ const UserDetails = () => {
                                             </div>
                                         )}
                                         <div className="h-4 w-px bg-gray-300 mx-1"></div>
-                                        <span className="text-xs text-gray-500 flex items-center gap-1" title={`Joined: ${new Date(user.createdAt).toLocaleDateString()}`}>
-                                            <Calendar className="w-3.5 h-3.5" /> Joined {formatRelativeTime(user.createdAt)}
+                                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                                            <Calendar className="w-3.5 h-3.5" /> Joined: {new Date(user.createdAt).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
                                         </span>
-                                        <span className="text-xs text-gray-500 flex items-center gap-1" title={`Last Active: ${user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}`}>
-                                            <Clock className="w-3.5 h-3.5" /> Active {user.lastLogin ? formatRelativeTime(user.lastLogin) : 'Never'}
+                                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                                            <Clock className="w-3.5 h-3.5" /> Active: {user.lastLogin ? new Date(user.lastLogin).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : 'Never'}
                                         </span>
                                     </div>
                                 </div>
@@ -502,6 +502,65 @@ const UserDetails = () => {
 
                     {/* Activity Tab */}
                     {activeTab === 'activity' && <ActivityTab activityLog={activityLog} />}
+
+                    {/* Verification History Tab */}
+                    {activeTab === 'verification history' && (
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-semibold">Verification History</h3>
+                                <button onClick={() => apiClient.get(`/api/admin/users/${id}/activity`).then(res => setActivityLog(res.data || [])).catch(console.error)} className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                                    <Activity className="w-4 h-4" /> Refresh Log
+                                </button>
+                            </div>
+
+                            <div className="overflow-hidden rounded-xl border border-gray-200">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {activityLog.filter(log => log.admin_action?.action_type?.startsWith('VERIFICATION_')).length > 0 ? (
+                                            activityLog
+                                                .filter(log => log.admin_action?.action_type?.startsWith('VERIFICATION_'))
+                                                .map((log, index) => (
+                                                    <tr key={index} className="hover:bg-gray-50">
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                            {new Date(log.timestamp).toLocaleString()}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                            ${log.admin_action.action_type === 'VERIFICATION_APPROVED' ? 'bg-green-100 text-green-800' :
+                                                                    log.admin_action.action_type === 'VERIFICATION_REVOKED' ? 'bg-red-100 text-red-800' :
+                                                                        log.admin_action.action_type === 'VERIFICATION_RETRACTED' ? 'bg-amber-100 text-amber-800' :
+                                                                            'bg-gray-100 text-gray-800'}`}>
+                                                                {log.admin_action.action_type.replace('VERIFICATION_', '')}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                            {log.admin_context?.admin_name || 'System'}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate" title={log.admin_action?.audit_notes || log.admin_action?.reason}>
+                                                            {log.admin_action?.audit_notes || log.admin_action?.reason || '-'}
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="4" className="px-6 py-12 text-center text-gray-500">
+                                                    No verification history found
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Notes Tab */}
                     {activeTab === 'notes' && (

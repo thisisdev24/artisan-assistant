@@ -148,8 +148,8 @@ const ProductDetailsForm = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-white to-primary/10 p-6">
-      <div className="w-full max-w-2xl lg:max-w-4xl bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl p-6 border border-green-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-white to-primary/10">
+      <div className="w-full max-w-2xl lg:max-w-4xl bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl p-6 my-32 border border-green-100">
         <h2 className="text-3xl font-bold text-center mb-6 text-green-700">
           Product Details
         </h2>

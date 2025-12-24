@@ -181,7 +181,7 @@ const Admin = () => {
             setUndoAction({ action, users: affectedUsers, count: selectedUsers.length });
             loadData();
         } catch (err) {
-            alert('Some actions failed');
+            alert('Some actions failed', err.response?.data?.msg);
         }
     };
 
@@ -191,7 +191,7 @@ const Admin = () => {
             setUserStats(res.data);
             setShowModal(true);
         } catch (err) {
-            console.error('Failed to load user stats:', err);
+            console.error('Failed to load user stats:', err.response?.data?.msg);
         }
     };
 
@@ -220,7 +220,7 @@ const Admin = () => {
             setUndoAction(null);
             loadData();
         } catch (err) {
-            alert('Undo failed');
+            alert('Undo failed', err.response?.data?.msg);
         }
     };
 
@@ -231,7 +231,7 @@ const Admin = () => {
             setUndoAction({ action: 'deleted', count: 1 });
             loadData();
         } catch (err) {
-            alert('Failed to delete');
+            alert('Failed to delete', err.response?.data?.msg);
         }
     };
 
@@ -250,7 +250,7 @@ const Admin = () => {
             a.download = 'users.csv';
             a.click();
         } catch (err) {
-            alert('Export failed');
+            alert('Export failed', err.response?.data?.msg);
         }
     };
 
@@ -260,7 +260,7 @@ const Admin = () => {
             await apiClient.delete(`/api/admin/${id}/approve-delete`);
             loadData();
         } catch (err) {
-            alert('Failed');
+            alert('Failed', err.response?.data?.msg);
         }
     };
 
@@ -270,7 +270,7 @@ const Admin = () => {
             await apiClient.patch(`/api/admin/${id}/reject-delete`);
             loadData();
         } catch (err) {
-            alert('Failed');
+            alert('Failed', err.response?.data?.msg);
         }
     };
 
@@ -294,7 +294,7 @@ const Admin = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50/50">
+        <div className="min-h-screen bg-gray-50/50 py-32">
             {/* Undo Toast */}
             {undoAction && (
                 <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-slide-up">
