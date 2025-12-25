@@ -100,7 +100,7 @@ export default function LoopingAnimatedBackground({
   });
 
   return (
-    <div className="relative overflow-hidden min-h-full min-w-full sm:min-h-full sm:min-w-full bg-transparent">
+    <div className="relative overflow-hidden min-h-full min-w-full md:min-h-full md:min-w-full bg-transparent">
       <style>{style}</style>
 
       {/* Pattern container: two identical stacked rows for a seamless vertical loop */}

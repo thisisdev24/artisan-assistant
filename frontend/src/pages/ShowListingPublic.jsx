@@ -316,7 +316,7 @@ const ShowListingPublic = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="max-w-7xl lg:max-w-screen-2xl mx-auto my-32">
+      <div className="max-w-6xl md:max-w-7xl mx-auto px-8 py-24">
         <motion.div
           className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-12 select-none"
           initial="hidden"
@@ -616,7 +616,7 @@ const ShowListingPublic = () => {
                   <motion.div
                     key={product._id}
                     onClick={() => navigate(`/products/${product._id}`)}
-                    className="bg-transparent rounded-xl hover:shadow-xl hover:border-2 hover:bg-primary/20 transition-all duration-100 flex flex-col relative cursor-pointer hover:-translate-y-1"
+                    className="bg-transparent rounded-xl hover:shadow-xl hover:border-2 hover:bg-indigo-200 transition-all duration-100 flex flex-col relative cursor-pointer hover:-translate-y-1"
                     variants={illustrationVariants}
                     whileHover={{ scale: 1.02 }}
                   >
@@ -629,7 +629,7 @@ const ShowListingPublic = () => {
                       }
                       alt={product.title}
                       loading="lazy"
-                      className="w-full h-[450px] object-fill rounded-xl mx-auto hover:shadow-lg hover:border-2 duration-100"
+                      className="w-full aspect-square object-contain rounded-xl mx-auto hover:shadow-lg hover:border-2 duration-100"
                     />
 
                     <motion.button

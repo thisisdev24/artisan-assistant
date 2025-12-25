@@ -17,31 +17,31 @@ const imageList = [
     id: 1,
     img: imgage1,
     title: "Fabrics",
-    desc: "Explore our exquisite collection of fabrics, where vibrant colors and intricate patterns come together to inspire your creativity.",
+    desc: "Handcrafted fabric work is a poetic blend of culture, craftsmanship, and soulful creativity. Every thread is thoughtfully chosen, woven, dyed, and embroidered using time-honored techniques that transform simple fibers into living art. From richly textured weaves to delicately detailed patterns, these fabrics carry stories of heritage, patience, and personal expression. Their vibrant colors, intricate motifs, and natural feel create pieces that are as meaningful as they are beautiful.",
   },
   {
     id: 2,
     img: image2,
     title: "Glassworks",
-    desc: "Discover the art of glassworks, where skilled artisans transform molten glass into stunning creations that captivate the eye and ignite the imagination.",
+    desc: "Discover the art of glassworks, where skilled artisans transform molten glass into stunning creations that captivate the eye and ignite the imagination. Each piece reflects cultural heritage while embracing contemporary design, resulting in striking colors, delicate forms, and captivating textures.",
   },
   {
     id: 3,
     img: image3,
     title: "Leather",
-    desc: "Experience the timeless elegance of leather craftsmanship, where premium materials are transformed into durable and stylish accessories that stand the test of time.",
+    desc: "Experience the timeless elegance of leather craftsmanship, where premium materials are transformed into durable and stylish accessories that stand the test of time. Skilled makers transform raw material into wallets, bags, footwear, accessories, and décor that balance strength with elegance. The natural texture, earthy tones, and lasting quality give every creation a distinct character, improving with age and use.",
   },
   {
     id: 4,
     img: image4,
     title: "Potmaking",
-    desc: "Immerse yourself in the ancient art of potmaking, where skilled hands shape clay into functional and decorative pieces that tell a story of tradition and creativity.",
+    desc: "Potmaking by skilled artisans is a beautiful harmony of earth, tradition, and creativity. Each pot begins with raw clay, patiently shaped by steady hands and refined through age-old techniques of molding, carving, and firing. More than objects, handmade pots tell stories of dedication, craftsmanship, and the enduring connection between humans and the art of shaping nature into timeless beauty.",
   },
   {
     id: 5,
     img: image5,
     title: "Woodcraft",
-    desc: "Explore the beauty of woodcraft, where skilled artisans carve and shape wood into intricate designs, creating functional and decorative pieces that showcase the natural elegance of this timeless material.",
+    desc: "Explore the beauty of woodcraft, where artisans carve and shape wood into intricate designs, creating functional and decorative pieces that showcase the natural elegance of this timeless material. From elegant furniture and intricate décor to everyday essentials, artisan woodwork blends warmth, strength, and artistic expression. These handcrafted treasures are more than objects—they embody patience, precision, and cultural heritage, preserving age-old skills while bringing timeless beauty, sustainability, and authenticity into modern living spaces.",
   },
 ];
 
@@ -59,7 +59,7 @@ const Hero = () => {
     speed: 800,
     slidesToScroll: 1,
     autoplay: true,
-    autoplaySpeed: 4000,
+    autoplaySpeed: 8000,
     cssEase: "ease-in-out",
     pauseOnHover: false,
     pauseOnFocus: true,
@@ -144,28 +144,28 @@ const Hero = () => {
       density={5}
     >
       {/* hero + vertical sections container */}
-      <div className="container mx-auto py-16 select-none">
+      <div className="container p-8 mx-auto select-none">
         {/* ===== SLIDER HERO ===== */}
-        <section className="my-16">
+        <section className="pt-16 pb-8">
           <Slider {...settings}>
             {imageList.map((data) => (
               <div key={data.id} className="overflow-hidden">
                 <motion.div
-                  className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center m-auto"
+                  className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center mx-auto px-8 mb-4 h-[400px] rounded-xl"
                   initial="hidden"
                   animate={loaded ? "visible" : "hidden"}
                   variants={containerVariants}
                 >
                   {/* text content */}
                   <motion.div
-                    className="flex flex-col items-start justify-center gap-6 max-w-1/2 max-h-full mx-6 leading-tight rounded-xl"
+                    className="flex flex-col items-start justify-center gap-8 max-w-1/2 max-h-full leading-tight rounded-xl"
                     variants={heroVariants}
                   >
                     <motion.h1
                       data-aos="zoom-out"
                       data-aos-duration="500"
                       data-aos-once="true"
-                      className="text-4xl sm:text-5xl lg:text-6xl font-bold text-black uppercase"
+                      className="text-4xl sm:text-5xl lg:text-6xl font-semibold text-orange-800 uppercase"
                       variants={itemVariants}
                       whileHover={{ scale: 1.1 }}
                     >
@@ -175,7 +175,7 @@ const Hero = () => {
                       data-aos="fade-up"
                       data-aos-duration="500"
                       data-aos-delay="100"
-                      className="text-base lg:text-lg text-gray-800"
+                      className="text-base lg:text-lg text-gray-800 text-justify"
                       variants={itemVariants}
                     >
                       {data.desc}
@@ -208,17 +208,15 @@ const Hero = () => {
                   </motion.div>
 
                   {/* image */}
-                  <div
-                    className="rounded-xl overflow-hidden max-w-1/2 max-h-full mx-6"
-                  >
+                  <div className="rounded-xl overflow-hidden max-w-1/2 max-h-full mx-6">
                     <motion.img
                       src={data.img}
                       alt={data.title}
                       className="w-full h-full object-fill shadow-xl mx-auto rounded-xl"
                       initial="hidden"
-                  animate={loaded ? "visible" : "hidden"}
+                      animate={loaded ? "visible" : "hidden"}
                       variants={illustrationVariants}
-      whileHover={{ scale: 1.04 }}
+                      whileHover={{ scale: 1.04 }}
                     />
                   </div>
                 </motion.div>
@@ -228,7 +226,7 @@ const Hero = () => {
         </section>
 
         {/* ===== FEATURES (3 inline) ===== */}
-        <section className="mb-10">
+        <section className="my-10">
           <motion.div
             className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center"
             initial="hidden"
