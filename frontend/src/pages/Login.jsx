@@ -44,7 +44,7 @@ const Login = () => {
     <>
       {/* <Navbar /> */}
       <div className="min-h-screen bg-white flex flex-col justify-center items-center select-none">
-        <div className="w-full max-w-md md:max-w-lg bg-primary/20 p-4 mt-16 rounded-xl shadow-xl">
+        <div className="w-full max-w-sm md:max-w-md mx-auto bg-primary/20 p-4 mt-16 rounded-xl shadow-xl">
           <h2 className="text-2xl lg:text-3xl font-bold text-center text-black mb-6" >Login</h2>
           <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4">
             <input

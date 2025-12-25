@@ -61,7 +61,6 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/search" element={<SearchResults />} />
-          <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/products/:id" element={<ProductDetail />} />
           <Route path="/ShowListingPublic" element={<ShowListingPublic />} />
           <Route path="/contact" element={<Contact />} />
@@ -204,13 +203,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-          {/*<Route path="/artists" element={<Artists />} />
-
-
-        {/* <Route path="/products" element={<Products />} />
-        <Route path="/artists" element={<Artists />} />
-        <Route path="/shorts" element={<Shorts />} />
-        <Route path="/contact" element={<Contact />} /> */}
         </Routes>
       </Router>
     </LoggerProvider>
