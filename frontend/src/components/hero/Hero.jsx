@@ -138,34 +138,34 @@ const Hero = () => {
     <LoopingAnimatedBackground
       speed={18}
       mobileSpeed={18}
-      opacity={0.15}
+      opacity={0.2}
       mobileOpacity={0.12}
-      colors={["#FFB366"]}
+      colors={["#FFAA00"]}
       density={5}
     >
       {/* hero + vertical sections container */}
       <div className="container p-8 mx-auto select-none">
         {/* ===== SLIDER HERO ===== */}
-        <section className="pt-16 pb-8">
+        <section className="pt-16">
           <Slider {...settings}>
             {imageList.map((data) => (
-              <div key={data.id} className="overflow-hidden">
+              <div key={data.id} className="overflow-hidden mb-4">
                 <motion.div
-                  className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center mx-auto px-8 mb-4 h-[400px] rounded-xl"
+                  className="grid grid-cols-1 lg:grid-cols-2 gap-2 items-center mx-auto my-4 rounded-xl h-[400px]"
                   initial="hidden"
                   animate={loaded ? "visible" : "hidden"}
                   variants={containerVariants}
                 >
                   {/* text content */}
                   <motion.div
-                    className="flex flex-col items-start justify-center gap-8 max-w-1/2 max-h-full leading-tight rounded-xl"
+                    className="flex flex-col items-start justify-center gap-16 max-w-1/2 h-full leading-tight mx-8 rounded-xl"
                     variants={heroVariants}
                   >
                     <motion.h1
                       data-aos="zoom-out"
                       data-aos-duration="500"
                       data-aos-once="true"
-                      className="text-4xl sm:text-5xl lg:text-6xl font-semibold text-orange-800 uppercase"
+                      className="text-4xl md:text-5xl font-semibold text-orange-800 uppercase"
                       variants={itemVariants}
                       whileHover={{ scale: 1.1 }}
                     >
@@ -175,7 +175,7 @@ const Hero = () => {
                       data-aos="fade-up"
                       data-aos-duration="500"
                       data-aos-delay="100"
-                      className="text-base lg:text-lg text-gray-800 text-justify"
+                      className="text-base md:text-lg text-gray-800 text-justify"
                       variants={itemVariants}
                     >
                       {data.desc}
@@ -186,10 +186,10 @@ const Hero = () => {
                       data-aos-delay="300"
                       variants={itemVariants}
                     >
-                      <div className="flex gap-3 mt-2">
+                      <div className="flex gap-4">
                         <motion.a
                           href={`/search?query=${data.title}`}
-                          className="text-sm sm:text-base bg-gradient-to-r from-primary/60 via-white/20 to-secondary/50 duration-200 text-black py-2 px-4 rounded-full shadow-xl border border-gray-600 font-semibold"
+                          className="text-sm sm:text-base bg-gradient-to-r from-primary/60 via-white/20 to-secondary/50 duration-200 text-black py-2 px-4 rounded-full shadow-lg border border-gray-600 font-semibold"
                           variants={itemVariants}
                           whileHover={{ scale: 1.04 }}
                         >
@@ -197,7 +197,7 @@ const Hero = () => {
                         </motion.a>
                         <motion.a
                           href="/ShowListingPublic"
-                          className="text-sm sm:text-base bg-gradient-to-r from-primary/60 via-white/20 to-secondary/50 duration-200 text-black py-2 px-4 rounded-full shadow-xl border border-gray-600 font-semibold"
+                          className="text-sm sm:text-base bg-gradient-to-r from-primary/60 via-white/20 to-secondary/50 duration-200 text-black py-2 px-4 rounded-full shadow-lg border border-gray-600 font-semibold"
                           variants={itemVariants}
                           whileHover={{ scale: 1.04 }}
                         >
@@ -208,7 +208,7 @@ const Hero = () => {
                   </motion.div>
 
                   {/* image */}
-                  <div className="rounded-xl overflow-hidden max-w-1/2 max-h-full mx-6">
+                  <div className="rounded-xl overflow-hidden max-w-1/2 mx-8 h-full">
                     <motion.img
                       src={data.img}
                       alt={data.title}
@@ -226,7 +226,7 @@ const Hero = () => {
         </section>
 
         {/* ===== FEATURES (3 inline) ===== */}
-        <section className="my-10">
+        <section className="my-16">
           <motion.div
             className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center"
             initial="hidden"

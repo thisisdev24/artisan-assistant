@@ -37,7 +37,7 @@ const Register = () => {
     <>
       {/* <Navbar /> */}
       <div className="min-h-screen bg-white flex flex-col justify-center items-center">
-        <div className="w-full max-w-md lg:max-w-xl bg-primary/20 p-8 rounded-xl shadow-2xl mt-16 select-none">
+        <div className="w-full max-w-sm md:max-w-md mx-auto bg-primary/20 p-4 rounded-xl shadow-2xl mt-16 select-none">
           <h2 className="text-3xl lg:text-4xl font-bold text-center text-black mb-6">Create Account</h2>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <input
