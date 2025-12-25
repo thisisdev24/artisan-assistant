@@ -152,7 +152,7 @@ const SearchResults = () => {
 
   return (
     <div className="min-h-screen bg-white select-none">
-      <div className="max-w-7xl lg:max-w-screen-2xl mx-auto my-32">
+      <div className="max-w-6xl md:max-w-7xl mx-auto px-8 py-24">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Search results for “{query}”</h1>
           <button
@@ -182,9 +182,9 @@ const SearchResults = () => {
               className="flex flex-col rounded-xl hover:shadow-xl hover:bg-primary/20 hover:border-2 relative duration-100"
             >
               <img
-                src={item.images[0].hi_res || item.images[0].large}
+                src={item.images[0].large || item.images[0].hi_res}
                 alt={item.title || "item"}
-                className="w-full h-[450px] object-fill rounded-xl hover:shadow-xl hover:border-2 duration-100"
+                className="w-full aspect-square object-cover mx-auto rounded-xl hover:shadow-xl hover:border-2 duration-100"
                 onError={(e) => {
                   e.currentTarget.src = "/placeholder.jpg";
                 }}

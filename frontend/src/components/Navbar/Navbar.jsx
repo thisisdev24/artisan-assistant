@@ -51,30 +51,30 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="bg-white/50 backdrop-blur-lg shadow-md fixed w-full z-20 top-0 start-0">
+      <nav className="bg-white/60 backdrop-blur-lg shadow-md fixed w-full h-16 z-20 top-0 px-4 py-2">
         {/*
           Container row: use padding and flex utilities consistently (justify-between,
           items-center). Kept flex-wrap so mobile behaviour remains unchanged.
         */}
-        <div className="w-full flex flex-wrap items-center justify-between mx-auto px-4 py-3 select-none">
+        <div className="flex flex-wrap items-center justify-between h-full mx-auto select-none">
           {/* logo section */}
           <Link
             to={user ? (isSeller ? "/Seller" : isAdmin ? "/Admin" : "/") : "/"}
-            className="text-2xl flex items-center gap-2 font-bold uppercase"
+            className="text-xl flex items-center gap-2 font-bold uppercase"
           >
             <SiSnapcraft />
             <p>Artist</p>
-            <p className="text-orange-400 ">Point</p>
+            <p className="text-orange-400 mr-4">Point</p>
           </Link>
 
           {/* menu section - Role-based navigation */}
-          <ul className="flex flex-row items-center font-medium space-x-4 md:space-x-8 rtl:space-x-reverse md:flex-row md:mt-0 md:border-0">
+          <ul className="flex flex-row items-center font-semibold text-xs space-x-2 md:space-x-4 rtl:space-x-reverse md:flex-row">
             {!user ? (
               // Not logged in - show public menu
               NavbarMenu.map((item) => {
                 const linkClasses = isLinkActive(item.link)
-                  ? "inline-block px-4 font-bold text-black border-b-2 border-primary rounded-lg" // Active state classes
-                  : "inline-block px-4 hover:text-primary text-black duration-100"; // Inactive state classes
+                  ? "inline-block px-4 py-2 font-bold text-black border-b border-primary rounded-lg" // Active state classes
+                  : "inline-block px-4 py-2 hover:text-primary text-black duration-100"; // Inactive state classes
 
                 // check if this is the Products item - show hover dropdown if so
                 const submenu = item.children || item.submenu || item.items;
@@ -92,12 +92,12 @@ const Navbar = () => {
                       </a>
 
                       {productsOpen && submenu && (
-                        <ul className="absolute left-0 p-2 w-48 bg-primary/60 rounded-md shadow-lg z-50 overflow-hidden">
+                        <ul className="absolute bg-primary/80 rounded-md shadow-lg z-50 overflow-hidden">
                           {submenu.map((child, idx) => (
                             <li key={idx}>
                               <a
                                 href={child.link || "#"}
-                                className="block px-4 py-2 text-sm hover:bg-gray-50 border-b border-gray-800 duration-100"
+                                className="block px-4 py-2 text-xs hover:bg-gray-50 border-b border-gray-800 duration-100"
                               >
                                 {child.title}
                               </a>
@@ -210,9 +210,9 @@ const Navbar = () => {
           </ul>
 
           {/* icons section */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {/* icons section */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {/* Notification Bell - show only for logged in users */}
               {user && <NotificationBell />}
 
@@ -229,26 +229,26 @@ const Navbar = () => {
 
               <form
                 onSubmit={handleSearchSubmit}
-                className="flex items-center transition-all duration-200 border border-gray-400 rounded-full bg-white/50"
+                className="flex items-center transition-all duration-200 h-8 border border-gray-400 rounded-full bg-white"
               >
-                <div className="w-64 md:w-96 flex items-center p-4 rounded-full">
+                <div className="w-64 md:w-96 flex items-center rounded-full">
                   {/* input uses full width inside the form container */}
                   <input
                     type="text"
                     placeholder="Search products..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full text-gray-800 outline-none font-semibold bg-transparent"
+                    className="w-full p-4 text-gray-800 outline-none font-semibold text-sm bg-transparent"
                     autoFocus
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="bg-primary p-4 text-black hover:bg-indigo-400 transition-all h-full rounded-full"
+                  className="bg-transparent p-2 text-black hover:bg-indigo-400 transition-all rounded-full"
                   aria-label="Search"
                 >
-                  <CiSearch className="text-2xl" />
+                  <CiSearch className="text-xl" />
                 </button>
               </form>
 
@@ -481,16 +481,16 @@ const Navbar = () => {
                   )}
                 </div>
               ) : (
-                <div className="pl-32 hidden md:flex gap-2">
+                <div className="pl-24 hidden md:flex gap-2">
                   <Link
                     to="/login"
-                    className="text-black hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200"
+                    className="text-black text-xs hover:bg-primary font-semibold hover:text-white rounded-md border-2 border-primary px-6 py-2 duration-200"
                   >
                     Login
                   </Link>
                   <Link
                     to="/register"
-                    className="text-black hover:bg-primary font-semibold hover:text-white p-2 rounded-md border-2 border-primary px-6 py-2 duration-200"
+                    className="text-black text-xs hover:bg-primary font-semibold hover:text-white rounded-md border-2 border-primary px-6 py-2 duration-200"
                   >
                     Register
                   </Link>
