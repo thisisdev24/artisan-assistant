@@ -285,6 +285,73 @@ router.get("/search", async (req, res) => {
   }
 });
 
+router.get("/recommend", async (req, res) => {
+  try {
+    const searchQuery = (req.query.query || req.query.q || "").trim();
+    if (!searchQuery) return res.status(400).json({ error: "missing_query" });
+
+    // call ML service
+    const mlResp = await axios.post(
+      `${ML}/generate_search_results`,
+      { query: searchQuery, k: 6 },
+      { timeout: 20000 }
+    );
+    const mlResults = (mlResp.data && mlResp.data.results) || [];
+
+    if (!Array.isArray(mlResults) || mlResults.length === 0) {
+      return res.json([]);
+    }
+
+    // collect listing ids (these should be the original Mongo _id strings)
+    const listingIds = mlResults.map((r) => r.listing_id).filter(Boolean);
+    // convert to ObjectId safely
+    const objectIds = listingIds
+      .map((id) => {
+        try {
+          return mongoose.Types.ObjectId(id);
+        } catch (e) {
+          return null;
+        }
+      })
+      .filter(Boolean);
+
+    const filter = { deleteRequested: false, status: "published" };
+
+    // fetch listings
+    const docs = await Listing.find({ _id: { $in: objectIds }, filter })
+      .select("title images")
+      .lean();
+
+    const docsById = {};
+    for (const d of docs) {
+      docsById[String(d._id)] = d;
+    }
+
+    // preserve order given by mlResults
+    const enriched = mlResults.map((r) => {
+      const lid = String(r.listing_id);
+      const doc = docsById[lid] || {};
+
+      return {
+        _id: lid,
+        title: r.title || doc.title,
+        thumbnail: r.images[0].thumb,
+        score: r.score || null,
+      };
+    });
+
+    return res.json(enriched);
+  } catch (err) {
+    console.error(
+      "Error in /recommend:",
+      err?.response?.data || err.message || err
+    );
+    return res
+      .status(500)
+      .json({ error: "internal", message: err.message || "search_failed" });
+  }
+});
+
 router.get("/gen_desc", async (req, res) => {
   try {
     // Frontend sends title/features as query params (axios.get(..., { params: {...} }))

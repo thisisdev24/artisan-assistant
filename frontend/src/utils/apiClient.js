@@ -61,7 +61,7 @@ apiClient.interceptors.response.use(
             "/api/auth/login",
             "/api/auth/register",
             "/api/auth/reauth",
-            "/api/auth/logout"
+            "/api/auth/logout",
         ];
 
         const reqUrl = originalRequest.url || "";

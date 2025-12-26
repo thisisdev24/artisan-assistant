@@ -172,7 +172,8 @@ const SearchResults = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
           {results.map((item) => (
-            <button
+            <div
+              key={item._id}
               onClick={() =>
                 navigate(`/products/${item._id || item.listing_id}`)
               }
@@ -248,7 +249,7 @@ const SearchResults = () => {
                   </div>
                 </div>
               </div>
-            </button>
+            </div>
           ))}
         </div>
       </div>

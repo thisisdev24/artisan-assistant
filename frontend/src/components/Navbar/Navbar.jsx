@@ -10,12 +10,12 @@ import ResponsiveMenu from "./ResponsiveMenu";
 import { FaUser } from "react-icons/fa";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
+import SearchBar from "./SearchBar";
 import NotificationBell from "../Common/NotificationBell";
 
 const Navbar = () => {
   // local UI state
   const [open, setOpen] = React.useState(false);
-  const [searchQuery, setSearchQuery] = React.useState(""); // for input value
   const [userMenuOpen, setUserMenuOpen] = React.useState(false); // for user dropdown menu
   const [productsOpen, setProductsOpen] = React.useState(false); // <-- new state for Products hover dropdown
   const navigate = useNavigate();
@@ -34,16 +34,6 @@ const Navbar = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [userMenuOpen]);
-
-  // handle form submission
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim() !== "") {
-      navigate(`/search?query=${encodeURIComponent(searchQuery)}`);
-    } else {
-      setSearchQuery("");
-    }
-  };
 
   const isLinkActive = (href) => {
     return window.location.pathname === href;
@@ -217,40 +207,8 @@ const Navbar = () => {
               {user && <NotificationBell />}
 
               {/* Search button - keep behaviour but make the animated search input larger and responsive */}
-              {/*
-              {!searchOpen && (
-                <button
-                  onMouseEnter={() => setSearchOpen(true)}
-                  className="text-2xl"
-                >
-                  <CiSearch />
-                </button>
-              )}*/}
 
-              <form
-                onSubmit={handleSearchSubmit}
-                className="flex items-center transition-all duration-200 h-8 border border-gray-400 rounded-full bg-white"
-              >
-                <div className="w-64 md:w-96 flex items-center rounded-full">
-                  {/* input uses full width inside the form container */}
-                  <input
-                    type="text"
-                    placeholder="Search products..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full p-4 text-gray-800 outline-none font-semibold text-sm bg-transparent"
-                    autoFocus
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="bg-transparent p-2 text-black hover:bg-indigo-400 transition-all rounded-full"
-                  aria-label="Search"
-                >
-                  <CiSearch className="text-xl" />
-                </button>
-              </form>
+              <SearchBar></SearchBar>
 
               {isBuyer && (
                 <button
