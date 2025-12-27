@@ -165,7 +165,7 @@ const SellerProfile = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 px-6 py-10">
+        <div className="min-h-screen bg-gray-50 px-6 py-10 pt-20">
             <div className="max-w-6xl mx-auto">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
                     <div>

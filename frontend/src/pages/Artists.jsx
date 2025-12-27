@@ -85,7 +85,7 @@ const Artists = () => {
 
     return (
         <motion.div
-            className="min-h-screen bg-gray-50 py-10 px-4"
+            className="min-h-screen bg-gray-50 py-10 px-4 pt-20"
             initial="hidden"
             animate={loaded ? "visible" : "hidden"}
             variants={containerVariants}

@@ -113,7 +113,7 @@ const EditProduct = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-4">
+    <div className="min-h-screen bg-gray-50 py-10 px-4 ">
       <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-gray-800">Edit Product</h1>

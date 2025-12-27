@@ -139,12 +139,12 @@ const Navbar = () => {
               // Admin menu - only admin options
               <>
                 <li>
-                  <Link
+                  {/* <Link
                     to="/Admin"
                     className="incline-block hover:text-primary font-semibold"
                   >
                     Dashboard
-                  </Link>
+                  </Link> */}
                 </li>
               </>
             ) : (

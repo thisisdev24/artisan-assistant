@@ -36,7 +36,7 @@ const AdminLayout = () => {
     };
 
     return (
-        <div className="flex bg-gray-50/50">
+        <div className="flex bg-gray-50/50 pt-16">
             {/* Sidebar - positioned below navbar */}
             <aside className="w-56 bg-white border-r border-gray-200 fixed top-[64px] bottom-0 overflow-y-auto">
                 {/* Navigation */}

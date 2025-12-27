@@ -121,7 +121,7 @@ const Profile = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 py-10 px-4">
+        <div className="min-h-screen bg-gray-50 py-10 px-4 pt-20">
             <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden flex flex-col md:flex-row min-h-[600px]">
 
                 {/* Sidebar / Tabs */}
@@ -582,9 +582,9 @@ const MyReviewsSection = () => {
     }
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 pt-22">
             {reviews.map(review => (
-                <div key={review._id} className="border rounded-lg p-4">
+                <div key={review._id} className="border rounded-lg p-4 ">
                     <div className="flex items-start justify-between mb-2">
                         <div>
                             <p className="font-semibold">{review.product_title}</p>
