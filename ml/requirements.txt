@@ -22,3 +22,6 @@ opencv-python-headless
 rembg
 sentencepiece
 open_clip_torch
+huggingface_hub==0.36.0
+psutil
+hf-xet==1.2.0

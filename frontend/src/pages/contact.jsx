@@ -40,7 +40,7 @@ const ContactPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-cover bg-center bg-no-repeat text-gray-900">
+    <div className="min-h-screen bg-cover bg-center bg-no-repeat text-gray-900 pt-16">
       {/* HERO */}
       <header className="bg-emerald-900 text-black py-20 overflow-hidden">
         <motion.div

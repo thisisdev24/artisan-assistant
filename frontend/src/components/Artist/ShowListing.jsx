@@ -172,7 +172,7 @@ const ShowListing = ({ storeName: propStoreName }) => {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="max-w-7xl lg:max-w-screen-2xl mx-auto my-32">
+      <div className="max-w-2xl md:max-w-7xl w-full mx-auto my-32">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800">
             My Listed Products
@@ -196,7 +196,7 @@ const ShowListing = ({ storeName: propStoreName }) => {
             </button>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-x-8 md:gap-y-16">
+          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-x-8 md:gap-y-16">
             {products.map((product) => (
               <div
                 key={product._id}
@@ -205,7 +205,7 @@ const ShowListing = ({ storeName: propStoreName }) => {
                 <img
                   src={pickImageSrc(product)}
                   alt={product.title}
-                  className="w-full h-[450px] object-fill rounded-xl mx-auto"
+                  className="w-full aspect-square object-contain rounded-xl mx-auto"
                   onError={(e) => {
                     e.currentTarget.src = "/placeholder.jpg";
                   }}
@@ -244,7 +244,7 @@ const ShowListing = ({ storeName: propStoreName }) => {
                       </button>
                     )}
                     <button
-                      onClick={() => navigate(`/product/${product._id}`)}
+                      onClick={() => navigate(`/products/${product._id}`)}
                       className="bg-primary hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
                     >
                       View

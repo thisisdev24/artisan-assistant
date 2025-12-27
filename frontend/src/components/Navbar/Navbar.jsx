@@ -1,8 +1,6 @@
 import React from "react";
 import { NavbarMenu } from "../../mockData/data";
-import { CiSearch } from "react-icons/ci";
 import { PiShoppingCartThin } from "react-icons/pi";
-import { FaDumbbell } from "react-icons/fa";
 import { SiSnapcraft } from "react-icons/si";
 import { MdMenu } from "react-icons/md";
 import { Link, useNavigate, useLocation } from "react-router-dom"; // Import Link
@@ -10,12 +8,12 @@ import ResponsiveMenu from "./ResponsiveMenu";
 import { FaUser } from "react-icons/fa";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
+import SearchBar from "./SearchBar";
 import NotificationBell from "../Common/NotificationBell";
 
 const Navbar = () => {
   // local UI state
   const [open, setOpen] = React.useState(false);
-  const [searchQuery, setSearchQuery] = React.useState(""); // for input value
   const [userMenuOpen, setUserMenuOpen] = React.useState(false); // for user dropdown menu
   const [productsOpen, setProductsOpen] = React.useState(false); // <-- new state for Products hover dropdown
   const navigate = useNavigate();
@@ -34,16 +32,6 @@ const Navbar = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [userMenuOpen]);
-
-  // handle form submission
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim() !== "") {
-      navigate(`/search?query=${encodeURIComponent(searchQuery)}`);
-    } else {
-      setSearchQuery("");
-    }
-  };
 
   const isLinkActive = (href) => {
     return window.location.pathname === href;
@@ -149,17 +137,20 @@ const Navbar = () => {
               // Admin menu - only admin options
               <>
                 <li>
-                  <Link
+                  {/* <Link
                     to="/Admin"
                     className="incline-block hover:text-primary font-semibold"
                   >
                     Dashboard
-                  </Link>
+                  </Link> */}
                 </li>
               </>
             ) : (
               // Buyer menu - show public menu
               NavbarMenu.map((item) => {
+                const linkClasses = isLinkActive(item.link)
+                  ? "inline-block px-4 py-2 font-bold text-black border-b border-primary rounded-lg" // Active state classes
+                  : "inline-block px-4 py-2 hover:text-primary text-black duration-100"; // Inactive state classes
                 const submenu = item.children || item.submenu || item.items;
 
                 if (item.title === "Products") {
@@ -170,20 +161,17 @@ const Navbar = () => {
                       onMouseEnter={() => setProductsOpen(true)}
                       onMouseLeave={() => setProductsOpen(false)}
                     >
-                      <a
-                        href={item.link}
-                        className="incline-block py-1 px-3 hover:text-primary font-semibold"
-                      >
-                        {item.title}{" "}
+                      <a href={item.link} className={linkClasses}>
+                        {item.title}
                       </a>
 
                       {productsOpen && submenu && (
-                        <ul className="absolute left-0 p-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-100 overflow-hidden">
+                        <ul className="absolute bg-primary/80 rounded-md shadow-lg z-50 overflow-hidden">
                           {submenu.map((child, idx) => (
                             <li key={idx}>
                               <a
                                 href={child.link || "#"}
-                                className="block px-4 py-2 text-sm hover:bg-gray-50"
+                                className="block px-4 py-2 text-xs hover:bg-gray-50 border-b border-gray-800 duration-100"
                               >
                                 {child.title}
                               </a>
@@ -197,11 +185,8 @@ const Navbar = () => {
 
                 return (
                   <li key={item.id}>
-                    <a
-                      href={item.link}
-                      className="incline-block py-1 px-3 hover:text-primary font-semibold"
-                    >
-                      {item.title}{" "}
+                    <a href={item.link} className={linkClasses}>
+                      {item.title}
                     </a>
                   </li>
                 );
@@ -217,40 +202,8 @@ const Navbar = () => {
               {user && <NotificationBell />}
 
               {/* Search button - keep behaviour but make the animated search input larger and responsive */}
-              {/*
-              {!searchOpen && (
-                <button
-                  onMouseEnter={() => setSearchOpen(true)}
-                  className="text-2xl"
-                >
-                  <CiSearch />
-                </button>
-              )}*/}
 
-              <form
-                onSubmit={handleSearchSubmit}
-                className="flex items-center transition-all duration-200 h-8 border border-gray-400 rounded-full bg-white"
-              >
-                <div className="w-64 md:w-96 flex items-center rounded-full">
-                  {/* input uses full width inside the form container */}
-                  <input
-                    type="text"
-                    placeholder="Search products..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full p-4 text-gray-800 outline-none font-semibold text-sm bg-transparent"
-                    autoFocus
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="bg-transparent p-2 text-black hover:bg-indigo-400 transition-all rounded-full"
-                  aria-label="Search"
-                >
-                  <CiSearch className="text-xl" />
-                </button>
-              </form>
+              <SearchBar></SearchBar>
 
               {isBuyer && (
                 <button

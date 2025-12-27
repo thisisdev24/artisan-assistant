@@ -1,7 +1,7 @@
 # ml/clip_tagging.py
 """
 CLIP zero-shot tagger with:
- - robust model loading (ViT-H-14 preferred, fallback to ViT-L-14)
+ - robust model loading (ViT-H-14 preferred, fallback to ViT-B-32)
  - image fetching (http(s), data: URIs, local files) with browser-like headers
  - multi-crop support to handle multi-object images
  - text-label suggestion utility (domain tuning) using CountVectorizer
@@ -31,7 +31,7 @@ DEFAULT_OCCASIONS = [
     "office", "outdoor", "religious", "ceremony"
 ]
 DEFAULT_COLORS = [
-    "black", "white", "red", "blue", "green", "yellow", "brown", "gray", "orange", "pink",
+    "black", "white", "red", "blue", "navy", "navy blue", "dark blue" "green", "yellow", "brown", "gray", "orange", "pink",
     "beige", "maroon", "gold", "silver", "purple", "pastel", "muted", "vibrant"
 ]
 
@@ -41,7 +41,7 @@ def _is_url(uri: str) -> bool:
 class ClipTagger:
     def __init__(self, model_preference: Optional[str] = None, device: Optional[str] = None):
         """
-        model_preference: "ViT-H-14" or "ViT-L-14" or None (try H then L)
+        model_preference: "ViT-H-14" or "ViT-B-32" or None
         device: "cuda" or "cpu" or None (auto)
         """
         if device:
@@ -53,8 +53,8 @@ class ClipTagger:
         # Use laion checkpoints for quality.
         candidates = []
         if model_preference:
-            candidates.append((model_preference, "laion2b_s32b_b79k" if "H-14" in model_preference else "laion2b_s32b_b82k"))
-        candidates += [("ViT-H-14", "laion2b_s32b_b79k"), ("ViT-L-14", "laion2b_s32b_b82k")]
+            candidates.append((model_preference, "laion2b_s32b_b79k" if "H-14" in model_preference else "laion2b_s34b_b79k"))
+        candidates += [("ViT-H-14", "laion2b_s32b_b79k"), ("ViT-B-32", "laion2b_s34b_b79k")]
 
         last_errs = []
         for candidate_name, pretrained_tag in candidates:
