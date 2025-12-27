@@ -110,7 +110,7 @@ const ProductDetailsForm = () => {
       };
 
       const publishData = {
-        title,
+        title: title.trim(),
         features:
           Array.isArray(features) && features.length > 0
             ? JSON.stringify(features)
@@ -135,7 +135,7 @@ const ProductDetailsForm = () => {
       );
 
       alert("Product published successfully!");
-      navigate(`/product/${id}`);
+      navigate(`/products/${id}`);
     } catch (err) {
       console.error("Publish error:", err?.response?.data || err.message);
       alert(
@@ -306,7 +306,7 @@ const ProductDetailsForm = () => {
               <label className="block text-gray-700 mb-2">Title</label>
               <input
                 value={title}
-                onChange={(e) => setTitle(e.target.value.trim())}
+                onChange={(e) => setTitle(e.target.value)}
                 placeholder="Enter product title"
                 className="w-full px-4 py-2 border rounded-lg"
               />
@@ -503,6 +503,7 @@ const ProductDetailsForm = () => {
             <button
               type="submit"
               disabled={loading}
+              onClick={(e) => handlePublish(e)}
               className="flex-1 bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Publishing..." : "🚀 Publish Product"}
