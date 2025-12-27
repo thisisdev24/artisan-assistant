@@ -21,6 +21,9 @@ from color_detector import aggregate_images as detect_colors_aggregate
 
 from clip_tagging import ClipTagger
 
+import psutil
+SYSTEM_RAM = int((psutil.virtual_memory().total)/(1024**3))
+
 load_dotenv(dotenv_path='../backend/.env')
 
 # ---------------------------
@@ -130,7 +133,7 @@ class ZeroShotTagReq(BaseModel):
     images: List[str]
     top_k_per_attr: int = 3
     device: str = "cpu"
-    model_name: Optional[str] = None  # optional override, default uses the high-quality H/14
+    model_name: Optional[str] = "H-14" if SYSTEM_RAM > 8 else "B-32"  # optional override, default uses the high-quality H/14
 
 class SuggestLabelsReq(BaseModel):
     texts: List[str]
