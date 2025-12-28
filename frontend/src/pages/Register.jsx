@@ -9,15 +9,24 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState("buyer"); // default role
-  const [store, setStore] = useState('');
+  const [store, setStore] = useState("");
   const navigate = useNavigate();
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (password.length < 4)
+      return alert("Password must have at least 4 characters.");
     if (password !== confirmPassword) return alert("Passwords do not match");
+    if (!email.trim().endsWith(".com")) return alert("Invalid email");
     try {
-      const res = await apiClient.post("/api/auth/register", { name, email, password, role, store });
+      const res = await apiClient.post("/api/auth/register", {
+        name,
+        email,
+        password,
+        role,
+        store,
+      });
       // Use AuthContext login function
       login(res.data.token, res.data.user);
       // Role-based redirect
@@ -38,13 +47,21 @@ const Register = () => {
       {/* <Navbar /> */}
       <div className="min-h-screen bg-white flex flex-col justify-center items-center">
         <div className="w-full max-w-sm md:max-w-md mx-auto bg-primary/20 p-4 rounded-xl shadow-2xl mt-16 select-none">
-          <h2 className="text-3xl lg:text-4xl font-bold text-center text-black mb-6">Create Account</h2>
+          <h2 className="text-3xl lg:text-4xl font-bold text-center text-black mb-6">
+            Create Account
+          </h2>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <input
               type="text"
               placeholder="Full Name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) =>
+                setName(
+                  e.target.value.replace(/\b[a-z]/g, (match) =>
+                    match.toUpperCase()
+                  )
+                )
+              }
               className="border border-gray-300 p-4 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <input
@@ -78,8 +95,9 @@ const Register = () => {
               <option value="seller">Seller</option>
             </select>
 
-            {(role === "seller") ? (
-              <input id="storeInput"
+            {role === "seller" ? (
+              <input
+                id="storeInput"
                 placeholder="Store"
                 value={store}
                 onChange={(e) => setStore(e.target.value)}
@@ -96,7 +114,10 @@ const Register = () => {
           </form>
           <p className="text-sm lg:text-base text-gray-600 text-center mt-4">
             Already have an account?{" "}
-            <Link to="/login" className="text-orange-400 font-semibold hover:underline">
+            <Link
+              to="/login"
+              className="text-orange-400 font-semibold hover:underline"
+            >
               Login
             </Link>
           </p>
