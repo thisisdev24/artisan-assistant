@@ -27,10 +27,12 @@ async function refreshAccessToken() {
             localStorage.setItem("token", token);
             // also store on window for immediate subsequent requests
             window.__apiClientAuthToken = token;
+            // broadcast token change to other tabs
+            try { localStorage.setItem('__token_updated_at', Date.now().toString()); } catch (e) { console.log(e); }
         }
         return token;
     } catch (err) {
-        // refresh failed
+        // cleanup local token state (don't redirect here)
         localStorage.removeItem("token");
         delete window.__apiClientAuthToken;
         throw err;
@@ -56,7 +58,7 @@ apiClient.interceptors.response.use(
 
         if (!originalRequest) return Promise.reject(error);
 
-        // ⛔ DO NOT refresh on login/register/reauth routes
+        // ⛔ DO NOT refresh on login/register/reauth/logout routes
         const skipRefreshPaths = [
             "/api/auth/login",
             "/api/auth/register",
@@ -69,13 +71,12 @@ apiClient.interceptors.response.use(
             return Promise.reject(error);
         }
 
-        // ⛔ If server says reauth required for sensitive actions
+        // ⛔ If server requires reauth for sensitive actions, bubble up error
         if (
             error.response &&
             error.response.status === 401 &&
             error.response.data?.need_reauth
         ) {
-            // Let the frontend show reauth modal
             return Promise.reject(error);
         }
 
@@ -101,8 +102,14 @@ apiClient.interceptors.response.use(
                 return axios(originalRequest);
             } catch (refreshErr) {
                 processQueue(refreshErr, null);
-                localStorage.removeItem("token");
-                window.location.href = "/login";
+                // *** Instead of hard redirect, broadcast a logout event so React can clean up state ***
+                try {
+                    window.dispatchEvent(new Event('app:auth_logout'));
+                } catch (e) {
+                    console.log(e);
+                    // fallback: simple redirect (shouldn't be reached normally)
+                    try { window.location.href = "/login"; } catch (e) { console.log(e); }
+                }
                 return Promise.reject(refreshErr);
             } finally {
                 isRefreshing = false;

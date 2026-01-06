@@ -1,5 +1,6 @@
+// frontend/src/components/Common/NotificationBell.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Check, ExternalLink, X } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../utils/apiClient';
 
@@ -9,23 +10,35 @@ const NotificationBell = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const dropdownRef = useRef(null);
+    const mountedRef = useRef(true);
     const navigate = useNavigate();
 
     const fetchNotifications = async () => {
         try {
             const res = await apiClient.get('/api/notifications?limit=10');
+            if (!mountedRef.current) return;
             setNotifications(res.data.notifications || []);
             setUnreadCount(res.data.unreadCount || 0);
         } catch (err) {
+            // If server returns 401, apiClient will try refresh and eventually emit app:auth_logout
+            // so we avoid noisy logs here.
+            if (err?.response?.status === 401) {
+                // nothing—global handler will do logout
+                return;
+            }
             console.error('Error loading notifications:', err);
         }
     };
 
     useEffect(() => {
+        mountedRef.current = true;
         fetchNotifications();
         // Poll every 30 seconds
         const interval = setInterval(fetchNotifications, 30000);
-        return () => clearInterval(interval);
+        return () => {
+            mountedRef.current = false;
+            clearInterval(interval);
+        };
     }, []);
 
     // Close dropdown on click outside
@@ -42,6 +55,7 @@ const NotificationBell = () => {
     const markRead = async (id, link) => {
         try {
             await apiClient.patch(`/api/notifications/${id}/read`);
+            if (!mountedRef.current) return;
             setNotifications(prev => prev.map(n => n._id === id ? { ...n, read: true } : n));
             setUnreadCount(prev => Math.max(0, prev - 1));
 
@@ -50,6 +64,7 @@ const NotificationBell = () => {
                 navigate(link);
             }
         } catch (err) {
+            if (err?.response?.status === 401) return;
             console.error('Error marking read:', err);
         }
     };
@@ -58,12 +73,14 @@ const NotificationBell = () => {
         try {
             setLoading(true);
             await apiClient.patch('/api/notifications/read-all');
+            if (!mountedRef.current) return;
             setNotifications(prev => prev.map(n => ({ ...n, read: true })));
             setUnreadCount(0);
         } catch (err) {
+            if (err?.response?.status === 401) return;
             console.error('Error marking all read:', err);
         } finally {
-            setLoading(false);
+            if (mountedRef.current) setLoading(false);
         }
     };
 
