@@ -566,13 +566,25 @@ router.delete("/:id/:artisan_id", async (req, res) => {
         .json({ message: "Not authorized to delete this listing" });
     }
 
-    listing.deleteRequested = true;
-    listing.deleteRequestedAt = new Date();
-    await listing.save();
-
-    return res.json({
-      message: "Delete request sent for admin approval",
-    });
+    if (listing.status === "published") {
+      listing.deleteRequested = true;
+      listing.deleteRequestedAt = new Date();
+      await listing.save();
+      return res.json({
+        message: "Delete request sent for admin approval",
+      });
+    } else {
+      try {
+        await Listing.findOneAndDelete({ _id: id }, { sort: { updatedAt: -1 } });
+        console.info("Draft with id:" + id + " successfully deleted.");
+        return res.json({
+          message: "Deleted successfully.",
+        });
+      } catch (err) {
+        alert("Deletion failed");
+        console.log("Delete failed for" + id);
+      }
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Delete request failed" });

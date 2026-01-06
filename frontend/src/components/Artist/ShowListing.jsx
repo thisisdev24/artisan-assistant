@@ -134,7 +134,7 @@ const ShowListing = ({ storeName: propStoreName }) => {
     return "/placeholder.jpg";
   };
 
-  async function handleDelete(productId) {
+  async function handleDelete(productId, productStatus) {
     try {
       await apiClient.delete(`/api/listings/${productId}/${sellerId}`);
       setProducts((prev) =>
@@ -142,6 +142,11 @@ const ShowListing = ({ storeName: propStoreName }) => {
           p._id === productId ? { ...p, deleteRequested: true } : p
         )
       );
+
+      if (productStatus === "draft") {
+        alert("Draft Deleted!");
+        window.location.reload(false)
+      }
     } catch (err) {
       console.error("Delete failed:", err);
       alert(err?.response?.data?.message || "Failed to delete product");
@@ -196,11 +201,11 @@ const ShowListing = ({ storeName: propStoreName }) => {
             </button>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-x-8 md:gap-y-16">
+          <div className="grid sm:grid-cols-2 md:grid-cols-4 sm:gap-4 md:gap-x-8 md:gap-y-16">
             {products.map((product) => (
               <div
                 key={product._id}
-                className="w-full bg-transparent rounded-2xl hover:shadow-xl hover:bg-primary/20 transition-all duration-300"
+                className="w-full flex flex-col items-center justify-between gap-4 bg-transparent rounded-2xl hover:shadow-xl hover:bg-primary/20 transition-all duration-300"
               >
                 <img
                   src={pickImageSrc(product)}
@@ -210,15 +215,20 @@ const ShowListing = ({ storeName: propStoreName }) => {
                     e.currentTarget.src = "/placeholder.jpg";
                   }}
                 />
-                <div className="items-center text-center p-4 overflow-hidden">
-                  <h2 className="text-xl font-semibold text-gray-800 mb-2 capitalize truncate mx-4">
+                <div className="w-full flex flex-col justify-between gap-2 px-4 overflow-hidden mx-auto">
+                  <h2 className="text-xl font-semibold text-gray-800 text-center capitalize line-clamp-2">
                     {product.title}
                   </h2>
-                  <p className="text-lg font-bold text-indigo-700 mb-4">
-                    ₹{Math.round(product.price) ?? "—"}
-                  </p>
+                  <div className="flex flex-row justify-between items-center w-full mt-4">
+                    <span className="text-sm lg:text-lg font-semibold text-red-700">
+                      ₹{Math.round(product.price) ?? "—"}
+                    </span>
+                    <span className="text-xs lg:text-sm px-2 py-1 rounded-full bg-indigo-50 text-indigo-700 font-semibold">
+                      {product.status}
+                    </span>
+                  </div>
 
-                  <div className="flex flex-row justify-center items-center gap-6">
+                  <div className="flex flex-row justify-between items-center gap-2 my-4 w-full">
                     <button
                       onClick={() =>
                         navigate(`/seller/edit-product/${product._id}`)
@@ -229,14 +239,12 @@ const ShowListing = ({ storeName: propStoreName }) => {
                     </button>
                     {product.deleteRequested ? (
                       <div>
-                        <p>Deletion requested from admin</p>
+                        <p className="text-xs text-center">Deletion requested from admin</p>
                       </div>
                     ) : (
                       <button
                         onClick={() =>
-                          handleDelete(product._id) && (
-                            <p>Deletion requested from admin</p>
-                          )
+                          handleDelete(product._id, product.status)
                         }
                         className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-transform hover:scale-105"
                       >
