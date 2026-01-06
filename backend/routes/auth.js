@@ -13,6 +13,44 @@ const { logEvent } = require("../services/logs/loggerService");
 
 require("dotenv").config();
 
+// ---------- Email verification helpers & routes ----------
+const VerificationToken = require("../models/artisan_point/VerificationToken");
+const crypto = require("crypto");
+
+let sendMail;
+try {
+  // adapt this path if your project has a mail util
+  const mailer = require("../utils/mailer");
+  if (typeof mailer.sendMail === "function") {
+    sendMail = mailer.sendMail.bind(mailer);
+  }
+} catch (e) {
+  // ignore, we'll use nodemailer fallback
+}
+
+if (!sendMail) {
+  // fallback using nodemailer and env vars
+  const nodemailer = require("nodemailer");
+  const transporter = nodemailer.createTransport({
+    host: process.env.MAIL_HOST,
+    port: Number(process.env.MAIL_PORT || 587),
+    secure: (process.env.MAIL_SECURE === "true") || false,
+    auth: {
+      user: process.env.MAIL_USER,
+      pass: process.env.MAIL_PASS,
+    },
+  });
+  sendMail = async (to, subject, text, html) => {
+    const from = process.env.MAIL_FROM || process.env.MAIL_USER;
+    await transporter.sendMail({ from, to, subject, text, html });
+  };
+}
+
+// defaults (can be overridden with env)
+const VERIFICATION_TTL_MINUTES = Number(process.env.VERIFICATION_CODE_TTL_MINUTES || 15);
+const VERIFICATION_RESEND_COOLDOWN = Number(process.env.VERIFICATION_RESEND_COOLDOWN_SECONDS || 60);
+const MAX_VERIFY_ATTEMPTS = Number(process.env.VERIFICATION_MAX_ATTEMPTS || 5);
+
 const REFRESH_TTL_DAYS = parseInt(process.env.REFRESH_TOKEN_TTL_DAYS || "7", 10);
 const REAUTH_WINDOW_MINUTES = parseInt(process.env.REAUTH_WINDOW_MINUTES || "60", 10);
 
@@ -42,6 +80,100 @@ function clearRefreshCookie(res) {
   res.clearCookie(COOKIE_NAME, { path: '/', httpOnly: true, secure: COOKIE_SECURE, sameSite: COOKIE_SAMESITE });
 }
 
+/**
+ * POST /api/auth/send-verification
+ * Body: { email }
+ * Response: { ok: true, resendAfter: seconds, expiresIn: seconds }
+ */
+router.post("/send-verification", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ msg: "Email required" });
+
+    // remove previous tokens for this email (simple upsert pattern)
+    await VerificationToken.deleteMany({ email });
+
+    // 6-digit numeric code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    const expiresAt = new Date(Date.now() + VERIFICATION_TTL_MINUTES * 60 * 1000);
+
+    await VerificationToken.create({
+      email,
+      code,
+      expiresAt,
+      verified: false,
+      attempts: 0,
+    });
+
+    // send email (use your mail util if available)
+    const subject = "Your verification code";
+    const text = `Your verification code is ${code}. It will expire in ${VERIFICATION_TTL_MINUTES} minutes.`;
+    const html = `<p>Your verification code is <strong>${code}</strong>. It will expire in ${VERIFICATION_TTL_MINUTES} minutes.</p>`;
+
+    try {
+      await sendMail(email, subject, text, html);
+    } catch (mailerErr) {
+      console.error("Failed to send verification email:", mailerErr);
+      // still return ok so frontend can show a message — but warn client
+      return res.status(500).json({ ok: false, msg: "failed_to_send_email" });
+    }
+
+    return res.json({
+      ok: true,
+      resendAfter: VERIFICATION_RESEND_COOLDOWN,
+      expiresIn: Math.ceil((expiresAt.getTime() - Date.now()) / 1000),
+    });
+  } catch (err) {
+    console.error("send-verification error:", err);
+    return res.status(500).json({ ok: false, msg: "send_verification_failed" });
+  }
+});
+
+/**
+ * POST /api/auth/verify-email
+ * Body: { email, code }
+ * Response: { ok: true } or { ok:false, msg, attemptsLeft }
+ */
+router.post("/verify-email", async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    if (!email || !code) return res.status(400).json({ ok: false, msg: "Email and code required" });
+
+    // find latest non-expired token for email
+    const tokenDoc = await VerificationToken.findOne({
+      email,
+      expiresAt: { $gt: new Date() },
+    }).sort({ createdAt: -1 });
+
+    if (!tokenDoc) {
+      return res.status(400).json({ ok: false, msg: "Invalid or expired code" });
+    }
+
+    if (tokenDoc.verified) {
+      return res.json({ ok: true, msg: "Email already verified" });
+    }
+
+    if (tokenDoc.attempts >= MAX_VERIFY_ATTEMPTS) {
+      return res.status(429).json({ ok: false, msg: "Too many attempts", attemptsLeft: 0 });
+    }
+
+    if (tokenDoc.code === String(code).trim()) {
+      tokenDoc.verified = true;
+      await tokenDoc.save();
+      return res.json({ ok: true });
+    } else {
+      tokenDoc.attempts = (tokenDoc.attempts || 0) + 1;
+      await tokenDoc.save();
+      const attemptsLeft = Math.max(0, MAX_VERIFY_ATTEMPTS - tokenDoc.attempts);
+      return res.status(400).json({ ok: false, msg: "Invalid code", attemptsLeft });
+    }
+  } catch (err) {
+    console.error("verify-email error:", err);
+    return res.status(500).json({ ok: false, msg: "verify_failed" });
+  }
+});
+
 // ---------------------------
 // Register (keeps existing behavior but also issues refresh cookie)
 // ---------------------------
@@ -59,10 +191,24 @@ router.post("/register", async (req, res) => {
     }
 
     if (req.body.role === "buyer") {
-      user = new User({ name, email, password: hashedPassword, role: req.body.role });
+      const vdoc = await VerificationToken.findOne({ email }).sort({ createdAt: -1 });
+      if (!vdoc || !vdoc.verified || vdoc.expiresAt < new Date()) {
+        return res.status(400).json({ msg: "Email not verified. Please verify your email before registering." });
+      }
+
+      // optional: clear tokens for this email now that it's used
+      await VerificationToken.deleteMany({ email });
+      user = new User({ name, email, password: hashedPassword, role: req.body.role, email_verified: true });
       await user.save();
     } else if (req.body.role === "seller") {
-      user = new Artisan({ name, email, password: hashedPassword, role: req.body.role, store: req.body.store });
+      const vdoc = await VerificationToken.findOne({ email }).sort({ createdAt: -1 });
+      if (!vdoc || !vdoc.verified || vdoc.expiresAt < new Date()) {
+        return res.status(400).json({ msg: "Email not verified. Please verify your email before registering." });
+      }
+
+      // optional: clear tokens for this email now that it's used
+      await VerificationToken.deleteMany({ email });
+      user = new Artisan({ name, email, password: hashedPassword, role: req.body.role, email_verified: true, store: req.body.store });
       await user.save();
     } else {
       return res.status(400).json({ msg: "Invalid role" });

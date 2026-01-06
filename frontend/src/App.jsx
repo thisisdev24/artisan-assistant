@@ -1,3 +1,4 @@
+// frontend/src/App.jsx
 import React, { Suspense, lazy } from "react";
 import Navbar from "./components/Navbar/Navbar";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
