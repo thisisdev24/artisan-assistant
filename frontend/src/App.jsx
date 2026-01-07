@@ -1,3 +1,4 @@
+// frontend/src/App.jsx
 import React, { Suspense, lazy } from "react";
 import Navbar from "./components/Navbar/Navbar";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
@@ -34,6 +35,7 @@ const Sellers = lazy(() => import("./components/Admin/Sellers"));
 const SellerDetails = lazy(() => import("./components/Admin/SellerDetails"));
 const Products = lazy(() => import("./components/Admin/Products"));
 const ProductDetails = lazy(() => import("./components/Admin/ProductDetails"));
+const Orders = lazy(() => import("./components/Admin/Orders"));
 import ProtectedRoute from "./components/ProtectedRoute";
 import MyWishlist from "./pages/MyWishlist";
 import RecentlyViewed from "./pages/RecentlyViewed";
@@ -191,6 +193,7 @@ function App() {
             <Route path="sellers/:id" element={<SellerDetails />} />
             <Route path="products" element={<Products />} />
             <Route path="products/:id" element={<ProductDetails />} />
+            <Route path="orders" element={<Orders />} />
             <Route path="analytics" element={<AdminAnalytics />} />
           </Route>
 

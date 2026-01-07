@@ -121,8 +121,8 @@ const Profile = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 py-10 px-4">
-            <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+        <div className="min-h-screen bg-gray-50">
+            <div className="max-w-2xl md:max-w-5xl mt-24 mx-auto bg-white rounded-xl shadow-lg overflow-hidden flex flex-col md:flex-row">
 
                 {/* Sidebar / Tabs */}
                 <div className="w-full md:w-64 bg-gray-100 p-6 border-r border-gray-200">
@@ -423,7 +423,7 @@ const OrdersSection = ({ orders }) => {
                                         <p className="text-gray-500">Qty: {item.quantity}</p>
                                     </div>
                                     <button
-                                        onClick={() => navigate(`/product/${item.listing_id}`, { state: { fromOrderReview: true } })}
+                                        onClick={() => navigate(`/products/${item.listing_id}`, { state: { fromOrderReview: true } })}
                                         className="px-3 py-1 rounded-lg text-xs font-semibold bg-primary text-white hover:bg-primary/90"
                                     >
                                         Review / View
@@ -582,9 +582,9 @@ const MyReviewsSection = () => {
     }
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 pt-22">
             {reviews.map(review => (
-                <div key={review._id} className="border rounded-lg p-4">
+                <div key={review._id} className="border rounded-lg p-4 ">
                     <div className="flex items-start justify-between mb-2">
                         <div>
                             <p className="font-semibold">{review.product_title}</p>

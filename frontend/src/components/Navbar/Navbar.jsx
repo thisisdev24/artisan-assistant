@@ -1,8 +1,6 @@
 import React from "react";
 import { NavbarMenu } from "../../mockData/data";
-import { CiSearch } from "react-icons/ci";
 import { PiShoppingCartThin } from "react-icons/pi";
-import { FaDumbbell } from "react-icons/fa";
 import { SiSnapcraft } from "react-icons/si";
 import { MdMenu } from "react-icons/md";
 import { Link, useNavigate, useLocation } from "react-router-dom"; // Import Link
@@ -139,17 +137,20 @@ const Navbar = () => {
               // Admin menu - only admin options
               <>
                 <li>
-                  <Link
+                  {/* <Link
                     to="/Admin"
                     className="incline-block hover:text-primary font-semibold"
                   >
                     Dashboard
-                  </Link>
+                  </Link> */}
                 </li>
               </>
             ) : (
               // Buyer menu - show public menu
               NavbarMenu.map((item) => {
+                const linkClasses = isLinkActive(item.link)
+                  ? "inline-block px-4 py-2 font-bold text-black border-b border-primary rounded-lg" // Active state classes
+                  : "inline-block px-4 py-2 hover:text-primary text-black duration-100"; // Inactive state classes
                 const submenu = item.children || item.submenu || item.items;
 
                 if (item.title === "Products") {
@@ -160,20 +161,17 @@ const Navbar = () => {
                       onMouseEnter={() => setProductsOpen(true)}
                       onMouseLeave={() => setProductsOpen(false)}
                     >
-                      <a
-                        href={item.link}
-                        className="incline-block py-1 px-3 hover:text-primary font-semibold"
-                      >
-                        {item.title}{" "}
+                      <a href={item.link} className={linkClasses}>
+                        {item.title}
                       </a>
 
                       {productsOpen && submenu && (
-                        <ul className="absolute left-0 p-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-100 overflow-hidden">
+                        <ul className="absolute bg-primary/80 rounded-md shadow-lg z-50 overflow-hidden">
                           {submenu.map((child, idx) => (
                             <li key={idx}>
                               <a
                                 href={child.link || "#"}
-                                className="block px-4 py-2 text-sm hover:bg-gray-50"
+                                className="block px-4 py-2 text-xs hover:bg-gray-50 border-b border-gray-800 duration-100"
                               >
                                 {child.title}
                               </a>
@@ -187,11 +185,8 @@ const Navbar = () => {
 
                 return (
                   <li key={item.id}>
-                    <a
-                      href={item.link}
-                      className="incline-block py-1 px-3 hover:text-primary font-semibold"
-                    >
-                      {item.title}{" "}
+                    <a href={item.link} className={linkClasses}>
+                      {item.title}
                     </a>
                   </li>
                 );

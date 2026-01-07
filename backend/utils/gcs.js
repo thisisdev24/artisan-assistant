@@ -1,4 +1,4 @@
-// utils/gcs.js
+// backend/utils/gcs.js
 // UBLA-aware GCS helper. Avoids per-object ACL changes when Uniform Bucket-Level Access is enabled.
 //
 // Required env vars:

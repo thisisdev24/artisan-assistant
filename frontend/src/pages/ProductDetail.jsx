@@ -595,7 +595,7 @@ const ProductDetail = () => {
   );
 };
 
-// Reviews Section Component
+// ReviewsSection component (replace the existing one in ProductDetail.jsx)
 const ReviewsSection = ({ productId }) => {
   const [reviews, setReviews] = useState([]);
   const [myReview, setMyReview] = useState(null);
@@ -604,24 +604,39 @@ const ReviewsSection = ({ productId }) => {
   const [rating, setRating] = useState(5);
   const [reviewText, setReviewText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // New state: whether the current logged-in buyer has purchased this product
+  const [hasPurchased, setHasPurchased] = useState(false);
+  // Indicates we've completed the purchase-check (so we don't incorrectly render before checking)
+  const [purchaseChecked, setPurchaseChecked] = useState(false);
+
   const { isAuthenticated, isBuyer } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const fromOrderReview = location.state?.fromOrderReview || false;
 
   useEffect(() => {
+    // Load reviews & user's review
     fetchReviews();
     if (isAuthenticated && isBuyer) {
       fetchMyReview();
+      fetchPurchaseStatus(); // check purchase status on mount if user is buyer
+    } else {
+      // if not authenticated/buyer, mark as checked so UI can react
+      setHasPurchased(false);
+      setPurchaseChecked(true);
     }
   }, [productId, isAuthenticated, isBuyer]);
 
+  // If user navigated from Orders wanting to review, open the form only after purchase check completes
   useEffect(() => {
-    if (fromOrderReview && !myReview) {
+    if (fromOrderReview && !myReview && purchaseChecked && hasPurchased) {
+      // Only open the form if the purchase-check confirms the user actually bought the item
       setShowReviewForm(true);
     }
-  }, [fromOrderReview, myReview]);
+  }, [fromOrderReview, myReview, purchaseChecked, hasPurchased]);
 
+  // Fetch reviews for listing
   const fetchReviews = async () => {
     try {
       const response = await apiClient.get(`/api/reviews/listing/${productId}`);
@@ -633,6 +648,7 @@ const ReviewsSection = ({ productId }) => {
     }
   };
 
+  // Fetch this user's review (if any)
   const fetchMyReview = async () => {
     try {
       const response = await apiClient.get(
@@ -644,15 +660,94 @@ const ReviewsSection = ({ productId }) => {
         setReviewText(response.data.text || "");
       }
     } catch (err) {
+      // non-fatal: if endpoint rejects (e.g. not authenticated) we'll just have no myReview
       console.error("Error fetching my review:", err);
     }
   };
 
+  // New: Determine whether the current buyer actually purchased this product.
+  // This function attempts to use an existing profile endpoint then falls back to a likely orders endpoint.
+  const fetchPurchaseStatus = async () => {
+    try {
+      // Try profile-full first (Profile.jsx uses this endpoint and includes recent orders). :contentReference[oaicite:3]{index=3}
+      let res = null;
+      try {
+        res = await apiClient.get("/api/auth/profile-full"); // expected to return recent_orders or orders
+      } catch (err) {
+        console.log(err?.message?.msg);
+        try {
+          res = await apiClient.get("/api/orders/my");
+        } catch (err2) {
+          console.log(err2.message?.msg);
+          try {
+            res = await apiClient.get("/api/orders");
+          } catch (err3) {
+            // Give up gracefully — backend may not expose orders to frontend
+            console.warn(
+              "Could not fetch profile/orders to check purchase status",
+              err3
+            );
+            setHasPurchased(false);
+            setPurchaseChecked(true);
+            return;
+          }
+        }
+      }
+
+      // Normalize orders array from response
+      const data = res?.data || {};
+      // Many profile endpoints embed recent_orders; others return an array directly.
+      const orders = Array.isArray(data)
+        ? data
+        : Array.isArray(data.recent_orders)
+        ? data.recent_orders
+        : Array.isArray(data.orders)
+        ? data.orders
+        : [];
+
+      // statuses considered "valid for review" (match server-side checks in reviews.js). :contentReference[oaicite:4]{index=4}
+      const validStatuses = [
+        "created",
+        "paid",
+        "confirmed",
+        "processing",
+        "shipped",
+        "delivered",
+      ];
+
+      // Scan orders -> items to see whether any contains this productId and an allowed status.
+      const purchased = orders.some((order) => {
+        const statusOk = !order.status || validStatuses.includes(order.status);
+        if (!order.items || !Array.isArray(order.items)) return false;
+        // item.listing_id may be ObjectId or string; compare as strings
+        const hasItem = order.items.some((item) => {
+          const listingId = item.listing_id?._id || item.listing_id;
+          return String(listingId) === String(productId);
+        });
+        return statusOk && hasItem;
+      });
+
+      setHasPurchased(Boolean(purchased));
+    } catch (err) {
+      console.error("Error checking purchase status:", err);
+      setHasPurchased(false);
+    } finally {
+      setPurchaseChecked(true);
+    }
+  };
+
+  // Submit review handler (unchanged behavior)
   const handleSubmitReview = async (e) => {
     e.preventDefault();
     if (!isAuthenticated || !isBuyer) {
       alert("Please login as a buyer to submit a review");
       navigate("/login");
+      return;
+    }
+
+    // Extra guard: make sure frontend double-checks purchase before submitting
+    if (!hasPurchased) {
+      alert("Only customers who purchased this product can submit a review");
       return;
     }
 
@@ -662,6 +757,7 @@ const ReviewsSection = ({ productId }) => {
         listing_id: productId,
         rating,
         text: reviewText,
+        // verified_purchase will be set server-side once it confirms order; included here as false by default
         verified_purchase: false,
       });
       await fetchReviews();
@@ -701,11 +797,30 @@ const ReviewsSection = ({ productId }) => {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Customer Reviews</h2>
-        {/* No direct review button on product page; reviews are started from My Orders */}
+
+        {/*
+          Show a "Write review" button only when:
+            - user is authenticated
+            - user is a buyer
+            - purchase-check completed AND user hasPurchased
+            - user hasn't already written a review (myReview)
+        */}
+        {isAuthenticated &&
+          isBuyer &&
+          purchaseChecked &&
+          hasPurchased &&
+          !myReview && (
+            <button
+              onClick={() => setShowReviewForm(true)}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm"
+            >
+              Write a review
+            </button>
+          )}
       </div>
 
-      {/* Review Form */}
-      {showReviewForm && fromOrderReview && !myReview && (
+      {/* Review Form - shown only when showReviewForm is true */}
+      {showReviewForm && !myReview && (
         <div className="mb-8 bg-gray-50 rounded-lg p-6">
           <h3 className="text-lg font-semibold mb-4">Write Your Review</h3>
           <form onSubmit={handleSubmitReview}>

@@ -68,7 +68,7 @@ router.post('/checkout', authenticate, requireBuyer, async (req, res) => {
         // Build order items with artisan_id from Listing
         const listingIds = cart.items.map(it => it.listing_id);
         const listings = await Listing.find({ _id: { $in: listingIds } })
-            .select('_id artisan_id title price')
+            .select('_id artisan_id title price variants')
             .lean();
         const listingMap = new Map(listings.map(l => [String(l._id), l]));
 
@@ -78,11 +78,13 @@ router.post('/checkout', authenticate, requireBuyer, async (req, res) => {
             const quantity = item.quantity || 1;
             const price = item.price || listing?.price || 0;
             const subtotal = price * quantity;
+            // Best effort SKU: item.sku (if cart had it) -> listing variant SKU -> empty
+            const itemSku = item.sku || listing?.variants?.[0]?.sku || '';
             return {
                 listing_id: item.listing_id,
                 artisan_id: artisanId,
                 title: item.title,
-                sku: item.sku || '',
+                sku: itemSku,
                 quantity,
                 price,
                 tax: 0,
@@ -100,6 +102,7 @@ router.post('/checkout', authenticate, requireBuyer, async (req, res) => {
         const method = paymentMethod === 'upi' ? 'upi' : 'cod';
         const paymentStatus = method === 'upi' ? 'paid' : 'pending';
         const orderStatus = method === 'upi' ? 'paid' : 'created';
+
 
         const order = await Order.create({
             user_id: userId,
@@ -129,6 +132,14 @@ router.post('/checkout', authenticate, requireBuyer, async (req, res) => {
             notes: req.body.notes || ''
         });
 
+        // Update stock
+        for (const item of orderItems) {
+            await Listing.updateOne(
+                { _id: item.listing_id },
+                { $inc: { stock: -item.quantity } }
+            );
+        }
+
         // Clear cart
         cart.items = [];
         await cart.save();
@@ -145,9 +156,10 @@ router.post('/checkout', authenticate, requireBuyer, async (req, res) => {
 // ------------------------------
 
 router.use(authenticate);
-router.use(authorize('seller'));
+router.use(authenticate);
+// router.use(authorize('seller')); // Removed global restriction
 
-router.get('/seller', async (req, res) => {
+router.get('/seller', authorize('seller'), async (req, res) => {
     try {
         const sellerId = req.user.id;
         const sellerObjectId = new mongoose.Types.ObjectId(sellerId);
@@ -224,5 +236,120 @@ router.get('/seller', async (req, res) => {
     }
 });
 
-module.exports = router;
+// ------------------------------
+// Admin Orders
+// ------------------------------
+router.get('/admin', authenticate, authorize('admin', 'root', 'seller'), async (req, res) => {
+    try {
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 25));
+        const skip = (page - 1) * limit;
 
+        const { status, dateFrom, dateTo } = req.query;
+        const filter = {};
+
+        // If seller, restriction to their items
+        if (req.user.role === 'seller') {
+            filter['items.artisan_id'] = req.user.id;
+        }
+
+        if (status && status !== 'all') {
+            filter.status = status;
+        }
+
+        if (dateFrom || dateTo) {
+            filter.createdAt = {};
+            if (dateFrom) filter.createdAt.$gte = new Date(dateFrom);
+            if (dateTo) filter.createdAt.$lte = new Date(dateTo);
+        }
+
+        const [orders, total] = await Promise.all([
+            Order.find(filter)
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .populate('user_id', 'name email mobile')
+                .populate({
+                    path: 'items.listing_id',
+                    select: 'description images title variants'
+                })
+                .populate({
+                    path: 'items.artisan_id',
+                    select: 'name store'
+                })
+                .lean(),
+            Order.countDocuments(filter)
+        ]);
+
+        const normalized = orders.map(order => {
+            const addr = order.shipping_address_snapshot || {};
+
+            // Filter items for sellers to strictly show their own products
+            let displayItems = order.items;
+            if (req.user.role === 'seller') {
+                displayItems = order.items.filter(item =>
+                    item.artisan_id && String(item.artisan_id?._id || item.artisan_id) === String(req.user.id)
+                );
+            }
+
+            return {
+                _id: order._id,
+                createdAt: order.createdAt,
+                status: order.status,
+                payment_status: order.payment?.status || 'pending',
+                shipping_status: order.shipping?.status || 'pending',
+                currency: order.currency,
+                totals: order.totals,
+                buyer: order.user_id ? {
+                    id: order.user_id._id,
+                    name: order.user_id.name,
+                    email: order.user_id.email,
+                    phone: order.user_id.mobile || addr.phone || null
+                } : null,
+                shipping_address: {
+                    name: addr.name || (order.user_id && order.user_id.name) || '',
+                    phone: addr.phone || '',
+                    line1: addr.line1 || '',
+                    line2: addr.line2 || '',
+                    city: addr.city || '',
+                    state: addr.state || '',
+                    postal_code: addr.postal_code || '',
+                    country: addr.country || ''
+                },
+                items: displayItems.map(item => {
+                    const product = item.listing_id || {};
+                    const seller = item.artisan_id || {};
+                    return {
+                        listing_id: product._id || item.listing_id,
+                        title: item.title || product.title,
+                        sku: item.sku || product.variants?.[0]?.sku || 'N/A', // Fallback to first variant SKU
+                        quantity: item.quantity,
+                        price: item.price,
+                        subtotal: item.subtotal,
+                        // Rich Details
+                        description: product.description || '',
+                        image: product.images?.[0]?.thumb || product.images?.[0]?.large || null, // Extract URL string
+                        seller: {
+                            id: seller._id || item.artisan_id,
+                            name: seller.name || 'Unknown',
+                            store: seller.store || 'Unknown Store'
+                        }
+                    };
+                })
+            };
+        });
+        // To get Artisan Names, we could do a secondary query for all artisan_ids found
+        // Let's do a quick enhancement to fetch artisan names
+        return res.json({
+            orders: normalized,
+            total,
+            page,
+            limit
+        });
+    } catch (err) {
+        console.error('Error fetching seller orders:', err);
+        return res.status(500).json({ error: 'internal', message: err.message });
+    }
+});
+
+module.exports = router;

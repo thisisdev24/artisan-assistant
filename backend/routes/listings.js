@@ -5,6 +5,8 @@ const Listing = require("../models/artisan_point/artisan/Listing");
 const Artisan = require("../models/artisan_point/artisan/Artisan");
 const axios = require("axios");
 const mongoose = require("mongoose");
+const path = require("path");
+const { deleteObject } = require("../utils/gcs");
 
 const ML = process.env.ML_SERVICE_URL;
 
@@ -560,19 +562,96 @@ router.delete("/:id/:artisan_id", async (req, res) => {
     }
 
     // ownership check
-    if (listing.artisan_id.toString() !== artisan_id) {
+    if (listing.artisan_id && listing.artisan_id.toString() !== artisan_id) {
       return res
         .status(403)
         .json({ message: "Not authorized to delete this listing" });
     }
 
-    listing.deleteRequested = true;
-    listing.deleteRequestedAt = new Date();
-    await listing.save();
+    // If published -> mark deleteRequested for admin approval
+    if (listing.status === "published") {
+      listing.deleteRequested = true;
+      listing.deleteRequestedAt = new Date();
+      await listing.save();
+      return res.json({
+        message: "Delete request sent for admin approval",
+      });
+    } else {
+      // For drafts (or any non-published listing) — delete DB doc AND attempt to remove GCS objects
+      // Helper: convert a public URL (https://storage.googleapis.com/BUCKET/obj) to object key inside bucket
+      function urlToKey(url) {
+        try {
+          const u = new URL(url);
+          // pathname usually is /<BUCKET_NAME>/<object-path>
+          const p = u.pathname || "";
+          const parts = p.split("/").filter(Boolean); // remove empty
+          const bucketName = process.env.GCS_BUCKET;
+          if (!bucketName) {
+            // fallback: return pathname without leading slash
+            return p.replace(/^\//, "");
+          }
+          const idx = parts.indexOf(bucketName);
+          if (idx !== -1) return parts.slice(idx + 1).join("/");
+          // if bucket name not found in path, attempt to strip leading slash and return remainder
+          return p.replace(/^\//, "");
+        } catch (e) {
+          return null;
+        }
+      }
 
-    return res.json({
-      message: "Delete request sent for admin approval",
-    });
+      // Delete all image objects related to this listing (original + thumbnails + derived names)
+      if (Array.isArray(listing.images) && listing.images.length > 0) {
+        for (const img of listing.images) {
+          const keysToTry = new Set();
+
+          // 1) direct stored key (original file)
+          if (img.key) keysToTry.add(img.key);
+
+          // 2) parse thumb/large/hi_res public URLs to keys (if present)
+          ["thumb", "large", "hi_res"].forEach((f) => {
+            if (img[f] && typeof img[f] === "string") {
+              const k = urlToKey(img[f]);
+              if (k) keysToTry.add(k);
+            }
+          });
+
+          // 3) derive common thumbnail names from original key (cover uploader variants)
+          if (img.key && typeof img.key === "string") {
+            const ext = path.extname(img.key) || ".jpg";
+            const base = img.key.slice(0, -ext.length);
+            keysToTry.add(`${base}_thumb1${ext}`);
+            keysToTry.add(`${base}_thumb2${ext}`);
+            keysToTry.add(`${base}_thumb3${ext}`);
+          }
+
+          // attempt deletion for each candidate key
+          for (const objKey of keysToTry) {
+            if (!objKey) continue;
+            try {
+              // deleteObject ignores 404s (as implemented in utils/gcs.js)
+              // await here so we don't flood GCS with too many parallel requests for large batches
+              await deleteObject(objKey);
+              console.info("gcs: deleted object:", objKey);
+            } catch (err) {
+              // log and continue — don't let failing deletion block DB deletion
+              console.warn("gcs: failed to delete object", objKey, err && err.message ? err.message : err);
+            }
+          }
+        }
+      }
+
+      // Finally remove listing document
+      try {
+        await Listing.findOneAndDelete({ _id: id }, { sort: { updatedAt: -1 } });
+        console.info("Draft with id:" + id + " successfully deleted.");
+        return res.json({
+          message: "Deleted successfully.",
+        });
+      } catch (err) {
+        console.error("Delete failed for", id, err && err.message ? err.message : err);
+        return res.status(500).json({ message: "Deletion failed" });
+      }
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Delete request failed" });

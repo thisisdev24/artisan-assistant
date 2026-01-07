@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from '../context/AuthContext';
-import apiClient from '../utils/apiClient';
+import { useAuth } from "../context/AuthContext";
+import apiClient from "../utils/apiClient";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -35,7 +35,6 @@ const Login = () => {
       } else {
         navigate("/");
       }
-
     } catch (err) {
       alert(err.response?.data?.msg || "Login failed");
     }
@@ -45,8 +44,13 @@ const Login = () => {
       {/* <Navbar /> */}
       <div className="min-h-screen bg-white flex flex-col justify-center items-center select-none">
         <div className="w-full max-w-sm md:max-w-md mx-auto bg-primary/20 p-4 mt-16 rounded-xl shadow-xl">
-          <h2 className="text-2xl lg:text-3xl font-bold text-center text-black mb-6" >Login</h2>
-          <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4">
+          <h2 className="text-2xl lg:text-3xl font-bold text-center text-black mb-6">
+            Login
+          </h2>
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col items-center gap-4"
+          >
             <input
               type="email"
               placeholder="Email"
@@ -81,7 +85,10 @@ const Login = () => {
           </form>
           <p className="text-sm lg:text-base text-gray-600 text-center mt-4">
             Don't have an account?{" "}
-            <Link to="/register" className="text-orange-400 font-semibold hover:underline">
+            <Link
+              to="/register"
+              className="text-orange-400 font-semibold hover:underline"
+            >
               Register
             </Link>
           </p>
@@ -92,22 +99,3 @@ const Login = () => {
 };
 
 export default Login;
-// export default function Login(){
-//   const [email,setEmail]=useState('');
-//   const [password,setPassword]=useState('');
-//   async function submit(e){
-//     e.preventDefault();
-//     const res = await axios.post(import.meta.env.VITE_API_URL + '/api/auth/login', { email, password });
-//     console.log(res.data);
-//     // save token -> localStorage
-//     localStorage.setItem('token', res.data.token);
-//     window.location.href = '/';
-//   }
-//   return (
-//     <form onSubmit={submit}>
-//       <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="email"/>
-//       <input value={password} onChange={e=>setPassword(e.target.value)} placeholder="password" type="password"/>
-//       <button type="submit">Login</button>
-//     </form>
-//   );
-// }

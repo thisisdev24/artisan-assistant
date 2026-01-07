@@ -1,10 +1,15 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import apiClient from "../../utils/apiClient";
 
 const ProductDetailsForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const sellerStore = user?.store || null;
+  const sellerId = user?.id || null;
   const token = localStorage.getItem("token");
 
   const [title, setTitle] = useState("");
@@ -87,6 +92,18 @@ const ProductDetailsForm = () => {
     }
   }
 
+  async function handleDraftDelete() {
+    setLoading(false);
+
+    try {
+      await apiClient.delete(`/api/listings/${id}/${sellerId}`);
+      navigate('/Seller');
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert(err?.response?.data?.message || "Failed to delete product");
+    }
+  }
+
   async function handlePublish(e) {
     e.preventDefault();
 
@@ -110,7 +127,7 @@ const ProductDetailsForm = () => {
       };
 
       const publishData = {
-        title,
+        title: title.trim(),
         features:
           Array.isArray(features) && features.length > 0
             ? JSON.stringify(features)
@@ -135,7 +152,7 @@ const ProductDetailsForm = () => {
       );
 
       alert("Product published successfully!");
-      navigate(`/product/${id}`);
+      navigate(`/products/${id}`);
     } catch (err) {
       console.error("Publish error:", err?.response?.data || err.message);
       alert(
@@ -153,6 +170,7 @@ const ProductDetailsForm = () => {
         <h2 className="text-3xl font-bold text-center mb-6 text-green-700">
           Product Details
         </h2>
+        <h3 className="text-2xl font-bold text-center mb-6 text-green-700">{sellerStore}</h3>
         <p className="text-center text-gray-600 mb-6">
           Add additional details to complete your listing
         </p>
@@ -306,7 +324,7 @@ const ProductDetailsForm = () => {
               <label className="block text-gray-700 mb-2">Title</label>
               <input
                 value={title}
-                onChange={(e) => setTitle(e.target.value.trim())}
+                onChange={(e) => setTitle(e.target.value)}
                 placeholder="Enter product title"
                 className="w-full px-4 py-2 border rounded-lg"
               />
@@ -501,8 +519,15 @@ const ProductDetailsForm = () => {
               ← Back
             </button>
             <button
+            type="button"
+            onClick={() => handleDraftDelete()}
+            className="flex-1 bg-red-500 text-white py-3 rounded-lg hover:bg-red-600 transition font-semibold">
+              Discard
+            </button>
+            <button
               type="submit"
               disabled={loading}
+              onClick={(e) => handlePublish(e)}
               className="flex-1 bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Publishing..." : "🚀 Publish Product"}
