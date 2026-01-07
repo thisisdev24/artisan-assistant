@@ -22,6 +22,7 @@ const ShowListing = ({ storeName: propStoreName }) => {
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
 
   // Refs for cancellation and mounted check
@@ -135,6 +136,7 @@ const ShowListing = ({ storeName: propStoreName }) => {
   };
 
   async function handleDelete(productId, productStatus) {
+    setDeleting(true);
     try {
       await apiClient.delete(`/api/listings/${productId}/${sellerId}`);
       setProducts((prev) =>
@@ -150,6 +152,8 @@ const ShowListing = ({ storeName: propStoreName }) => {
     } catch (err) {
       console.error("Delete failed:", err);
       alert(err?.response?.data?.message || "Failed to delete product");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -228,7 +232,7 @@ const ShowListing = ({ storeName: propStoreName }) => {
                     </span>
                   </div>
 
-                  <div className="flex flex-row justify-between items-center gap-2 my-4 w-full">
+                  {!deleting && <div className="flex flex-row justify-between items-center gap-2 my-4 w-full">
                     <button
                       onClick={() =>
                         navigate(`/seller/edit-product/${product._id}`)
@@ -237,6 +241,7 @@ const ShowListing = ({ storeName: propStoreName }) => {
                     >
                       Edit
                     </button>
+
                     {product.deleteRequested ? (
                       <div>
                         <p className="text-xs text-center">Deletion requested from admin</p>
@@ -258,6 +263,7 @@ const ShowListing = ({ storeName: propStoreName }) => {
                       View
                     </button>
                   </div>
+                  }
                 </div>
               </div>
             ))}
