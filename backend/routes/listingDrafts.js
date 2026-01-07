@@ -1,4 +1,4 @@
-// routes/listingDrafts.js
+// backend/routes/listingDrafts.js
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
@@ -67,16 +67,16 @@ router.post("/draft", async (req, res) => {
       features: Array.isArray(features)
         ? features
         : features
-        ? JSON.parse(features)
-        : [],
+          ? JSON.parse(features)
+          : [],
       price: numericPrice,
       store: store || null,
       artisan_id: artisanObjectId,
       categories: Array.isArray(categories)
         ? categories
         : categories
-        ? JSON.parse(categories)
-        : [],
+          ? JSON.parse(categories)
+          : [],
       details: details || null,
 
       parent_asin: parent_asin || null,
@@ -116,8 +116,6 @@ router.post("/:id/images", upload.array("images", 6), async (req, res) => {
     const imagesMeta = [];
     for (const file of imageFiles) {
       const key = makeKey(file.originalname);
-      await uploadBuffer(file.buffer, key, file.mimetype);
-
       let thumbBuf, largeThumbnailBuf, highResThumbnailBuf;
       try {
         thumbBuf = await createThumbnailBuffer(file.buffer, 320);
@@ -137,11 +135,14 @@ router.post("/:id/images", upload.array("images", 6), async (req, res) => {
         highResThumbnailBuf = file.buffer;
       }
 
-      const thumbKey = key.replace(/(\.[^.]+)$/, "_thumb$1");
+      // canonical thumbnail names: _thumb1, _thumb2, _thumb3 (preserve extension)
+      const thumbKey = key.replace(/(\.[^.]+)$/, `_thumb1$1`);
       await uploadBuffer(thumbBuf, thumbKey, "image/jpeg");
-      const largeThumbKey = key.replace(/(\.[^.]+)$/, "_thumb$2");
+
+      const largeThumbKey = key.replace(/(\.[^.]+)$/, `_thumb2$1`);
       await uploadBuffer(largeThumbnailBuf, largeThumbKey, "image/jpeg");
-      const highResThumbKey = key.replace(/(\.[^.]+)$/, "_thumb$3");
+
+      const highResThumbKey = key.replace(/(\.[^.]+)$/, `_thumb3$1`);
       await uploadBuffer(highResThumbnailBuf, highResThumbKey, "image/jpeg");
 
       const thumbnailUrl = await getPublicUrl(thumbKey);
@@ -269,7 +270,7 @@ router.patch("/:id/publish", async (req, res) => {
 
     const { title, price, description, features, stock, stock_available, dimensions } = req.body;
 
-    if (title.length > 1) listing.title = title; 
+    if (title.length > 1) listing.title = title;
 
     const numericPrice = Number(price);
     if (Number.isNaN(numericPrice)) {
