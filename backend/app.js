@@ -1,5 +1,16 @@
 // backend/app.js
 require("dotenv").config();
+const mongoose = require("mongoose");
+
+// Database connection helper to prevent multiple connections in serverless
+const connectDB = async () => {
+  if (mongoose.connections[0].readyState) return;
+  await mongoose.connect(process.env.MONGO_URI, {
+    dbName: process.env.ML_DB,
+  });
+  console.log("MongoDB Connected");
+};
+
 const cors = require("cors");
 const express = require("express");
 const cookieParser = require("cookie-parser");
@@ -7,6 +18,16 @@ const logRoutes = require("./routes/logRoutes");
 const attachLogger = require("./middleware/logMiddleware");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const app = express();
+
+// Middleware to ensure DB is connected before handling routes
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    res.status(500).send("Database Connection Error");
+  }
+});
 
 app.enable("trust proxy"); // detect public IP behind CDN/load balancer
 
