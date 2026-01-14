@@ -158,7 +158,7 @@ const Hero = () => {
                 >
                   {/* text content */}
                   <motion.div
-                    className="flex flex-col items-start justify-center gap-16 max-w-1/2 h-full leading-tight mx-8 rounded-xl"
+                    className="flex flex-col items-between justify-center gap-16 max-w-1/2 h-full leading-tight mx-8 rounded-xl"
                     variants={heroVariants}
                   >
                     <motion.h1
@@ -185,6 +185,7 @@ const Hero = () => {
                       data-aos-duration="500"
                       data-aos-delay="300"
                       variants={itemVariants}
+                      className="pb-8"
                     >
                       <div className="flex gap-4">
                         <motion.a
