@@ -11,7 +11,7 @@ const app = express();
 app.enable("trust proxy"); // detect public IP behind CDN/load balancer
 
 // Use an env var for allowed frontend origin
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN;
 
 // Allow credentials and the specific origin (not '*')
 app.use(cors({
