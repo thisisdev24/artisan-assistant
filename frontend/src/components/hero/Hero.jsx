@@ -3,11 +3,11 @@ import LoopingAnimatedBackground from "./LoopingAnimatedBackground";
 import Slider from "react-slick"; // Import Slider
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-import imgage1 from "../../assets/hero/fabrics.avif";
-import image2 from "../../assets/hero/glassworks.avif";
-import image3 from "../../assets/hero/leather.jpg";
-import image4 from "../../assets/hero/potmaking.avif";
-import image5 from "../../assets/hero/woodcraft.avif";
+import imgage1 from "../../assets/Hero/fabrics.avif";
+import image2 from "../../assets/Hero/glassworks.avif";
+import image3 from "../../assets/Hero/leather.jpg";
+import image4 from "../../assets/Hero/potmaking.avif";
+import image5 from "../../assets/Hero/woodcraft.avif";
 import { Link } from "react-router-dom";
 // eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
