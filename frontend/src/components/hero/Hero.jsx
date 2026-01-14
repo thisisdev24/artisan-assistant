@@ -151,14 +151,14 @@ const Hero = () => {
             {imageList.map((data) => (
               <div key={data.id} className="overflow-hidden mb-4">
                 <motion.div
-                  className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-center mx-auto my-4 rounded-xl h-[400px]"
+                  className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mx-auto my-4 rounded-xl h-[400px]"
                   initial="hidden"
                   animate={loaded ? "visible" : "hidden"}
                   variants={containerVariants}
                 >
                   {/* text content */}
                   <motion.div
-                    className="flex flex-col items-start justify-between max-w-1/2 h-full mx-8 leading-tight rounded-xl"
+                    className="flex flex-col items-start justify-between max-w-1/2 h-full ml-4 leading-tight rounded-xl"
                     variants={heroVariants}
                   >
                     <motion.h1
@@ -208,11 +208,11 @@ const Hero = () => {
                   </motion.div>
 
                   {/* image */}
-                  <div className="rounded-xl overflow-hidden max-w-1/2 mx-8 h-full">
+                  <div className="rounded-xl overflow-hidden max-w-1/2 mr-4 h-full">
                     <motion.img
                       src={data.img}
                       alt={data.title}
-                      className="w-full h-full object-fill shadow-lg mx-auto rounded-xl"
+                      className="w-full h-full object-cover shadow-lg mx-auto rounded-xl"
                       initial="hidden"
                       animate={loaded ? "visible" : "hidden"}
                       variants={illustrationVariants}
