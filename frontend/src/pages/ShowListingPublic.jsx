@@ -164,7 +164,7 @@ const ShowListingPublic = () => {
       setErrorMsg(null);
       try {
         const response = await axios.get(
-          "http://localhost:5000/api/listings/retrieve?status=published&deleteRequested=false",
+          "/api/listings/retrieve?status=published&deleteRequested=false",
           {
             params: buildParams(pageNum),
           }
