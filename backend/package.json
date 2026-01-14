@@ -14,7 +14,6 @@
     "test": "jest --runInBand"
   },
   "dependencies": {
-    "@faker-js/faker": "^10.0.0",
     "@google-cloud/storage": "^7.17.3",
     "axios": "^1.13.2",
     "bcryptjs": "^2.4.3",

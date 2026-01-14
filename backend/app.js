@@ -1,5 +1,16 @@
 // backend/app.js
 require("dotenv").config();
+const mongoose = require("mongoose");
+
+// Database connection helper to prevent multiple connections in serverless
+const connectDB = async () => {
+  if (mongoose.connections[0].readyState) return;
+  await mongoose.connect(process.env.MONGO_URI, {
+    dbName: process.env.ML_DB,
+  });
+  console.log("MongoDB Connected");
+};
+
 const cors = require("cors");
 const express = require("express");
 const cookieParser = require("cookie-parser");
@@ -8,65 +19,42 @@ const attachLogger = require("./middleware/logMiddleware");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const app = express();
 
+// Middleware to ensure DB is connected before handling routes
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    res.status(500).send("Database Connection Error");
+  }
+});
+
 app.enable("trust proxy"); // detect public IP behind CDN/load balancer
 
-// Use an env var for allowed frontend origin
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN;
+const allowedOrigins = [
+  process.env.FRONTEND_ORIGIN,
+  'http://localhost:5173', // Default Vite port
+  'http://localhost:3000'
+];
 
-// Allow credentials and the specific origin (not '*')
 app.use(cors({
   origin: (origin, callback) => {
-    // allow requests with no origin (like curl, mobile)
+    // 1. Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
-    // Allow any localhost for development
-    if (origin.startsWith('http://localhost') || origin === FRONTEND_ORIGIN) {
-      return callback(null, true);
-    }
-    return callback(new Error('CORS policy: This origin is not allowed'));
-  },
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: [
-    'Content-Type',
-    'Authorization',
-    'X-Requested-With',
-    'x-network-type',
-    'x-network-effective-type',
-    'x-network-downlink',
-    'x-network-rtt',
-    'x-network-save-data',
-    'x-device-memory',
-    'x-device-platform',
-    'x-device-hardware-concurrency',
-    'x-timezone',
-  ],
-  credentials: true
-}));
 
-// Preflight - Allow PATCH method
-app.options('*', cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (origin.startsWith('http://localhost') || origin === FRONTEND_ORIGIN) {
+    // 2. Allow specific origins or any vercel.app subdomain
+    const isVercelSubdomain = origin.endsWith('.vercel.app');
+    const isAllowedCustom = allowedOrigins.includes(origin);
+
+    if (isAllowedCustom || isVercelSubdomain) {
       return callback(null, true);
+    } else {
+      return callback(new Error('CORS policy: This origin is not allowed'));
     }
-    return callback(new Error('CORS policy: This origin is not allowed'));
   },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: [
-    'Content-Type',
-    'Authorization',
-    'X-Requested-With',
-    'x-network-type',
-    'x-network-effective-type',
-    'x-network-downlink',
-    'x-network-rtt',
-    'x-network-save-data',
-    'x-device-memory',
-    'x-device-platform',
-    'x-device-hardware-concurrency',
-    'x-timezone',
-  ],
-  credentials: true
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'] // Add others as needed
 }));
 
 app.use(express.json());
