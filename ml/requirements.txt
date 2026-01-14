@@ -1,4 +1,5 @@
 dotenv
+wheel
 fastapi
 uvicorn[standard]
 sentence-transformers>=2.2.2
