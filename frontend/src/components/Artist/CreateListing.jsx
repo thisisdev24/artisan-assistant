@@ -69,7 +69,7 @@ const CreateListing = () => {
 
       console.log("Creating draft with data:", draftData);
       const draftRes = await axios.post(
-        "http://localhost:5000/api/drafts/draft",
+        "/api/drafts/draft",
         draftData,
         {
           headers: {
@@ -109,7 +109,7 @@ const CreateListing = () => {
 
       console.log("Uploading images...");
       await axios.post(
-        `http://localhost:5000/api/drafts/${draftId}/images`,
+        `/api/drafts/${draftId}/images`,
         imageFormData,
         {
           headers: {

@@ -101,7 +101,7 @@ export default function SearchBar({
     try {
       // example endpoint: /api/recommendations?q=...&limit=6
       const resp = await fetch(
-        `http://localhost:5000/api/listings/recommend?query=${encodeURIComponent(
+        `/api/listings/recommend?query=${encodeURIComponent(
           qstr
         )}&k=6`,
         { signal: abortRef.current.signal }
