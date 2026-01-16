@@ -1,6 +1,6 @@
 // frontend/src/utils/apiClient.js
 import axios from "axios";
-const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const baseURL = import.meta.env.VITE_API_URL || "";
 const apiClient = axios.create({ baseURL, withCredentials: true });
 
 // request: attach access token from localStorage
