@@ -51,7 +51,7 @@ const Navbar = () => {
             className="text-xl flex items-center gap-2 font-bold uppercase"
           >
             <SiSnapcraft />
-            <p>Artist</p>
+            <p>Artisan</p>
             <p className="text-orange-400 mr-4">Point</p>
           </Link>
 
