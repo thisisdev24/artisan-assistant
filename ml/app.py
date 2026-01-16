@@ -9,6 +9,7 @@ import numpy as np
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from huggingface_hub import snapshot_download
 from sentence_transformers import SentenceTransformer
 
 from faiss_index import FaissTextIndexer
@@ -59,7 +60,7 @@ app = FastAPI(title="Embedding & FAISS Service")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://artisan-point.vercel.app/"],
     allow_methods=["*"],
     allow_headers=["*"],
     allow_credentials=True,
@@ -70,11 +71,18 @@ async def lifespan(app: FastAPI):
     global text_model, indexer, index_ntotal, index_dim, clip_tagger, clip_tagger_model_name
     # startup
     try:
-        LOG.info("Loading text embedding model: %s", TEXT_EMBED_MODEL)
-        text_model = SentenceTransformer(TEXT_EMBED_MODEL)
-        LOG.info("Text model loaded.")
+        LOG.info("Checking for text model: %s", TEXT_EMBED_MODEL)
+        # If TEXT_EMBED_MODEL is a repo ID, this ensures it's cached locally
+        # If it's a local path that doesn't exist, this will try to fetch it from HF
+        model_path = TEXT_EMBED_MODEL
+        if not os.path.exists(model_path):
+            LOG.info("Model not found locally. Downloading from Hugging Face...")
+            model_path = snapshot_download(repo_id=TEXT_EMBED_MODEL, library_name="sentence-transformers")
+        
+        text_model = SentenceTransformer(model_path)
+        LOG.info("Text model loaded from: %s", model_path)
     except Exception as e:
-        LOG.exception("Failed to load text model: %s", e)
+        LOG.exception("Failed to load/download text model: %s", e)
         text_model = None
 
     try:
