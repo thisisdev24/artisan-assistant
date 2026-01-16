@@ -42,7 +42,7 @@ const ResponsiveMenu = ({ open, onClose }) => {
                             </li>
 
                             <li>
-                                <Link to="/products" onClick={onClose} onTouchStart={onClose}>
+                                <Link to="/ShowListingPublic" onClick={onClose} onTouchStart={onClose}>
                                     Products
                                 </Link>
                             </li>
