@@ -30,7 +30,11 @@ const Navbar = () => {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
   }, [userMenuOpen]);
 
   const isLinkActive = (href) => {
@@ -453,15 +457,22 @@ const Navbar = () => {
 
             {/* mobile hamburger menu section */}
             {!location.pathname.startsWith("/admin") && (
-              <div className="md:hidden " onClick={() => setOpen(!open)}>
-                <MdMenu className="text-4xl " />
-              </div>
+              <button
+                className="md:hidden text-4xl p-1"
+                onClick={() => setOpen(prev => !prev)}
+                onTouchStart={() => setOpen(prev => !prev)}
+                aria-label="Toggle mobile menu"
+                aria-expanded={open}
+                type="button"
+              >
+                <MdMenu />
+              </button>
             )}
           </div>
         </div>
       </nav>
       {/* mobile sidebar section */}
-      <ResponsiveMenu />
+      <ResponsiveMenu open={open} onClose={() => setOpen(false)} />
     </>
   );
 };
