@@ -144,7 +144,7 @@ const Hero = () => {
       density={5}
     >
       {/* hero + vertical sections container */}
-      <div className="container p-8 mx-auto select-none">
+      <div className="container px-4 pt-16 pb-8 md:p-8 mx-auto select-none">
         {/* ===== SLIDER HERO ===== */}
         <section className="pt-16">
           <Slider {...settings}>

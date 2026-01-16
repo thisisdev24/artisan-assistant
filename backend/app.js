@@ -54,7 +54,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'] // Add others as needed
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-network-type', 'x-timezone', 'x-network-effective-type', 'x-network-rtt'] // Add others as needed
 }));
 
 app.use(express.json());
