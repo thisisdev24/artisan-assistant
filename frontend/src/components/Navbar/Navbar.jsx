@@ -48,7 +48,7 @@ const Navbar = () => {
           Container row: use padding and flex utilities consistently (justify-between,
           items-center). Kept flex-wrap so mobile behaviour remains unchanged.
         */}
-        <div className="flex flex-wrap items-center justify-between h-full mx-auto select-none">
+        <div className="flex flex-wrap items-center justify-start md:justify-between h-full mx-auto select-none">
           {/* logo section */}
           <Link
             to={user ? (isSeller ? "/Seller" : isAdmin ? "/Admin" : "/") : "/"}
@@ -60,7 +60,7 @@ const Navbar = () => {
           </Link>
 
           {/* menu section - Role-based navigation */}
-          <ul className="hidden md:flex flex-row items-center font-semibold text-xs space-x-2 md:space-x-4 rtl:space-x-reverse md:flex-row">
+          <ul className="hidden md:flex items-center font-semibold text-xs space-x-2 md:space-x-4 rtl:space-x-reverse md:flex-row">
             {!user ? (
               // Not logged in - show public menu
               NavbarMenu.map((item) => {
@@ -438,7 +438,7 @@ const Navbar = () => {
                   )}
                 </div>
               ) : (
-                <div className="pl-24 hidden md:flex gap-2">
+                <div className="md:pl-24 md:flex gap-2">
                   <Link
                     to="/login"
                     className="text-black text-xs hover:bg-primary font-semibold hover:text-white rounded-md border-2 border-primary px-6 py-2 duration-200"

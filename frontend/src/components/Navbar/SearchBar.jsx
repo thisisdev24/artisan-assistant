@@ -269,7 +269,7 @@ export default function SearchBar({
         // small inline style to keep it visually at the end; uses flex parent's layout so no other container changes
         style={{
           marginLeft: "auto",
-          marginRight: 4,
+          marginRight: "2%",
           border: "none",
           cursor: q.trim().length ? "pointer" : "not-allowed",
           fontWeight: 700,
