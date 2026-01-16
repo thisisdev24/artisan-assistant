@@ -108,7 +108,7 @@ const SearchResults = () => {
       );
 
       axios
-        .get("http://localhost:5000/api/listings/search", {
+        .get("/api/listings/search", {
           params: { query },
           timeout: 20000,
           signal: controller.signal, // modern axios supports AbortController

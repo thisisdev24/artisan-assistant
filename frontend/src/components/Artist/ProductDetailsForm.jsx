@@ -35,7 +35,7 @@ const ProductDetailsForm = () => {
     const fetchDraft = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:5000/api/listings/${id}`,
+          `/api/listings/${id}`,
           {
             headers: {
               ...(token ? { Authorization: "Bearer " + token } : {}),
@@ -79,7 +79,7 @@ const ProductDetailsForm = () => {
   async function handleAutoDesc() {
     try {
       const res = await axios.get(
-        "http://localhost:5000/api/listings/gen_desc",
+        "/api/listings/gen_desc",
         {
           params: { title, features },
           timeout: 20000,
@@ -141,7 +141,7 @@ const ProductDetailsForm = () => {
       };
 
       await axios.patch(
-        `http://localhost:5000/api/drafts/${id}/publish`,
+        `/api/drafts/${id}/publish`,
         publishData,
         {
           headers: {
