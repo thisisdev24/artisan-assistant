@@ -43,7 +43,7 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="bg-white/60 backdrop-blur-lg shadow-md fixed w-full h-16 z-20 top-0 px-4 py-2">
+      <nav className="bg-white/60 backdrop-blur-lg shadow-md fixed w-full h-32 md:h-16 z-20 top-0 px-4 py-2">
         {/*
           Container row: use padding and flex utilities consistently (justify-between,
           items-center). Kept flex-wrap so mobile behaviour remains unchanged.
@@ -60,7 +60,7 @@ const Navbar = () => {
           </Link>
 
           {/* menu section - Role-based navigation */}
-          <ul className="flex flex-row items-center font-semibold text-xs space-x-2 md:space-x-4 rtl:space-x-reverse md:flex-row">
+          <ul className="hidden md:flex flex-row items-center font-semibold text-xs space-x-2 md:space-x-4 rtl:space-x-reverse md:flex-row">
             {!user ? (
               // Not logged in - show public menu
               NavbarMenu.map((item) => {
