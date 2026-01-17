@@ -38,6 +38,11 @@ DEFAULT_COLORS = [
 def _is_url(uri: str) -> bool:
     return uri.startswith("http://") or uri.startswith("https://")
 
+CACHE_DIR = os.environ.get("HF_HOME", "./model_cache")
+os.makedirs(CACHE_DIR, exist_ok=True)
+# 2. Tell open_clip where to look
+os.environ["OPEN_CLIP_CACHE"] = CACHE_DIR
+
 class ClipTagger:
     def __init__(self, model_preference: Optional[str] = None, device: Optional[str] = None):
         """
@@ -59,7 +64,12 @@ class ClipTagger:
         last_errs = []
         for candidate_name, pretrained_tag in candidates:
             try:
-                self.model, _, self.preprocess = open_clip.create_model_and_transforms(candidate_name, pretrained=pretrained_tag)
+                # open_clip will now automatically use CACHE_DIR
+                self.model, _, self.preprocess = open_clip.create_model_and_transforms(
+                    candidate_name, 
+                    pretrained=pretrained_tag,
+                    cache_dir=CACHE_DIR  # Explicitly passing it here as well
+                )
                 # tokenizer helper
                 self.tokenizer = open_clip.get_tokenizer(candidate_name)
                 self.model.to(self.device)
