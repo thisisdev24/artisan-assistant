@@ -15,12 +15,36 @@ const { Storage } = require('@google-cloud/storage');
 
 const BUCKET_NAME = process.env.GCS_BUCKET;
 const KEYFILE = process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.GOOGLE_APPLICATION_CREDENTIALS_PATH;
+// For Production
+const jsonString = JSON.parse(process.env.SA_KEY);
+if (jsonString) {
+  try {
+    // 1. Parse the JSON string from the environment variable into a JS object
+    const jsonObject = JSON.parse(jsonString);
+
+    // 2. Stringify the JS object with formatting for the file (optional, but good practice)
+    const outputJsonString = JSON.stringify(jsonObject, null, 2);
+
+    // 3. Write the string to a new JSON file
+    fs.writeFile('output.json', outputJsonString, (err) => {
+      if (err) {
+        console.error('Error writing file', err);
+      } else {
+        console.log('Successfully created output.json');
+      }
+    });
+  } catch (e) {
+    console.error('Failed to parse JSON from environment variable', e);
+  }
+} else {
+  console.log('SA_KEY environment var is not set.');
+}
 
 if (!BUCKET_NAME) {
   throw new Error('GCS_BUCKET is not set. Create a .env or export GCS_BUCKET and retry.');
 }
 
-const storage = new Storage({ keyFilename: KEYFILE });
+const storage = new Storage({ keyFilename: './output.json' || KEYFILE });
 const bucket = storage.bucket(BUCKET_NAME);
 
 // Cache the UBLA + IAM public check results
