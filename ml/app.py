@@ -51,7 +51,7 @@ indexer: Optional[FaissTextIndexer] = None
 index_ntotal: int = 0
 index_dim: Optional[int] = None
 clip_tagger: Optional[ClipTagger] = None
-clip_tagger_model_name: Optional[str] = None
+clip_tagger_model_name: Optional[str] = "ViT-H-14" if SYSTEM_RAM > 17 else "ViT-B-32"
 
 # ---------------------------
 # FastAPI app with lifespan
@@ -60,7 +60,10 @@ app = FastAPI(title="Embedding & FAISS Service")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://artisan-point.vercel.app/"],
+    allow_origins=[
+        "https://artisan-point.vercel.app/",
+        "http://localhost:5000/",
+        str(os.environ.get("FRONTEND_ORIGIN")) + "/"],
     allow_methods=["*"],
     allow_headers=["*"],
     allow_credentials=True,
@@ -135,13 +138,13 @@ class GenDescReq(BaseModel):
 class DetectColorsReq(BaseModel):
     images: List[str]
     top_k_per_image: int = 3
-    device: str = "cuda"
+    device: str = "cpu"
 
 class ZeroShotTagReq(BaseModel):
     images: List[str]
     top_k_per_attr: int = 3
     device: str = "cpu"
-    model_name: Optional[str] = "H-14" if SYSTEM_RAM > 8 else "B-32"  # optional override, default uses the high-quality H/14
+    model_name: Optional[str] = None
 
 class SuggestLabelsReq(BaseModel):
     texts: List[str]

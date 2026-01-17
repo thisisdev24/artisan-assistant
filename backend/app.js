@@ -34,7 +34,7 @@ app.enable("trust proxy"); // detect public IP behind CDN/load balancer
 const allowedOrigins = [
   process.env.FRONTEND_ORIGIN,
   'http://localhost:5173', // Default Vite port
-  'http://localhost:3000'
+  'http://localhost:5000'
 ];
 
 app.use(cors({

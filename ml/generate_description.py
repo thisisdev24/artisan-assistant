@@ -57,7 +57,7 @@ _TOKENIZER_MAX_LENGTH = int(os.getenv("GEN_DESC_TOKENIZER_MAX_LEN", "512"))
 MIN_CHARS = int(os.getenv("GEN_DESC_MIN_CHARS", "60"))
 NUM_CANDIDATES = int(os.getenv("GEN_DESC_NUM_CANDIDATES", "3"))
 
-CACHE_DIR = os.environ.get("HF_HOME", "./models_cache")
+CACHE_DIR = os.environ.get("HF_HOME", "./model_cache")
 os.makedirs(CACHE_DIR, exist_ok=True)
 
 # Set environment variables for Transformers

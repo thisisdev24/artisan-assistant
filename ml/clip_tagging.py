@@ -60,7 +60,6 @@ class ClipTagger:
         candidates = []
         if model_preference:
             candidates.append((model_preference, "laion2b_s32b_b79k" if "H-14" in model_preference else "laion2b_s34b_b79k"))
-        candidates += [("ViT-H-14", "laion2b_s32b_b79k"), ("ViT-B-32", "laion2b_s34b_b79k")]
 
         last_errs = []
         for candidate_name, pretrained_tag in candidates:

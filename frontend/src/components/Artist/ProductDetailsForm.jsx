@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import apiClient from "../../utils/apiClient";
@@ -34,7 +33,7 @@ const ProductDetailsForm = () => {
     // Fetch draft listing details to show preview
     const fetchDraft = async () => {
       try {
-        const res = await axios.get(
+        const res = await apiClient.get(
           `/api/listings/${id}`,
           {
             headers: {
@@ -78,7 +77,7 @@ const ProductDetailsForm = () => {
 
   async function handleAutoDesc() {
     try {
-      const res = await axios.get(
+      const res = await apiClient.get(
         "/api/listings/gen_desc",
         {
           params: { title, features },
@@ -140,7 +139,7 @@ const ProductDetailsForm = () => {
         main_color: mainColor || undefined, // server schema can pick this up; optional
       };
 
-      await axios.patch(
+      await apiClient.patch(
         `/api/drafts/${id}/publish`,
         publishData,
         {
