@@ -26,7 +26,7 @@ if (jsonString) {
     const outputJsonString = JSON.stringify(jsonObject, null, 2);
 
     // 3. Write the string to a new JSON file
-    fs.writeFile('output.json', outputJsonString, (err) => {
+    fs.writeFile('/tmp/output.json', outputJsonString, (err) => {
       if (err) {
         console.error('Error writing file', err);
       } else {
@@ -44,7 +44,7 @@ if (!BUCKET_NAME) {
   throw new Error('GCS_BUCKET is not set. Create a .env or export GCS_BUCKET and retry.');
 }
 
-const storage = new Storage({ keyFilename: './output.json' || KEYFILE });
+const storage = new Storage({ keyFilename: '/tmp/output.json' || KEYFILE });
 const bucket = storage.bucket(BUCKET_NAME);
 
 // Cache the UBLA + IAM public check results
