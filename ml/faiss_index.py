@@ -27,6 +27,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+TEXT_EMBED_MODEL = os.environ.get("TEXT_EMBED_MODEL", "all-MiniLM-L6-v2")
 
 # ==========================================================
 #                 FAISS TEXT INDEXER (UPGRADED)
@@ -59,7 +60,7 @@ class FaissTextIndexer:
 
         # Transform model
         logger.info("Loading SentenceTransformer model...")
-        self.model = SentenceTransformer(os.environ.get('HF_HOME', './model_cache'))
+        self.model = SentenceTransformer("sentence-transformers/" + TEXT_EMBED_MODEL, os.environ.get('HF_HOME', './model_cache'))
 
         # Load or create index
         self.index = self._load_or_create()
