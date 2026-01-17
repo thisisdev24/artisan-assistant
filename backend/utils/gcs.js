@@ -44,7 +44,7 @@ if (!BUCKET_NAME) {
   throw new Error('GCS_BUCKET is not set. Create a .env or export GCS_BUCKET and retry.');
 }
 
-const storage = new Storage({ keyFilename: './output.json' || KEYFILE });
+const storage = new Storage({ keyFilename: '/tmp/output.json' || KEYFILE });
 const bucket = storage.bucket(BUCKET_NAME);
 
 // Cache the UBLA + IAM public check results
