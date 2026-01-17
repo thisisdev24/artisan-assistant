@@ -7,7 +7,7 @@ const app = require("./app");
 // Load analytics models on startup
 const { loadAnalyticsModels } = require("./models/analytics");
 
-const PORT = process.env.PORT;
+const PORT = process.env.BACKEND_PORT;
 const MONGO_URI = process.env.MONGO_URI; // MAIN DB
 const { getLogModels } = require("./models/logs");
 

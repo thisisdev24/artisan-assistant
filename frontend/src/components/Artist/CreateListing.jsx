@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
+import apiClient from "../../utils/apiClient";
 
 const CreateListing = () => {
   const navigate = useNavigate();
@@ -68,7 +68,7 @@ const CreateListing = () => {
       };
 
       console.log("Creating draft with data:", draftData);
-      const draftRes = await axios.post(
+      const draftRes = await apiClient.post(
         "/api/drafts/draft",
         draftData,
         {
@@ -108,7 +108,7 @@ const CreateListing = () => {
       files.forEach((f) => imageFormData.append("images", f));
 
       console.log("Uploading images...");
-      await axios.post(
+      await apiClient.post(
         `/api/drafts/${draftId}/images`,
         imageFormData,
         {
