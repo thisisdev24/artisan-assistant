@@ -26,7 +26,7 @@ if (jsonString) {
     const outputJsonString = JSON.stringify(jsonObject, null, 2);
 
     // 3. Write the string to a new JSON file
-    fs.writeFile('output.json', outputJsonString, (err) => {
+    fs.writeFile('/tmp/output.json', outputJsonString, (err) => {
       if (err) {
         console.error('Error writing file', err);
       } else {
