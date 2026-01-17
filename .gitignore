@@ -56,3 +56,4 @@ docker-compose.override.yml
 secrets/
 data/
 test/
+model_cache/

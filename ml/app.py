@@ -74,7 +74,7 @@ async def lifespan(app: FastAPI):
         LOG.info("Checking for text model: %s", TEXT_EMBED_MODEL)
         # If TEXT_EMBED_MODEL is a repo ID, this ensures it's cached locally
         # If it's a local path that doesn't exist, this will try to fetch it from HF
-        model_path = TEXT_EMBED_MODEL
+        model_path = os.environ.get('HF_HOME', './model_cache')
         if not os.path.exists(model_path):
             LOG.info("Model not found locally. Downloading from Hugging Face...")
             model_path = snapshot_download(repo_id=TEXT_EMBED_MODEL, library_name="sentence-transformers")

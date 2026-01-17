@@ -59,7 +59,7 @@ class FaissTextIndexer:
 
         # Transform model
         logger.info("Loading SentenceTransformer model...")
-        self.model = SentenceTransformer("all-MiniLM-L6-v2")
+        self.model = SentenceTransformer(os.environ.get('HF_HOME', './model_cache'))
 
         # Load or create index
         self.index = self._load_or_create()
