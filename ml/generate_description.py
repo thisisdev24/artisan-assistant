@@ -47,7 +47,7 @@ logger = logging.getLogger("gen_desc")
 load_dotenv(dotenv_path='../backend/.env')  # This loads the .env file
 
 # config
-DEFAULT_MODEL = os.getenv("GEN_DESC_MODEL", "google/flan-t5-base")
+DEFAULT_MODEL = os.environ.get("GEN_DESC_MODEL", "google/flan-t5-base")
 MAX_TOKENS = int(os.getenv("GEN_DESC_MAX_TOKENS", "240"))
 TEMPERATURE = float(os.getenv("GEN_DESC_TEMPERATURE", "0.8"))
 TOP_P = float(os.getenv("GEN_DESC_TOP_P", "0.95"))
@@ -56,6 +56,13 @@ _FEATURE_LIMIT = int(os.getenv("GEN_DESC_FEATURE_LIMIT", "12"))
 _TOKENIZER_MAX_LENGTH = int(os.getenv("GEN_DESC_TOKENIZER_MAX_LEN", "512"))
 MIN_CHARS = int(os.getenv("GEN_DESC_MIN_CHARS", "60"))
 NUM_CANDIDATES = int(os.getenv("GEN_DESC_NUM_CANDIDATES", "3"))
+
+CACHE_DIR = os.environ.get("HF_HOME", "./models_cache")
+os.makedirs(CACHE_DIR, exist_ok=True)
+
+# Set environment variables for Transformers
+os.environ["TRANSFORMERS_CACHE"] = CACHE_DIR
+os.environ["HF_HOME"] = CACHE_DIR
 
 # lazy globals
 _local_tokenizer = None
@@ -88,7 +95,7 @@ def _init_local_model(model_name: str = DEFAULT_MODEL):
 
     try:
         logger.info("Loading tokenizer: %s", model_name)
-        tokenizer = T5Tokenizer.from_pretrained(model_name, use_fast=True)
+        tokenizer = T5Tokenizer.from_pretrained(model_name, use_fast=True, cache_dir=CACHE_DIR)
     except Exception as e:
         logger.exception("Failed to load tokenizer: %s", e)
         return None, None
@@ -96,7 +103,7 @@ def _init_local_model(model_name: str = DEFAULT_MODEL):
     try:
         logger.info("Loading model (CPU) for: %s", model_name)
         # Prefer a safe CPU load; do not assume GPU availability.
-        model = T5ForConditionalGeneration.from_pretrained(model_name)
+        model = T5ForConditionalGeneration.from_pretrained(model_name, cache_dir=CACHE_DIR)
         # Move to CPU explicitly if torch and the model support it
         try:
             device = torch.device("cpu")

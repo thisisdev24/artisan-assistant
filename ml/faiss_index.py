@@ -60,6 +60,7 @@ class FaissTextIndexer:
 
         # Transform model
         logger.info("Loading SentenceTransformer model...")
+        model_path = os.environ.get('HF_HOME', './model_cache')
         self.model = SentenceTransformer("sentence-transformers/" + TEXT_EMBED_MODEL, cache_folder=model_path)
 
         # Load or create index
