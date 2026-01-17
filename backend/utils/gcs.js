@@ -15,7 +15,7 @@ if (!SA_KEY_JSON) {
 
 /**
  * Initialize Storage using the JSON object directly.
- * This avoids the need for a physical file in the /tmp directory.
+ * This avoids the need for a physical file.
  */
 let storageConfig = {};
 try {
@@ -27,8 +27,6 @@ try {
 
 const storage = new Storage(storageConfig);
 const bucket = storage.bucket(BUCKET_NAME);
-
-// --- Rest of your logic remains the same, but cleaner ---
 
 let _ublaChecked = false;
 let _ublaEnabled = false;
