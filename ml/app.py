@@ -79,7 +79,7 @@ async def lifespan(app: FastAPI):
             LOG.info("Model not found locally. Downloading from Hugging Face...")
             model_path = snapshot_download(repo_id=TEXT_EMBED_MODEL, library_name="sentence-transformers")
         
-        text_model = SentenceTransformer(model_path)
+        text_model = SentenceTransformer("sentence-transformers/" + TEXT_EMBED_MODEL, model_path)
         LOG.info("Text model loaded from: %s", model_path)
     except Exception as e:
         LOG.exception("Failed to load/download text model: %s", e)
