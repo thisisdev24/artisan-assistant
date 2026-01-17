@@ -11,6 +11,7 @@ CLIP zero-shot tagger with:
 from typing import List, Dict, Optional, Tuple
 from PIL import Image
 import io, base64, re, time, math
+import os
 import requests
 import numpy as np
 import torch
